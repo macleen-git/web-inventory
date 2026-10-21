@@ -30,7 +30,7 @@ export default function StockIn() {
   const [confirmation, setConfirmation] = useState(null)
   const [isConfirming, setIsConfirming] = useState(false)
 
-  const api_url = 'http://localhost:8080/api/stock-in'
+  const api_url = 'https://web-inventory-rfai.onrender.com/api/stock-in'
 
   // =========================
   // GET STOCK-IN RECORDS

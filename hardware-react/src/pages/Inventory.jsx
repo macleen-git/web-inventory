@@ -79,7 +79,7 @@ export default function Inventory() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('All Status')
 
-  const api_url = 'http://localhost:8080/api/product'
+  const api_url = 'https://web-inventory-rfai.onrender.com/api/product'
 
   // =========================
   // GET PRODUCTS

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import Sidebar from '../components/Sidebar'
 
 export default function Sales() {
-  const api_url = 'http://localhost:8080/api/sales'
+  const api_url = 'https://web-inventory-rfai.onrender.com/api/sales'
 
   const [sales, setSales] = useState([])
 
