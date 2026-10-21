@@ -1,0 +1,20 @@
+{
+    "name": "Hardware Inventory",
+    "short_name": "Hardware Inventory",
+    "start_url": "/",
+    "background_color": "#0D6EFD",
+    "theme_color": "#0A2472",
+    "display": "standalone",
+    "icons": [
+        {
+            "src": "/logo/192.PNG.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/logo/512.PNG.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
