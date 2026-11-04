@@ -22,20 +22,18 @@ export default function FloatingCalculator() {
   const [stored, setStored] = useState(null)
   const [operator, setOperator] = useState(null)
   const [replace, setReplace] = useState(false)
-  const [position, setPosition] = useState({ right: 24, bottom: 24 })
+  const [position, setPosition] = useState({ x: Math.max(12, window.innerWidth - 82), y: Math.max(12, window.innerHeight - 112) })
   const drag = useRef(null)
-  const panelRef = useRef(null)
+  const moved = useRef(false)
+  const launcherRef = useRef(null)
 
   const format = (value) => {
     if (!Number.isFinite(value)) return 'Error'
-    const rounded = Number.parseFloat(value.toPrecision(11))
-    return String(rounded).slice(0, 16)
+    return String(Number.parseFloat(value.toPrecision(11))).slice(0, 16)
   }
 
   const press = (key) => {
-    if (key === 'clear') {
-      setDisplay('0'); setStored(null); setOperator(null); setReplace(false); return
-    }
+    if (key === 'clear') { setDisplay('0'); setStored(null); setOperator(null); setReplace(false); return }
     if (key === 'back') {
       if (replace || display === 'Error') { setDisplay('0'); setReplace(false); return }
       setDisplay(value => value.length <= 1 || (value.length === 2 && value.startsWith('-')) ? '0' : value.slice(0, -1))
@@ -91,48 +89,66 @@ export default function FloatingCalculator() {
     return () => window.removeEventListener('keydown', onKey)
   }, [open, display, stored, operator, replace])
 
+  useEffect(() => {
+    const clamp = () => setPosition(pos => ({
+      x: Math.max(8, Math.min(window.innerWidth - 62, pos.x)),
+      y: Math.max(8, Math.min(window.innerHeight - 62, pos.y)),
+    }))
+    window.addEventListener('resize', clamp)
+    return () => window.removeEventListener('resize', clamp)
+  }, [])
+
   const startDrag = (event) => {
-    if (event.target.closest('button')) return
-    const rect = panelRef.current?.getBoundingClientRect()
-    if (!rect) return
-    drag.current = { x: event.clientX, y: event.clientY, left: rect.left, top: rect.top }
-    event.currentTarget.setPointerCapture?.(event.pointerId)
+    event.preventDefault()
+    moved.current = false
+    drag.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, startX: position.x, startY: position.y }
+    event.currentTarget.setPointerCapture(event.pointerId)
   }
   const moveDrag = (event) => {
-    if (!drag.current) return
-    const left = Math.max(8, Math.min(window.innerWidth - 230, drag.current.left + event.clientX - drag.current.x))
-    const top = Math.max(8, Math.min(window.innerHeight - 340, drag.current.top + event.clientY - drag.current.y))
-    setPosition({ left, top })
+    if (!drag.current || drag.current.pointerId !== event.pointerId) return
+    const dx = event.clientX - drag.current.x
+    const dy = event.clientY - drag.current.y
+    if (Math.abs(dx) + Math.abs(dy) > 4) moved.current = true
+    setPosition({
+      x: Math.max(8, Math.min(window.innerWidth - 62, drag.current.startX + dx)),
+      y: Math.max(8, Math.min(window.innerHeight - 62, drag.current.startY + dy)),
+    })
   }
   const stopDrag = () => { drag.current = null }
 
   return (
     <div className="floating-calculator-root">
-      {!open ? (
-        <button className="floating-calculator-launcher" type="button" aria-label="Open calculator" title="Calculator" onClick={() => setOpen(true)}>
-          <i className="bi bi-calculator-fill" aria-hidden="true" />
-        </button>
-      ) : (
-        <section
-          ref={panelRef}
-          className="floating-calculator-panel"
-          style={position.left !== undefined ? { left: position.left, top: position.top } : { right: position.right, bottom: position.bottom }}
-          aria-label="Floating calculator"
-        >
-          <header className="floating-calculator-header" onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={stopDrag} onPointerCancel={stopDrag}>
-            <span><i className="bi bi-calculator-fill me-2" />Calculator</span>
-            <div className="d-flex gap-1">
-              <button type="button" aria-label="Minimize calculator" title="Minimize" onClick={() => setOpen(false)}><i className="bi bi-dash-lg" /></button>
-              <button type="button" aria-label="Close calculator" title="Close" onClick={() => { setOpen(false); setDisplay('0'); setStored(null); setOperator(null); setReplace(false) }}><i className="bi bi-x-lg" /></button>
+      <button
+        ref={launcherRef}
+        className="floating-calculator-chat-head"
+        type="button"
+        aria-label="Open calculator"
+        title="Drag to move · Tap to open calculator"
+        style={{ left: position.x, top: position.y }}
+        onPointerDown={startDrag}
+        onPointerMove={moveDrag}
+        onPointerUp={stopDrag}
+        onPointerCancel={stopDrag}
+        onClick={() => { if (!moved.current) setOpen(true) }}
+      >
+        <i className="bi bi-calculator-fill" aria-hidden="true" />
+      </button>
+
+      {open && (
+        <div className="floating-calculator-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false) }}>
+          <section className="floating-calculator-modal" role="dialog" aria-modal="true" aria-label="Calculator">
+            <header className="floating-calculator-header">
+              <span><i className="bi bi-calculator-fill me-2" />Calculator</span>
+              <button type="button" aria-label="Close calculator" title="Close" onClick={() => setOpen(false)}><i className="bi bi-x-lg" /></button>
+            </header>
+            <div className="floating-calculator-display" aria-live="polite">{display}</div>
+            <div className="floating-calculator-keys">
+              {KEYS.map(([label, key]) => (
+                <button key={key} type="button" className={['clear','back','percent','sign'].includes(key) ? 'utility' : ['+','-','*','/','equals'].includes(key) ? 'operator' : ''} onClick={() => press(key)}>{label}</button>
+              ))}
             </div>
-          </header>
-          <div className="floating-calculator-display" aria-live="polite">{display}</div>
-          <div className="floating-calculator-keys">
-            {KEYS.map(([label, key]) => (
-              <button key={key} type="button" className={['clear','back','percent','sign'].includes(key) ? 'utility' : ['+','-','*','/','equals'].includes(key) ? 'operator' : ''} onClick={() => press(key)}>{label}</button>
-            ))}
-          </div>
-        </section>
+          </section>
+        </div>
       )}
     </div>
   )
