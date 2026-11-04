@@ -27,19 +27,15 @@ function dateKey(date) {
   return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-')
 }
 
-function inSelectedPeriod(value, period) {
+function inSelectedPeriod(value, selectedDate) {
   const date = parseDate(value)
-  if (!date) return false
-  if (period === 'All time') return true
-  const now = new Date()
-  const start = new Date(now)
-  if (period === 'Last 7 days') start.setDate(now.getDate() - 6)
-  else if (period === 'Last 30 days') start.setDate(now.getDate() - 29)
-  else start.setMonth(now.getMonth() - 11, 1)
-  start.setHours(0, 0, 0, 0)
-  return date >= start && date <= now
+  if (!date || !selectedDate) return false
+  return dateKey(date) === selectedDate
 }
 
+function todayKey() {
+  return dateKey(new Date())
+}
 function MetricCard({ label, value, note, icon, accent }) {
   return (
     <article className="analytics-metric-card">
@@ -86,14 +82,14 @@ function BarChart({ title, subtitle, items, format = value => value }) {
             {points.map(point => <g key={point.label}><circle cx={point.x} cy={point.y} r="4.5" className="sales-chart-dot"><title>{point.label}: {format(point.value)}</title></circle><text x={point.x} y={height-8} textAnchor="middle" className="sales-chart-axis">{point.label}</text></g>)}
           </svg>
         </div>
-      ) : <div className="analytics-empty">No records for this period.</div>}
+      ) : <div className="analytics-empty">No records for this date.</div>}
     </section>
   )
 }
 
 function Dashboard() {
   const [data, setData] = useState({ products: [], sales: [], stockIns: [], damaged: [] })
-  const [period, setPeriod] = useState(() => window.localStorage.getItem('hardware-dashboard-period') || 'Last 7 days')
+  const [selectedDate, setSelectedDate] = useState(todayKey)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [updatedAt, setUpdatedAt] = useState(null)
@@ -121,11 +117,9 @@ function Dashboard() {
   }, [])
 
   useEffect(() => { loadData() }, [loadData])
-  useEffect(() => { window.localStorage.setItem('hardware-dashboard-period', period) }, [period])
-
-  const filteredSales = useMemo(() => data.sales.filter(item => inSelectedPeriod(item.date, period)), [data.sales, period])
-  const filteredStockIns = useMemo(() => data.stockIns.filter(item => inSelectedPeriod(item.date, period)), [data.stockIns, period])
-  const filteredDamaged = useMemo(() => data.damaged.filter(item => inSelectedPeriod(item.date, period)), [data.damaged, period])
+  const filteredSales = useMemo(() => data.sales.filter(item => inSelectedPeriod(item.date, selectedDate)), [data.sales, selectedDate])
+  const filteredStockIns = useMemo(() => data.stockIns.filter(item => inSelectedPeriod(item.date, selectedDate)), [data.stockIns, selectedDate])
+  const filteredDamaged = useMemo(() => data.damaged.filter(item => inSelectedPeriod(item.date, selectedDate)), [data.damaged, selectedDate])
 
   const totalStock = data.products.reduce((sum, item) => sum + asNumber(item.stock), 0)
   const lowStock = data.products.filter(item => asNumber(item.stock) > 0 && asNumber(item.stock) <= 5)
@@ -138,16 +132,12 @@ function Dashboard() {
     filteredSales.forEach(item => {
       const date = parseDate(item.date)
       if (!date) return
-      const label = period === 'Last 7 days' || period === 'Last 30 days'
-        ? date.toLocaleDateString('en-PH', { month: '2-digit', day: '2-digit' })
-        : date.toLocaleDateString('en-PH', { month: '2-digit', year: '2-digit' })
-      const key = period === 'Last 7 days' || period === 'Last 30 days'
-        ? dateKey(date)
-        : `${date.getFullYear()}-${date.getMonth()}`
+      const label = date.toLocaleDateString('en-PH', { month: '2-digit', day: '2-digit' })
+      const key = dateKey(date)
       groups.set(key, { label, value: (groups.get(key)?.value || 0) + asNumber(item.amount) })
     })
     return [...groups.values()].slice(-12)
-  }, [filteredSales, period])
+  }, [filteredSales])
 
   const movement = [
     { label: 'Stock In', value: filteredStockIns.reduce((sum, item) => sum + asNumber(item.quantity), 0) },
@@ -191,12 +181,15 @@ function Dashboard() {
               <button type="button" className="btn analytics-refresh-btn" onClick={loadData} disabled={loading}>
                 <i className="bi bi-arrow-clockwise me-2" />{loading ? 'Refreshing…' : 'Refresh'}
               </button>
-              <select className="form-select analytics-period-select" value={period} onChange={event => setPeriod(event.target.value)} aria-label="Dashboard date range">
-                <option>Last 7 days</option>
-                <option>Last 30 days</option>
-                <option>Last 12 months</option>
-                <option>All time</option>
-              </select>
+              <input
+                type="date"
+                className="form-control analytics-period-select"
+                value={selectedDate}
+                max={todayKey()}
+                onChange={event => setSelectedDate(event.target.value || todayKey())}
+                aria-label="Select dashboard date"
+                title="Choose a date to view that day's sales and stock movement"
+              />
             </div>
           </div>
 
@@ -206,15 +199,15 @@ function Dashboard() {
           <div className="row g-3 mb-4">
             <div className="col-12 col-sm-6 col-xl-3"><MetricCard label="Products" value={data.products.length.toLocaleString()} note="Registered inventory items" icon="bi-box-seam" /></div>
             <div className="col-12 col-sm-6 col-xl-3"><MetricCard label="Units on hand" value={totalStock.toLocaleString()} note={`${lowStock.length} low · ${outOfStock.length} out of stock`} icon="bi-stack" accent="is-yellow" /></div>
-            <div className="col-12 col-sm-6 col-xl-3"><MetricCard label="Sales revenue" value={money(totalRevenue)} note={`${unitsSold.toLocaleString()} units sold in selected period`} icon="bi-graph-up-arrow" /></div>
+            <div className="col-12 col-sm-6 col-xl-3"><MetricCard label="Sales revenue" value={money(totalRevenue)} note={`${unitsSold.toLocaleString()} units sold on selected date`} icon="bi-graph-up-arrow" /></div>
             <div className="col-12 col-sm-6 col-xl-3"><MetricCard label="Stock alerts" value={(lowStock.length + outOfStock.length).toLocaleString()} note="Low and out-of-stock products" icon="bi-exclamation-triangle" accent="is-alert" /></div>
           </div>
 
           <div className="row g-3 mb-4">
-            <div className="col-12 col-xl-8"><BarChart title="Sales trend" subtitle={`Revenue · ${period.toLowerCase()}`} items={salesTrend} format={money} /></div>
+            <div className="col-12 col-xl-8"><BarChart title="Sales trend" subtitle={`Revenue · ${new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-PH', { dateStyle: 'medium' })}`} items={salesTrend} format={money} /></div>
             <div className="col-12 col-xl-4">
               <section className="analytics-panel h-100">
-                <div className="analytics-panel-heading"><div><h2>Inventory movement</h2><p>Recorded units in selected period</p></div></div>
+                <div className="analytics-panel-heading"><div><h2>Inventory movement</h2><p>Recorded units on selected date</p></div></div>
                 <div className="analytics-movement-list">
                   {movement.map(item => <div className="analytics-movement-row" key={item.label}><span>{item.label}</span><strong>{item.value.toLocaleString()}</strong></div>)}
                 </div>
@@ -227,7 +220,7 @@ function Dashboard() {
             <div className="col-12 col-xl-6">
               <section className="analytics-panel h-100">
                 <div className="analytics-panel-heading"><div><h2>Top-selling products</h2><p>Ranked by recorded quantity sold</p></div></div>
-                {topProducts.length ? topProducts.map((item, index) => <div className="analytics-rank-row" key={item.name}><span className="analytics-rank-number">{index + 1}</span><span className="flex-grow-1">{item.name}</span><strong>{item.quantity.toLocaleString()} sold</strong></div>) : <div className="analytics-empty">No sales records found for this period.</div>}
+                {topProducts.length ? topProducts.map((item, index) => <div className="analytics-rank-row" key={item.name}><span className="analytics-rank-number">{index + 1}</span><span className="flex-grow-1">{item.name}</span><strong>{item.quantity.toLocaleString()} sold</strong></div>) : <div className="analytics-empty">No sales records found for this date.</div>}
               </section>
             </div>
             <div className="col-12 col-xl-6">
