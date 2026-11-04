@@ -188,15 +188,15 @@ function Dashboard() {
               <p>Monitor inventory health, sales performance, and recent activity.</p>
             </div>
             <div className="d-flex flex-wrap align-items-center gap-2">
+              <button type="button" className="btn analytics-refresh-btn" onClick={loadData} disabled={loading}>
+                <i className="bi bi-arrow-clockwise me-2" />{loading ? 'Refreshing…' : 'Refresh'}
+              </button>
               <select className="form-select analytics-period-select" value={period} onChange={event => setPeriod(event.target.value)} aria-label="Dashboard date range">
                 <option>Last 7 days</option>
                 <option>Last 30 days</option>
                 <option>Last 12 months</option>
                 <option>All time</option>
               </select>
-              <button type="button" className="btn analytics-refresh-btn" onClick={loadData} disabled={loading}>
-                <i className="bi bi-arrow-clockwise me-2" />{loading ? 'Refreshing…' : 'Refresh'}
-              </button>
             </div>
           </div>
 
