@@ -743,7 +743,9 @@ export default function Sales() {
               maxWidth: '500px',
               borderRadius: '16px',
               overflow: 'hidden',
-              background: '#fff',
+              background: 'var(--hw-card)',
+              color: 'var(--hw-text)',
+              border: '1px solid var(--hw-border)',
               boxShadow: '0 20px 60px rgba(0,0,0,.3)'
             }}
           >
@@ -947,7 +949,9 @@ export default function Sales() {
               maxWidth: '500px',
               borderRadius: '16px',
               overflow: 'hidden',
-              background: '#fff',
+              background: 'var(--hw-card)',
+              color: 'var(--hw-text)',
+              border: '1px solid var(--hw-border)',
               boxShadow: '0 20px 60px rgba(0,0,0,.3)'
             }}
           >
