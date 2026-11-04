@@ -261,24 +261,78 @@ app.get("/api/sales", (req, res) => {
 });
 
 
+// Validate a sale against the current inventory cost.
+function validateSale(body) {
+    const productName = String(body.product || "").trim();
+    const quantity = Number(body.quantity);
+    const amount = Number(body.amount);
+
+    if (!productName) {
+        return { error: "Please select a valid product." };
+    }
+
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+        return { error: "Quantity must be a positive whole number." };
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+        return { error: "Sale amount must be greater than zero." };
+    }
+
+    const inventoryProduct = products.find(
+        (item) => String(item.product || "").toLowerCase() === productName.toLowerCase()
+    );
+
+    if (!inventoryProduct) {
+        return { error: "Product not found in inventory. Please select an existing product." };
+    }
+
+    const unitCost = Number(inventoryProduct.buy);
+    if (!Number.isFinite(unitCost) || unitCost < 0) {
+        return { error: "The product cost is invalid. Please update its inventory cost first." };
+    }
+
+    const sellingPricePerUnit = amount / quantity;
+    if (sellingPricePerUnit < unitCost) {
+        const lossPerUnit = unitCost - sellingPricePerUnit;
+        const totalLoss = lossPerUnit * quantity;
+        return {
+            error: `LOSS PREVENTED: Selling price (₱${sellingPricePerUnit.toFixed(2)} per unit) is below the cost (₱${unitCost.toFixed(2)}). This sale would lose ₱${totalLoss.toFixed(2)} in total.`
+        };
+    }
+
+    return {
+        product: inventoryProduct.product,
+        quantity,
+        amount,
+        unitCost,
+        profit: amount - (unitCost * quantity)
+    };
+}
+
+
 // ADD SALE
 app.post("/api/sales", (req, res) => {
+    const validated = validateSale(req.body);
+    if (validated.error) {
+        return res.status(400).json({ message: validated.error });
+    }
 
     const newSale = {
         id: nextSalesID,
-        product: req.body.product,
-        quantity: req.body.quantity,
+        product: validated.product,
+        quantity: String(validated.quantity),
         date: req.body.date,
-        amount: req.body.amount,
+        amount: String(validated.amount),
+        unitCost: validated.unitCost,
+        profit: validated.profit,
         note: req.body.note || ""
     };
 
     nextSalesID++;
-
     sales.push(newSale);
 
     console.log("Sale added:", newSale);
-
     res.status(201).json(newSale);
 });
 
@@ -298,17 +352,23 @@ app.put("/api/sales/:id", (req, res) => {
         });
     }
 
+    const validated = validateSale(req.body);
+    if (validated.error) {
+        return res.status(400).json({ message: validated.error });
+    }
+
     sales[editID] = {
         id: id,
-        product: req.body.product,
-        quantity: req.body.quantity,
+        product: validated.product,
+        quantity: String(validated.quantity),
         date: req.body.date,
-        amount: req.body.amount,
+        amount: String(validated.amount),
+        unitCost: validated.unitCost,
+        profit: validated.profit,
         note: req.body.note || ""
     };
 
     console.log("Updated sale:", sales[editID]);
-
     res.json(sales[editID]);
 });
 
