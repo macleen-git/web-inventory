@@ -1238,3 +1238,68 @@ button { cursor: pointer; }
 }
 .analytics-recent-scroll::-webkit-scrollbar { width: 6px; height: 0; }
 .analytics-recent-scroll::-webkit-scrollbar-thumb { background: #718096; border-radius: 10px; }
+
+
+/* Dashboard sales-trend period controls: high-contrast, readable in both themes. */
+.analytics-trend-toolbar {
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  width:100%;
+  margin:0 0 12px;
+}
+.analytics-trend-periods {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:7px;
+  width:100%;
+}
+.analytics-trend-periods .btn {
+  min-height:36px;
+  padding:7px 13px;
+  border:1px solid #526579!important;
+  border-radius:9px!important;
+  background:#243443!important;
+  color:#eaf1f8!important;
+  font-size:.82rem;
+  font-weight:700;
+  line-height:1.2;
+  opacity:1!important;
+  box-shadow:none;
+  transition:background-color .18s ease,border-color .18s ease,color .18s ease,transform .18s ease;
+}
+.analytics-trend-periods .btn:hover {
+  background:#34495c!important;
+  border-color:#8295a8!important;
+  color:#fff!important;
+}
+.analytics-trend-periods .btn.is-active {
+  background:#ffc400!important;
+  border-color:#ffc400!important;
+  color:#17212b!important;
+  box-shadow:0 2px 9px rgba(255,196,0,.22);
+}
+.analytics-trend-periods .btn:focus-visible {
+  outline:2px solid #ffc400;
+  outline-offset:2px;
+}
+:root:not([data-theme="dark"]) .analytics-trend-periods .btn {
+  background:#edf2f7!important;
+  border-color:#c4d0dc!important;
+  color:#243443!important;
+}
+:root:not([data-theme="dark"]) .analytics-trend-periods .btn:hover {
+  background:#dce6ef!important;
+  border-color:#91a4b7!important;
+  color:#17212b!important;
+}
+:root:not([data-theme="dark"]) .analytics-trend-periods .btn.is-active {
+  background:#ffc400!important;
+  border-color:#e5ad00!important;
+  color:#17212b!important;
+}
+@media(max-width:575.98px) {
+  .analytics-trend-periods { gap:6px; }
+  .analytics-trend-periods .btn { flex:1 1 auto; padding:7px 9px; }
+}
