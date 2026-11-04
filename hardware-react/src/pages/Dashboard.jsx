@@ -270,7 +270,7 @@ function Dashboard() {
             </div>
           </div>
 
-          <div className="row g-3 mb-4">
+          <div className="row g-3 mb-4 analytics-lower-row">
             <div className="col-12 col-xl-6">
               <section className="analytics-panel h-100">
                 <div className="analytics-panel-heading"><div><h2>Top-selling products</h2><p>Ranked by recorded quantity sold</p></div></div>
