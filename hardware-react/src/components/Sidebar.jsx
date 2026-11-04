@@ -136,11 +136,10 @@ function Sidebar({ active, onLogout, admin = false }) {
     <>
       {/* Desktop: resizable left sidebar */}
       <aside className={`app-sidebar app-sidebar-desktop${collapsed ? ' is-collapsed' : ''}`} style={{ width: `${width}px`, flexBasis: `${width}px` }}>
-        <div className="app-sidebar-brand">{brand}</div>
-        <div className="app-sidebar-collapse-row">
+        <div className="app-sidebar-brand">
+          {brand}
           <button className="sidebar-collapse-button" type="button" title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={() => setWidth(collapsed ? DEFAULT_WIDTH : MIN_WIDTH)}>
             <i className={`bi ${collapsed ? 'bi-layout-sidebar' : 'bi-layout-sidebar-inset'}`} />
-            {!collapsed && <span>Collapse menu</span>}
           </button>
         </div>
         <nav className="app-sidebar-links" aria-label="Main navigation">{links('desktop')}</nav>
