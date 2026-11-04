@@ -872,3 +872,53 @@ button { cursor: pointer; }
   .admin-v2-table { min-width:560px; }
   .app-sidebar-actions { gap:5px; }
 }
+
+
+/* Dark-mode data tables: keep the dashboard slate surface as the DEFAULT state,
+   not only on hover. Covers Inventory, Stock In, Sales and Damaged Items. */
+:root[data-theme="dark"] .app-main .bg-white {
+  background-color:#1c2a38!important;
+  color:#edf2f7!important;
+}
+:root[data-theme="dark"] .app-main .table,
+:root[data-theme="dark"] .app-main .table > :not(caption) > * > * {
+  --bs-table-bg:#1c2a38;
+  --bs-table-color:#e4ebf2;
+  --bs-table-border-color:#354657;
+  --bs-table-hover-bg:#1c2a38;
+  --bs-table-hover-color:#edf2f7;
+  background-color:#1c2a38!important;
+  color:#e4ebf2!important;
+  border-color:#354657!important;
+  box-shadow:none!important;
+}
+:root[data-theme="dark"] .app-main .table thead,
+:root[data-theme="dark"] .app-main .table thead tr,
+:root[data-theme="dark"] .app-main .table thead th {
+  background-color:#243443!important;
+  color:#c9d7e1!important;
+  border-color:#354657!important;
+}
+:root[data-theme="dark"] .app-main .table tbody tr,
+:root[data-theme="dark"] .app-main .table tbody tr td,
+:root[data-theme="dark"] .app-main .table.table-hover tbody tr:hover,
+:root[data-theme="dark"] .app-main .table.table-hover tbody tr:hover td {
+  background-color:#1c2a38!important;
+  color:#e4ebf2!important;
+}
+:root[data-theme="dark"] .app-main .table tbody tr:nth-of-type(odd),
+:root[data-theme="dark"] .app-main .table tbody tr:nth-of-type(odd) td {
+  --bs-table-accent-bg:transparent!important;
+  background-color:#1c2a38!important;
+}
+:root[data-theme="dark"] .app-main .table tbody tr td .text-muted {
+  color:#a9b7c5!important;
+}
+:root[data-theme="dark"] .app-main .table-responsive {
+  background:#1c2a38;
+  border:1px solid #354657;
+  border-radius:10px;
+}
+:root[data-theme="dark"] .app-main .bg-white .table-responsive {
+  background:#1c2a38!important;
+}
