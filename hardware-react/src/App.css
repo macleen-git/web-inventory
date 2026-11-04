@@ -1173,3 +1173,68 @@ button { cursor: pointer; }
 /* The app root is click-through; explicitly enable pointer input on the draggable head. */
 .floating-calculator-root { pointer-events:none!important; }
 .floating-calculator-chat-head { pointer-events:auto!important; touch-action:none!important; }
+
+
+/* Dashboard recent activity: compact fixed-width card table with vertical-only scrolling. */
+.analytics-recent-scroll {
+  max-height: 156px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid var(--hw-border, #354657);
+  border-radius: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: #718096 transparent;
+}
+.analytics-recent-scroll .table-responsive {
+  overflow-x: hidden!important;
+  overflow-y: visible!important;
+  border: 0!important;
+  border-radius: 0!important;
+}
+.analytics-recent-table {
+  width: 100%!important;
+  min-width: 0!important;
+  table-layout: fixed;
+  margin: 0;
+}
+.analytics-recent-table .recent-col-date { width: 29%; }
+.analytics-recent-table .recent-col-type { width: 25%; }
+.analytics-recent-table .recent-col-product { width: 32%; }
+.analytics-recent-table .recent-col-qty { width: 14%; }
+.analytics-recent-table th,
+.analytics-recent-table td {
+  padding: 10px 8px!important;
+  vertical-align: middle;
+}
+.analytics-recent-table th {
+  white-space: nowrap;
+}
+.analytics-recent-table .recent-date-cell {
+  white-space: nowrap;
+  font-size: clamp(.68rem, 2.2vw, .82rem);
+  font-variant-numeric: tabular-nums;
+}
+.analytics-recent-table .analytics-type-badge {
+  display: inline-block;
+  max-width: 100%;
+  padding: 5px 7px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(.62rem, 2vw, .75rem);
+}
+.analytics-recent-table .recent-product-cell {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(.62rem, 2vw, .82rem);
+}
+.analytics-recent-table .recent-qty-cell {
+  white-space: nowrap;
+  font-size: clamp(.7rem, 2.2vw, .84rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.analytics-recent-scroll::-webkit-scrollbar { width: 6px; height: 0; }
+.analytics-recent-scroll::-webkit-scrollbar-thumb { background: #718096; border-radius: 10px; }
