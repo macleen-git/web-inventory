@@ -1,10 +1,14 @@
 
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import { API_URL, apiFetch } from '../config/api'
 
 export default function StockIn() {
+  const navigate = useNavigate()
   const [stockIns, setStockIns] = useState([])
+  const [products, setProducts] = useState([])
+  const [showProductNotFound, setShowProductNotFound] = useState(false)
 
   // ADD STOCK FORM
   const [product, setProduct] = useState('')
@@ -32,6 +36,7 @@ export default function StockIn() {
   const [isConfirming, setIsConfirming] = useState(false)
 
   const api_url = API_URL('/api/stock-in')
+  const productsApiUrl = API_URL('/api/product')
 
   // =========================
   // GET STOCK-IN RECORDS
@@ -51,6 +56,21 @@ export default function StockIn() {
     loadStockIns().catch((error) => {
       console.error('Fetch error:', error)
     })
+
+    apiFetch(productsApiUrl)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Failed to fetch inventory products')
+        }
+
+        return response.json()
+      })
+      .then((data) => {
+        setProducts(Array.isArray(data) ? data : [])
+      })
+      .catch((error) => {
+        console.error('Inventory products fetch error:', error)
+      })
   }, [])
 
   // =========================
@@ -115,6 +135,16 @@ export default function StockIn() {
   // =========================
   async function formAddStock(event) {
     event.preventDefault()
+
+    const enteredProduct = product.trim().toLowerCase()
+    const matchedProduct = products.find(
+      (item) => String(item.product || '').trim().toLowerCase() === enteredProduct
+    )
+
+    if (!matchedProduct) {
+      setShowProductNotFound(true)
+      return
+    }
 
     try {
       const response = await apiFetch(api_url, {
@@ -718,6 +748,91 @@ export default function StockIn() {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          )}
+
+          {/* PRODUCT NOT FOUND MODAL */}
+          {showProductNotFound && (
+            <div
+              className="d-flex align-items-center justify-content-center p-3"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="product-not-found-title"
+              style={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 2100,
+                background: 'rgba(2, 15, 29, 0.78)',
+                backdropFilter: 'blur(6px)'
+              }}
+            >
+              <div
+                className="w-100 shadow-lg"
+                style={{
+                  maxWidth: '430px',
+                  borderRadius: '20px',
+                  overflow: 'hidden',
+                  color: '#f8fafc',
+                  background: 'linear-gradient(145deg, #102f46, #071d30)',
+                  border: '1px solid rgba(255, 193, 7, 0.35)',
+                  boxShadow: '0 24px 70px rgba(0,0,0,.45)'
+                }}
+              >
+                <div className="text-center px-4 pt-4 pb-3">
+                  <div
+                    className="d-inline-flex align-items-center justify-content-center mb-3"
+                    style={{
+                      width: '72px',
+                      height: '72px',
+                      borderRadius: '50%',
+                      background: 'rgba(255, 193, 7, 0.14)',
+                      border: '1px solid rgba(255, 193, 7, 0.55)',
+                      color: '#ffc107',
+                      fontSize: '34px',
+                      fontWeight: 800
+                    }}
+                    aria-hidden="true"
+                  >
+                    !
+                  </div>
+
+                  <h4 id="product-not-found-title" className="fw-bold mb-2">
+                    Product Not Found
+                  </h4>
+
+                  <p className="mb-2" style={{ color: '#d5e2ed', lineHeight: 1.6 }}>
+                    We couldn't find <strong style={{ color: '#fff' }}>{product.trim() || 'this product'}</strong> in your inventory.
+                  </p>
+
+                  <p className="mb-0" style={{ color: '#aebfce', lineHeight: 1.6 }}>
+                    Please add this product to your Inventory first before recording Stock In.
+                  </p>
+                </div>
+
+                <div className="d-flex flex-column flex-sm-row gap-2 p-3 p-sm-4 pt-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline-light flex-fill"
+                    onClick={() => setShowProductNotFound(false)}
+                    style={{ minHeight: '46px', borderRadius: '10px' }}
+                  >
+                    Close
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-warning fw-bold flex-fill"
+                    onClick={() => {
+                      setShowProductNotFound(false)
+                      setShowAddStock(false)
+                      navigate('/inventory')
+                    }}
+                    style={{ minHeight: '46px', borderRadius: '10px' }}
+                  >
+                    + Add Product
+                  </button>
+                </div>
               </div>
             </div>
           )}
