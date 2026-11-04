@@ -1111,3 +1111,61 @@ button { cursor: pointer; }
   .floating-calculator-launcher { right:16px; bottom:82px; }
   .floating-calculator-panel { right:12px; bottom:82px; width:min(250px,calc(100vw - 24px)); }
 }
+
+
+/* Movable calculator chat-head launcher and centered calculator modal. */
+.floating-calculator-chat-head {
+  position:fixed; z-index:1202; width:54px; height:54px; padding:0;
+  border:2px solid rgba(255,255,255,.85); border-radius:50%;
+  background:var(--hw-yellow); color:var(--hw-navy);
+  box-shadow:0 7px 22px rgba(0,0,0,.32); font-size:22px;
+  display:grid; place-items:center; cursor:grab; touch-action:none;
+  user-select:none; transition:box-shadow .16s, transform .16s;
+}
+.floating-calculator-chat-head:active { cursor:grabbing; transform:scale(.96); }
+.floating-calculator-backdrop {
+  position:fixed; inset:0; z-index:1201; display:flex; align-items:center; justify-content:center;
+  padding:18px; background:rgba(0,0,0,.42); pointer-events:auto;
+}
+.floating-calculator-modal {
+  width:min(320px,100%); padding:14px; border:1px solid var(--hw-border,#385064);
+  border-radius:17px; background:var(--hw-card,#fff); color:var(--hw-text,#17212b);
+  box-shadow:0 22px 60px rgba(0,0,0,.38); user-select:none;
+}
+.floating-calculator-modal .floating-calculator-header {
+  display:flex; justify-content:space-between; align-items:center; gap:8px;
+  padding:2px 2px 12px; color:var(--hw-text,#17212b); font-weight:800;
+}
+.floating-calculator-modal .floating-calculator-header button {
+  width:32px; height:32px; border:0; border-radius:8px;
+  background:var(--hw-input-bg,#edf2f7); color:var(--hw-text,#17212b);
+}
+.floating-calculator-modal .floating-calculator-display {
+  min-height:64px; display:flex; justify-content:flex-end; align-items:center;
+  overflow:hidden; padding:8px 12px; margin-bottom:12px; border-radius:11px;
+  background:var(--hw-input-bg,#edf2f7); color:var(--hw-text,#17212b);
+  font-size:30px; font-weight:700; font-variant-numeric:tabular-nums;
+}
+.floating-calculator-modal .floating-calculator-keys {
+  display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px;
+}
+.floating-calculator-modal .floating-calculator-keys button {
+  min-height:48px; border:1px solid var(--hw-border,#d6dee6); border-radius:10px;
+  background:var(--hw-card,#fff); color:var(--hw-text,#17212b); font-weight:700; font-size:17px;
+}
+.floating-calculator-modal .floating-calculator-keys button.utility { background:var(--hw-input-bg,#edf2f7); }
+.floating-calculator-modal .floating-calculator-keys button.operator {
+  background:var(--hw-yellow); color:var(--hw-navy); border-color:var(--hw-yellow);
+}
+:root[data-theme="dark"] .floating-calculator-modal {
+  background:#1c2a38; color:#fff; border-color:#40566a;
+}
+:root[data-theme="dark"] .floating-calculator-modal .floating-calculator-header,
+:root[data-theme="dark"] .floating-calculator-modal .floating-calculator-header button,
+:root[data-theme="dark"] .floating-calculator-modal .floating-calculator-display,
+:root[data-theme="dark"] .floating-calculator-modal .floating-calculator-keys button {
+  background:#243443; color:#fff; border-color:#40566a;
+}
+:root[data-theme="dark"] .floating-calculator-modal .floating-calculator-keys button.operator {
+  background:var(--hw-yellow); color:var(--hw-navy); border-color:var(--hw-yellow);
+}
