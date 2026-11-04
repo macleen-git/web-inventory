@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react'
 import Sidebar from '../components/Sidebar'
-import { API_URL } from '../config/api'
+import { API_URL, apiFetch } from '../config/api'
 
 export default function Sales() {
   const api_url = API_URL('/api/sales')
@@ -50,7 +50,7 @@ export default function Sales() {
   useEffect(() => {
     async function loadSales() {
       try {
-        const response = await fetch(api_url)
+        const response = await apiFetch(api_url)
 
         if (!response.ok) {
           throw new Error('Failed to fetch sales')
@@ -65,7 +65,7 @@ export default function Sales() {
 
     async function loadProducts() {
       try {
-        const response = await fetch(API_URL('/api/product'))
+        const response = await apiFetch(API_URL('/api/product'))
         if (!response.ok) throw new Error('Failed to fetch products')
         const data = await response.json()
         setProducts(Array.isArray(data) ? data : [])
@@ -164,7 +164,7 @@ export default function Sales() {
     if (estimatedLoss > 0) return alert(`LOSS PREVENTED: This sale would lose ₱${estimatedLoss.toFixed(2)}.`)
 
     try {
-      const response = await fetch(api_url, {
+      const response = await apiFetch(api_url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -197,7 +197,7 @@ export default function Sales() {
       if (data.id !== undefined) {
         setSales((previous) => [...previous, data])
       } else {
-        const refreshResponse = await fetch(api_url)
+        const refreshResponse = await apiFetch(api_url)
 
         if (refreshResponse.ok) {
           setSales(await refreshResponse.json())
@@ -249,7 +249,7 @@ export default function Sales() {
   // UPDATE - PUT
   // =========================
   async function performUpdate() {
-    const response = await fetch(`${api_url}/${editID}`, {
+    const response = await apiFetch(`${api_url}/${editID}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
@@ -285,7 +285,7 @@ export default function Sales() {
         )
       )
     } else {
-      const refreshResponse = await fetch(api_url)
+      const refreshResponse = await apiFetch(api_url)
 
       if (refreshResponse.ok) {
         setSales(await refreshResponse.json())
@@ -318,7 +318,7 @@ export default function Sales() {
   // DELETE - DELETE REQUEST
   // =========================
   async function performDelete(id) {
-    const response = await fetch(`${api_url}/${id}`, {
+    const response = await apiFetch(`${api_url}/${id}`, {
       method: 'DELETE'
     })
 
