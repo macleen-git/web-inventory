@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
-import { API_URL } from '../config/api'
+import { API_URL, apiFetch } from '../config/api'
 
 export default function StockIn() {
   const [stockIns, setStockIns] = useState([])
@@ -37,7 +37,7 @@ export default function StockIn() {
   // GET STOCK-IN RECORDS
   // =========================
   async function loadStockIns() {
-    const response = await fetch(api_url)
+    const response = await apiFetch(api_url)
 
     if (!response.ok) {
       throw new Error('Failed to fetch stock-in records')
@@ -117,7 +117,7 @@ export default function StockIn() {
     event.preventDefault()
 
     try {
-      const response = await fetch(api_url, {
+      const response = await apiFetch(api_url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -211,7 +211,7 @@ export default function StockIn() {
   // UPDATE - PUT
   // =========================
   async function performUpdate() {
-    const response = await fetch(`${api_url}/${editID}`, {
+    const response = await apiFetch(`${api_url}/${editID}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
@@ -266,7 +266,7 @@ export default function StockIn() {
   // DELETE - DELETE REQUEST
   // =========================
   async function performDelete(id) {
-    const response = await fetch(`${api_url}/${id}`, {
+    const response = await apiFetch(`${api_url}/${id}`, {
       method: 'DELETE'
     })
 
