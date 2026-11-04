@@ -241,9 +241,33 @@ function Dashboard() {
             <div className="col-12 col-xl-7">
               <section className="analytics-panel h-100">
                 <div className="analytics-panel-heading"><div><h2>Recent activity</h2><p>Latest stock and sales records</p></div></div>
-                <div className="table-responsive"><table className="table analytics-table align-middle mb-0"><thead><tr><th>Date</th><th>Type</th><th>Product</th><th className="text-end">Qty</th></tr></thead><tbody>
-                  {recentActivity.length ? recentActivity.map((item, index) => <tr key={`${item.type}-${item.id || index}`}><td>{item.dateValue ? item.dateValue.toLocaleDateString('en-PH') : '—'}</td><td><span className={`analytics-type-badge type-${item.type.toLowerCase().replace(/\s/g, '-')}`}>{item.type}</span></td><td>{item.product || '—'}</td><td className="text-end">{asNumber(item.quantityValue).toLocaleString()}</td></tr>) : <tr><td colSpan="4" className="text-center py-4 analytics-muted">No activity records available.</td></tr>}
-                </tbody></table></div>
+                <div className="analytics-recent-scroll">
+                  <div className="table-responsive">
+                    <table className="table analytics-table analytics-recent-table align-middle mb-0">
+                      <colgroup>
+                        <col className="recent-col-date" />
+                        <col className="recent-col-type" />
+                        <col className="recent-col-product" />
+                        <col className="recent-col-qty" />
+                      </colgroup>
+                      <thead>
+                        <tr><th>Date</th><th>Type</th><th>Product</th><th className="text-end">Qty</th></tr>
+                      </thead>
+                      <tbody>
+                        {recentActivity.length ? recentActivity.map((item, index) => (
+                          <tr key={`${item.type}-${item.id || index}`}>
+                            <td className="recent-date-cell">{item.dateValue ? item.dateValue.toLocaleDateString('en-PH') : '—'}</td>
+                            <td><span className={`analytics-type-badge type-${item.type.toLowerCase().replace(/\s/g, '-')}`}>{item.type}</span></td>
+                            <td className="recent-product-cell" title={item.product || '—'}>{item.product || '—'}</td>
+                            <td className="text-end recent-qty-cell">{asNumber(item.quantityValue).toLocaleString()}</td>
+                          </tr>
+                        )) : (
+                          <tr><td colSpan="4" className="text-center py-4 analytics-muted">No activity records available.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </section>
             </div>
           </div>
