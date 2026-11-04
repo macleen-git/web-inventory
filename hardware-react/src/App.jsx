@@ -40,7 +40,7 @@ import Admin from './pages/Admin'
 import './App.css'
 
 
-function AppRoutes({ user, role, handleLogin }) {
+function AppRoutes({ user, role, handleLogin, handleLogout }) {
   const navigate = useNavigate()
   const location = useLocation()
   const [pageLoading, setPageLoading] = useState(false)
@@ -360,6 +360,7 @@ function App() {
         user={user}
         role={role}
         handleLogin={handleLogin}
+        handleLogout={handleLogout}
       />
     </BrowserRouter>
   )
