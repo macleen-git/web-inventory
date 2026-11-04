@@ -78,7 +78,7 @@ function BarChart({ title, subtitle, items, format = value => value, refreshing 
               const value = maxValue * (1 - tick / 4)
               return <g key={tick}><line x1={left} y1={y} x2={width-right} y2={y} className="sales-chart-grid" /><text x={left-9} y={y+4} textAnchor="end" className="sales-chart-axis">{format(value)}</text></g>
             })}
-            {points.length > 1 && <polyline key={`${trendPeriod}-${refreshing ? "refresh" : "idle"}-${items.map(item => item.value).join("-")}`} points={line} pathLength="1" className="sales-chart-line sales-chart-line-draw" />}
+            {points.length > 1 && <polyline key={`${refreshing ? "refresh" : "idle"}-${items.map(item => item.value).join("-")}`} points={line} pathLength="1" className="sales-chart-line sales-chart-line-draw" />}
             {points.map(point => <g key={point.key || point.label}><circle cx={point.x} cy={point.y} r="4.5" className="sales-chart-dot"><title>{point.label}: {format(point.value)}</title></circle><text x={point.x} y={height-8} textAnchor="middle" className="sales-chart-axis">{point.label}</text></g>)}
           </svg>
         </div>
