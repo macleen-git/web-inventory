@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import { API_URL, apiFetch } from '../config/api'
 
-const PERIODS = ['Last 7 days', 'Last 30 days', 'Last 90 days', 'All time']
+const PERIODS = ['Today', '7 Days', '30 Days', '90 Days', 'All Time']
 const money = value => '₱' + (Number(value) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const quantity = item => Number(item.quantity) || 0
 const dateKey = value => {
@@ -12,18 +12,18 @@ const dateKey = value => {
   return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-')
 }
 const inPeriod = (value, period) => {
-  if (period === 'All time') return true
+  if (period === 'All Time') return true
   const date = new Date(value)
   if (!value || Number.isNaN(date.getTime())) return false
   const today = new Date(), start = new Date(today)
   start.setHours(0,0,0,0)
-  start.setDate(start.getDate() - (period === 'Last 7 days' ? 6 : period === 'Last 30 days' ? 29 : 89))
+  start.setDate(start.getDate() - (period === 'Today' ? 0 : period === '7 Days' ? 6 : period === '30 Days' ? 29 : 89))
   return date >= start && date <= today
 }
 
 export default function Reports() {
   const [sales,setSales] = useState([]), [stockIns,setStockIns] = useState([]), [damaged,setDamaged] = useState([])
-  const [period,setPeriod] = useState(() => window.localStorage.getItem('hardware-reports-period') || 'Last 7 days')
+  const [period,setPeriod] = useState(() => window.localStorage.getItem('hardware-reports-period') || '7 Days')
   const [loading,setLoading] = useState(true), [error,setError] = useState(''), [selectedDate,setSelectedDate] = useState('')
   useEffect(() => { window.localStorage.setItem('hardware-reports-period',period) },[period])
   useEffect(() => {
@@ -79,7 +79,8 @@ export default function Reports() {
         <div className="col-12 col-sm-6 col-xl-3"><div className="analytics-metric-card"><p className="analytics-eyebrow">Net profit</p><div className="analytics-metric-value">{money(netProfit)}</div><small className="analytics-muted">Gross profit less damage loss</small></div></div>
       </div>
       <section className="analytics-panel mb-4"><div className="analytics-panel-heading flex-wrap"><div><h2>Daily Earnings Overview</h2><p>Select any date to inspect sales, damaged items, and profit</p></div><div className="d-flex flex-wrap gap-3 small"><span><i className="bi bi-square-fill me-1" style={{color:'#6c9ee8'}}/>Revenue</span><span><i className="bi bi-square-fill me-1" style={{color:'#20b779'}}/>Gross profit</span><span><i className="bi bi-square-fill me-1" style={{color:'#e0a43b'}}/>Damage loss</span></div></div>
-      {daily.length?<div className="report-daily-chart"><div className="report-grid-lines" aria-hidden="true"><span/><span/><span/><span/><span/></div><div className="report-daily-columns">{daily.map(day=>{const max=Math.max(1,...daily.map(x=>Math.max(x.revenue,x.profit,x.damageLoss)));return <button type="button" key={day.date} className={`report-day-column${selectedDate===day.date?' is-selected':''}`} onClick={()=>setSelectedDate(day.date)} title={`${dateLabel(day.date)} · Revenue ${money(day.revenue)} · Profit ${money(day.profit)} · Damage ${money(day.damageLoss)}`}><span className="report-day-bars"><i className="report-bar-revenue" style={{height:`${day.revenue?Math.max(3,day.revenue/max*170):0}px`}}/><i className="report-bar-profit" style={{height:`${day.profit?Math.max(3,day.profit/max*170):0}px`}}/><i className="report-bar-damage" style={{height:`${day.damageLoss?Math.max(3,day.damageLoss/max*170):0}px`}}/></span><small>{new Date(day.date+'T00:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric'})}</small></button>})}</div></div>:<div className="analytics-empty">No records for this period yet.</div>}
+      <div className="report-period-toolbar" role="group" aria-label="Earnings overview period">{PERIODS.map(option=><button key={option} type="button" className={`btn btn-sm ${period===option?'is-active':''}`} aria-pressed={period===option} onClick={()=>setPeriod(option)}>{option}</button>)}</div>
+      {daily.length?<div className="report-daily-chart report-daily-svg-chart"><svg key={period} viewBox={`0 0 ${Math.max(620,daily.length*74)} 230`} role="img" aria-label="Daily earnings bar chart" preserveAspectRatio="none"><g className="report-svg-grid">{[0,1,2,3,4].map(n=><line key={n} x1="42" x2={Math.max(600,daily.length*74-12)} y1={18+n*42} y2={18+n*42}/>)}</g>{daily.map((day,index)=>{const max=Math.max(1,...daily.map(x=>Math.max(x.revenue,x.profit,x.damageLoss)));const base=190,x=54+index*74;const bars=[{value:day.revenue,className:'report-bar-revenue',offset:0},{value:day.profit,className:'report-bar-profit',offset:17},{value:day.damageLoss,className:'report-bar-damage',offset:34}];return <g key={day.date} className={`report-svg-day ${selectedDate===day.date?'is-selected':''}`} role="button" tabIndex="0" onClick={()=>setSelectedDate(day.date)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSelectedDate(day.date)}}}><title>{`${dateLabel(day.date)} · Revenue ${money(day.revenue)} · Profit ${money(day.profit)} · Damage ${money(day.damageLoss)}`}</title>{bars.map(bar=>{const height=bar.value?Math.max(3,bar.value/max*168):0;return <rect key={bar.className} x={x+bar.offset} y={base-height} width="11" height="0" rx="4" className={bar.className}><animate attributeName="height" from="0" to={height} dur=".7s" begin="0s" fill="freeze"/><animate attributeName="y" from={base} to={base-height} dur=".7s" begin="0s" fill="freeze"/></rect>})}<text x={x+17} y="213" textAnchor="middle">{new Date(day.date+'T00:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric'})}</text><rect x={x-5} y="12" width="58" height="205" fill="transparent"/></g>})}</svg></div>:<div className="analytics-empty">No records for this period yet.</div>}
       <div className="d-flex flex-wrap justify-content-between gap-2 mt-3 small"><span><b>Revenue:</b> {money(totalRevenue)}</span><span><b>Gross profit:</b> {money(grossProfit)}</span><span><b>Damage loss:</b> {money(damageLoss)}</span><span><b>Net profit:</b> {money(netProfit)}</span></div></section>
       <div className="row g-3 mb-4"><div className="col-12 col-md-6"><section className="analytics-panel h-100"><div className="analytics-panel-heading"><div><h2>Stock received</h2><p>Units in selected period</p></div></div><div className="analytics-metric-value">{filteredStockIns.reduce((s,x)=>s+quantity(x),0).toLocaleString()}</div></section></div><div className="col-12 col-md-6"><section className="analytics-panel h-100"><div className="analytics-panel-heading"><div><h2>Damaged units</h2><p>Removed from inventory</p></div></div><div className="analytics-metric-value">{filteredDamaged.reduce((s,x)=>s+quantity(x),0).toLocaleString()}</div></section></div></div>
       <section className="analytics-panel"><div className="analytics-panel-heading"><div><h2>Sales Report</h2><p>Individual recorded sales</p></div></div><div className="table-responsive"><table className="table analytics-table align-middle mb-0"><thead><tr><th>Date</th><th>Product</th><th>Units sold</th><th className="text-end">Revenue</th><th className="text-end">Profit</th></tr></thead><tbody>{filteredSales.length?filteredSales.map((x,i)=><tr key={x.id||i}><td>{x.date?new Date(x.date).toLocaleDateString('en-PH'):'—'}</td><td>{x.product}</td><td>{quantity(x)}</td><td className="text-end">{money(revenue(x))}</td><td className="text-end">{money(profit(x))}</td></tr>):<tr><td colSpan="5" className="text-center py-4">No sales records for this period.</td></tr>}</tbody></table></div></section>
