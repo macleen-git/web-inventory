@@ -52,6 +52,26 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
     return () => window.clearTimeout(timer)
   }, [location.pathname])
 
+  useEffect(() => {
+    if (!user) return undefined
+    let active = true
+    const sendHeartbeat = async () => {
+      try {
+        const token = await auth.currentUser?.getIdToken()
+        if (!token || !active) return
+        await fetch(API_URL('/api/activity/heartbeat'), {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      } catch (error) {
+        console.warn('User activity heartbeat unavailable:', error)
+      }
+    }
+    sendHeartbeat()
+    const interval = window.setInterval(sendHeartbeat, 60000)
+    return () => { active = false; window.clearInterval(interval) }
+  }, [user])
+
   const goToLogin = () => navigate('/login')
   const goToSignup = () => navigate('/signup')
   const goHome = () => navigate('/')
