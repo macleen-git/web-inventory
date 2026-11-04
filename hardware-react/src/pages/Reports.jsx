@@ -109,7 +109,9 @@ function Reports() {
   function getProfit(item) {
     const product = getProduct(item.product)
     const revenue = getRevenue(item)
-    const cost = getQuantity(item) * (Number(product?.buy) || 0)
+    const cost = item.unitCost !== undefined && item.unitCost !== ''
+      ? getQuantity(item) * (Number(item.unitCost) || 0)
+      : getQuantity(item) * (Number(product?.buy) || 0)
 
     return revenue - cost
   }
