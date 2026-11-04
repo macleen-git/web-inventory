@@ -15,14 +15,7 @@ import {
   signInWithPopup
 } from 'firebase/auth'
 
-import {
-  doc,
-  getDoc,
-  serverTimestamp,
-  setDoc
-} from 'firebase/firestore'
-
-import { auth, db, googleProvider } from './components/firebase'
+import { auth, googleProvider } from './components/firebase'
 
 import Landing from './pages/Landing'
 import Login from './pages/Login'
@@ -36,11 +29,16 @@ import Reports from './pages/Reports'
 import Transactions from './pages/Transaction'
 import Settings from './pages/Settings'
 import Admin from './pages/Admin'
+import { API_URL } from './config/api'
 
 import './App.css'
 
 
-function AppRoutes({ user, role, handleLogin }) {
+function isAdminRole(role) {
+  return role === 'admin' || role === 'superadmin'
+}
+
+function AppRoutes({ user, role, handleLogin, handleLogout }) {
   const navigate = useNavigate()
   const location = useLocation()
   const [pageLoading, setPageLoading] = useState(false)
@@ -50,6 +48,26 @@ function AppRoutes({ user, role, handleLogin }) {
     const timer = window.setTimeout(() => setPageLoading(false), 360)
     return () => window.clearTimeout(timer)
   }, [location.pathname])
+
+  useEffect(() => {
+    if (!user) return undefined
+    let active = true
+    const sendHeartbeat = async () => {
+      try {
+        const token = await auth.currentUser?.getIdToken()
+        if (!token || !active) return
+        await fetch(API_URL('/api/activity/heartbeat'), {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      } catch (error) {
+        console.warn('User activity heartbeat unavailable:', error)
+      }
+    }
+    sendHeartbeat()
+    const interval = window.setInterval(sendHeartbeat, 60000)
+    return () => { active = false; window.clearInterval(interval) }
+  }, [user])
 
   const goToLogin = () => navigate('/login')
   const goToSignup = () => navigate('/signup')
@@ -73,7 +91,7 @@ function AppRoutes({ user, role, handleLogin }) {
         path="/"
         element={
           user ? (
-            role === 'admin'
+            isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/dashboard" replace />
           ) : (
@@ -90,7 +108,7 @@ function AppRoutes({ user, role, handleLogin }) {
         path="/login"
         element={
           user ? (
-            role === 'admin'
+            isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/dashboard" replace />
           ) : (
@@ -108,7 +126,7 @@ function AppRoutes({ user, role, handleLogin }) {
         path="/signup"
         element={
           user ? (
-            role === 'admin'
+            isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/dashboard" replace />
           ) : (
@@ -123,7 +141,7 @@ function AppRoutes({ user, role, handleLogin }) {
         element={
           user && role === 'user'
             ? <Dashboard />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -135,7 +153,7 @@ function AppRoutes({ user, role, handleLogin }) {
         element={
           user && role === 'user'
             ? <Inventory />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -147,7 +165,7 @@ function AppRoutes({ user, role, handleLogin }) {
         element={
           user && role === 'user'
             ? <StockIn />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -159,7 +177,7 @@ function AppRoutes({ user, role, handleLogin }) {
         element={
           user && role === 'user'
             ? <Sales />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -171,7 +189,7 @@ function AppRoutes({ user, role, handleLogin }) {
         element={
           user && role === 'user'
             ? <Damaged />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -183,7 +201,7 @@ function AppRoutes({ user, role, handleLogin }) {
         element={
           user && role === 'user'
             ? <Reports />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -195,7 +213,7 @@ function AppRoutes({ user, role, handleLogin }) {
         element={
           user && role === 'user'
             ? <Transactions />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -207,7 +225,7 @@ function AppRoutes({ user, role, handleLogin }) {
         element={
           user && role === 'user'
             ? <Settings />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -217,8 +235,8 @@ function AppRoutes({ user, role, handleLogin }) {
       <Route
         path="/admin"
         element={
-          user && role === 'admin'
-            ? <Admin />
+          user && isAdminRole(role)
+            ? <Admin user={user} onLogout={handleLogout} />
             : user && role === 'user'
               ? <Navigate to="/dashboard" replace />
               : <Navigate to="/login" replace />
@@ -232,7 +250,7 @@ function AppRoutes({ user, role, handleLogin }) {
           <Navigate
             to={
               user
-                ? role === 'admin'
+                ? isAdminRole(role)
                   ? '/admin'
                   : '/dashboard'
                 : '/'
@@ -260,25 +278,16 @@ function App() {
           if (currentUser) {
             setUser(currentUser)
 
-            const userRef = doc(db, 'users', currentUser.uid)
-            const userSnap = await getDoc(userRef)
-
-            if (userSnap.exists()) {
-              const userData = userSnap.data()
-              setRole(userData.role || 'user')
-            } else {
-              const defaultRole = 'user'
-
-              await setDoc(userRef, {
-                displayName: currentUser.displayName,
-                email: currentUser.email,
-                photoURL: currentUser.photoURL,
-                role: defaultRole,
-                createdAt: serverTimestamp()
-              })
-
-              setRole(defaultRole)
+            // MySQL is the source of truth for roles. Firebase is used only for authentication.
+            const syncResponse = await fetch(API_URL('/api/auth/sync'), {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${await currentUser.getIdToken()}`, 'Content-Type': 'application/json' },
+            })
+            const syncData = await syncResponse.json().catch(() => ({}))
+            if (!syncResponse.ok) {
+              throw new Error(syncData.message || 'Unable to synchronize your account with the database.')
             }
+            setRole(['user', 'admin', 'superadmin'].includes(syncData.role) ? syncData.role : 'user')
           } else {
             setUser(null)
             setRole(null)
@@ -289,9 +298,7 @@ function App() {
             error
           )
 
-          setRole((currentRole) =>
-            currentRole || (currentUser ? 'user' : null)
-          )
+          setRole(currentUser ? 'user' : null)
         } finally {
           setLoading(false)
         }
@@ -360,6 +367,7 @@ function App() {
         user={user}
         role={role}
         handleLogin={handleLogin}
+        handleLogout={handleLogout}
       />
     </BrowserRouter>
   )

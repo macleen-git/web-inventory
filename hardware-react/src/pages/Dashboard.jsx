@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Sidebar from '../components/Sidebar'
+import { API_URL } from '../config/api'
 
-const API = 'https://web-inventory-rfai.onrender.com/api'
+const API = API_URL('/api')
 const ENDPOINTS = ['product', 'sales', 'stock-in', 'damaged']
 
 function asNumber(value) {
@@ -45,7 +46,7 @@ function MetricCard({ label, value, note, icon, accent }) {
       <div className="d-flex align-items-start justify-content-between gap-3">
         <div>
           <p className="analytics-eyebrow mb-2">{label}</p>
-          <div className="analytics-metric-value">{value}</div>
+          <div className="analytics-metric-value" title={String(value)}>{value}</div>
           <small className="analytics-muted">{note}</small>
         </div>
         <span className={`analytics-metric-icon ${accent || ''}`} aria-hidden="true">
@@ -57,26 +58,33 @@ function MetricCard({ label, value, note, icon, accent }) {
 }
 
 function BarChart({ title, subtitle, items, format = value => value }) {
-  const maximum = Math.max(1, ...items.map(item => item.value))
+  const width = 720
+  const height = 230
+  const left = 62
+  const right = 14
+  const top = 18
+  const bottom = 34
+  const maxValue = Math.max(1, ...items.map(item => item.value))
+  const points = items.map((item, index) => ({
+    ...item,
+    x: items.length <= 1 ? (left + width - right) / 2 : left + index * (width - left - right) / (items.length - 1),
+    y: top + (1 - item.value / maxValue) * (height - top - bottom),
+  }))
+  const line = points.map(point => `${point.x},${point.y}`).join(' ')
   return (
     <section className="analytics-panel h-100">
-      <div className="analytics-panel-heading">
-        <div>
-          <h2>{title}</h2>
-          <p>{subtitle}</p>
-        </div>
-      </div>
+      <div className="analytics-panel-heading"><div><h2>{title}</h2><p>{subtitle}</p></div></div>
       {items.length ? (
-        <div className="analytics-bars" role="img" aria-label={title}>
-          {items.map(item => (
-            <div className="analytics-bar-column" key={item.label} title={`${item.label}: ${format(item.value)}`}>
-              <strong>{format(item.value)}</strong>
-              <div className="analytics-bar-track">
-                <span style={{ height: `${Math.max(item.value > 0 ? 5 : 0, item.value / maximum * 100)}%` }} />
-              </div>
-              <small>{item.label}</small>
-            </div>
-          ))}
+        <div className="sales-trend-chart">
+          <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={title} preserveAspectRatio="none">
+            {[0,1,2,3,4].map(tick => {
+              const y = top + tick * (height - top - bottom) / 4
+              const value = maxValue * (1 - tick / 4)
+              return <g key={tick}><line x1={left} y1={y} x2={width-right} y2={y} className="sales-chart-grid" /><text x={left-9} y={y+4} textAnchor="end" className="sales-chart-axis">{format(value)}</text></g>
+            })}
+            {points.length > 1 && <polyline points={line} className="sales-chart-line" />}
+            {points.map(point => <g key={point.label}><circle cx={point.x} cy={point.y} r="4.5" className="sales-chart-dot"><title>{point.label}: {format(point.value)}</title></circle><text x={point.x} y={height-8} textAnchor="middle" className="sales-chart-axis">{point.label}</text></g>)}
+          </svg>
         </div>
       ) : <div className="analytics-empty">No records for this period.</div>}
     </section>
@@ -85,7 +93,7 @@ function BarChart({ title, subtitle, items, format = value => value }) {
 
 function Dashboard() {
   const [data, setData] = useState({ products: [], sales: [], stockIns: [], damaged: [] })
-  const [period, setPeriod] = useState('Last 7 days')
+  const [period, setPeriod] = useState(() => window.localStorage.getItem('hardware-dashboard-period') || 'Last 7 days')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [updatedAt, setUpdatedAt] = useState(null)
@@ -113,6 +121,7 @@ function Dashboard() {
   }, [])
 
   useEffect(() => { loadData() }, [loadData])
+  useEffect(() => { window.localStorage.setItem('hardware-dashboard-period', period) }, [period])
 
   const filteredSales = useMemo(() => data.sales.filter(item => inSelectedPeriod(item.date, period)), [data.sales, period])
   const filteredStockIns = useMemo(() => data.stockIns.filter(item => inSelectedPeriod(item.date, period)), [data.stockIns, period])
@@ -130,8 +139,8 @@ function Dashboard() {
       const date = parseDate(item.date)
       if (!date) return
       const label = period === 'Last 7 days' || period === 'Last 30 days'
-        ? date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
-        : date.toLocaleDateString('en-PH', { month: 'short', year: '2-digit' })
+        ? date.toLocaleDateString('en-PH', { month: '2-digit', day: '2-digit' })
+        : date.toLocaleDateString('en-PH', { month: '2-digit', year: '2-digit' })
       const key = period === 'Last 7 days' || period === 'Last 30 days'
         ? dateKey(date)
         : `${date.getFullYear()}-${date.getMonth()}`

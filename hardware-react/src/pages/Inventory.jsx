@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
+import { API_URL } from '../config/api'
 
 // =========================
 // SMART SEARCH FUNCTION
@@ -79,7 +80,7 @@ export default function Inventory() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('All Status')
 
-  const api_url = 'https://web-inventory-rfai.onrender.com/api/product'
+  const api_url = API_URL('/api/product')
 
   // =========================
   // GET PRODUCTS
