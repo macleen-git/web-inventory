@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
-import { API_URL } from '../config/api'
+import { API_URL, apiFetch } from '../config/api'
 
 // =========================
 // SMART SEARCH FUNCTION
@@ -86,7 +86,7 @@ export default function Inventory() {
   // GET PRODUCTS
   // =========================
   useEffect(() => {
-    fetch(api_url)
+    apiFetch(api_url)
       .then((response) => {
         if (!response.ok) {
           throw new Error('Failed to fetch products')
@@ -175,7 +175,7 @@ export default function Inventory() {
     event.preventDefault()
 
     try {
-      const response = await fetch(api_url, {
+      const response = await apiFetch(api_url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -243,7 +243,7 @@ export default function Inventory() {
       throw new Error('No product selected')
     }
 
-    const response = await fetch(`${api_url}/${editID}`, {
+    const response = await apiFetch(`${api_url}/${editID}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
@@ -297,7 +297,7 @@ export default function Inventory() {
 
   // Perform the actual deletion after confirmation.
   async function performDelete(id) {
-    const response = await fetch(`${api_url}/${id}`, {
+    const response = await apiFetch(`${api_url}/${id}`, {
       method: 'DELETE'
     })
 
