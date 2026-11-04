@@ -1314,3 +1314,9 @@ button { cursor: pointer; }
 .analytics-lower-row > [class*="col-"] {
   min-width: 0;
 }
+
+
+/* Increase the visual separation between the two dashboard card rows. */
+.analytics-trend-row + .analytics-lower-row {
+  margin-top: 44px!important;
+}
