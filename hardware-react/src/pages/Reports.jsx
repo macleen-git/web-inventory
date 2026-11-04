@@ -10,7 +10,7 @@ function Reports() {
   const [stockIns, setStockIns] = useState([])
   const [damaged, setDamaged] = useState([])
 
-  const [period, setPeriod] = useState('Last 7 days')
+  const [period, setPeriod] = useState(() => window.localStorage.getItem('hardware-reports-period') || 'Last 7 days')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -171,7 +171,7 @@ function Reports() {
 
       <div className="app-main bg-dark-subtle min-vh-100">
 
-        <div className="p-4" id="mainContent">
+        <div className="reports-page-content" id="mainContent">
 
           <h1><b>Reports</b></h1>
           <p>Sales, profit, stock, and damaged/loss summaries</p>
