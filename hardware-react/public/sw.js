@@ -1,9 +1,10 @@
-const CACHE_NAME = "Hardware Inventory-v1";
+const CACHE_NAME = "Hardware Tools Inventory-v2";
 
 const FILES_TO_CACHE = [
     "/",
     "/index.html",
     "/manifest.json",
+    "/favicon.svg",
     "/css/bootstrap.min.css",
     "/css/style.css",
     "/js/app.js",
