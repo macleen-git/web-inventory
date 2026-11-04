@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Sidebar from '../components/Sidebar'
-import { API_URL } from '../config/api'
+import { API_URL, apiFetch } from '../config/api'
 
 const API = API_URL('/api')
 const ENDPOINTS = ['product', 'sales', 'stock-in', 'damaged']
@@ -102,7 +102,7 @@ function Dashboard() {
     setLoading(true)
     setError('')
     try {
-      const responses = await Promise.all(ENDPOINTS.map(endpoint => fetch(`${API}/${endpoint}`)))
+      const responses = await Promise.all(ENDPOINTS.map(endpoint => apiFetch(`${API}/${endpoint}`)))
       const failed = responses.find(response => !response.ok)
       if (failed) throw new Error(`Unable to load dashboard data (HTTP ${failed.status}).`)
       const [products, sales, stockIns, damaged] = await Promise.all(responses.map(response => response.json()))
