@@ -922,3 +922,29 @@ button { cursor: pointer; }
 :root[data-theme="dark"] .app-main .bg-white .table-responsive {
   background:#1c2a38!important;
 }
+
+/* Modal surfaces for Sales, Stock In, and Damaged Items follow the shared theme. */
+:root[data-theme="dark"] [role="dialog"] > .w-100 {
+  background:var(--hw-card)!important;
+  color:var(--hw-text)!important;
+  border-color:var(--hw-border)!important;
+}
+:root[data-theme="dark"] [role="dialog"] > .w-100 label,
+:root[data-theme="dark"] [role="dialog"] > .w-100 .form-label,
+:root[data-theme="dark"] [role="dialog"] > .w-100 h1,
+:root[data-theme="dark"] [role="dialog"] > .w-100 h2,
+:root[data-theme="dark"] [role="dialog"] > .w-100 h3,
+:root[data-theme="dark"] [role="dialog"] > .w-100 h4,
+:root[data-theme="dark"] [role="dialog"] > .w-100 h5,
+:root[data-theme="dark"] [role="dialog"] > .w-100 p,
+:root[data-theme="dark"] [role="dialog"] > .w-100 small { color:var(--hw-text)!important; }
+:root[data-theme="dark"] [role="dialog"] > .w-100 .form-control,
+:root[data-theme="dark"] [role="dialog"] > .w-100 .form-select,
+:root[data-theme="dark"] [role="dialog"] > .w-100 input,
+:root[data-theme="dark"] [role="dialog"] > .w-100 textarea {
+  background:var(--hw-input-bg,#243443)!important;
+  color:var(--hw-text)!important;
+  border-color:var(--hw-border)!important;
+}
+:root[data-theme="dark"] [role="dialog"] > .w-100 input::placeholder,
+:root[data-theme="dark"] [role="dialog"] > .w-100 textarea::placeholder { color:#b8c5d1!important; }
