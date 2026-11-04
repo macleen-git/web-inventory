@@ -3,6 +3,42 @@ import './Landing.css'
 
 function Landing({ onLogin, onSignUp }) {
   const [openMenu, setOpenMenu] = useState(false)
+  const [installPrompt, setInstallPrompt] = useState(null)
+  const [installMessage, setInstallMessage] = useState('')
+
+  useEffect(() => {
+    function handleBeforeInstallPrompt(event) {
+      event.preventDefault()
+      setInstallPrompt(event)
+    }
+
+    function handleAppInstalled() {
+      setInstallPrompt(null)
+      setInstallMessage('Hardware Tools Inventory has been installed.')
+    }
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    window.addEventListener('appinstalled', handleAppInstalled)
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+      window.removeEventListener('appinstalled', handleAppInstalled)
+    }
+  }, [])
+
+  async function handleInstall() {
+    if (!installPrompt) {
+      setInstallMessage('To install, open your browser menu and choose “Install app” or “Add to Home Screen,” if available.')
+      return
+    }
+
+    await installPrompt.prompt()
+    const choice = await installPrompt.userChoice
+    if (choice?.outcome === 'accepted') {
+      setInstallMessage('Installation started. Follow the prompt on your device.')
+    }
+    setInstallPrompt(null)
+  }
 
   useEffect(() => {
     const existingLink = document.querySelector(
@@ -157,23 +193,6 @@ function Landing({ onLogin, onSignUp }) {
               ))}
             </ul>
 
-            <div className="landing-nav-actions">
-              <button
-                type="button"
-                className="btn btn-login"
-                onClick={handleLogin}
-              >
-                LOG IN
-              </button>
-
-              <button
-                type="button"
-                className="btn btn-signup"
-                onClick={handleSignUp}
-              >
-                SIGN UP
-              </button>
-            </div>
           </div>
 
         </div>
@@ -219,25 +238,10 @@ function Landing({ onLogin, onSignUp }) {
                 <button
                   type="button"
                   className="btn btn-hero-primary"
-                  onClick={handleLogin}
+                  onClick={handleInstall}
                 >
-                  <i
-                    className="bi bi-box-arrow-in-right me-2"
-                    aria-hidden="true"
-                  />
-                  LOG IN
-                </button>
-
-                <button
-                  type="button"
-                  className="btn btn-hero-outline"
-                  onClick={handleSignUp}
-                >
-                  <i
-                    className="bi bi-person-plus me-2"
-                    aria-hidden="true"
-                  />
-                  SIGN UP
+                  <i className="bi bi-download me-2" aria-hidden="true" />
+                  INSTALL NOW
                 </button>
               </div>
 
@@ -533,33 +537,25 @@ function Landing({ onLogin, onSignUp }) {
           </h2>
 
           <p>
-            Take control of your hardware tools inventory today.
-            <br className="d-none d-md-block" />
-            Create an account or log in to start managing your products and inventory.
+            Install the app on your device for quick access to your inventory.
+            Manage your tools and stock anytime, right from your home screen.
           </p>
 
           <div className="cta-actions">
-
             <button
               type="button"
               className="btn btn-signup btn-lg"
-              onClick={handleSignUp}
+              onClick={handleInstall}
             >
-              <i
-                className="bi bi-person-plus me-2"
-                aria-hidden="true"
-              />
-              SIGN UP
+              <i className="bi bi-download me-2" aria-hidden="true" />
+              INSTALL NOW
             </button>
-
-            <span className="login-prompt">
-              Already have an account?{' '}
-              <button type="button" onClick={handleLogin}>
-                LOG IN
-              </button>
-            </span>
-
           </div>
+          {installMessage && (
+            <p className="install-message mt-3" role="status">
+              {installMessage}
+            </p>
+          )}
         </div>
       </section>
 
