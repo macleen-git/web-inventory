@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
-import { API_URL } from '../config/api'
+import { API_URL, apiFetch } from '../config/api'
 
 function Damaged() {
   const api_url = API_URL('/api/damaged')
@@ -33,7 +33,7 @@ function Damaged() {
   // =========================
   async function loadDamagedItems() {
     try {
-      const response = await fetch(api_url)
+      const response = await apiFetch(api_url)
 
       if (!response.ok) {
         throw new Error('Failed to load damaged items.')
@@ -91,7 +91,7 @@ function Damaged() {
     event.preventDefault()
 
     try {
-      const response = await fetch(api_url, {
+      const response = await apiFetch(api_url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -174,7 +174,7 @@ function Damaged() {
   // EXECUTE UPDATE - PUT
   // =========================
   async function performUpdate() {
-    const response = await fetch(`${api_url}/${editID}`, {
+    const response = await apiFetch(`${api_url}/${editID}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
@@ -247,7 +247,7 @@ function Damaged() {
   // EXECUTE DELETE - DELETE
   // =========================
   async function performDelete(id) {
-    const response = await fetch(`${api_url}/${id}`, {
+    const response = await apiFetch(`${api_url}/${id}`, {
       method: 'DELETE'
     })
 
