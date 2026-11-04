@@ -1469,3 +1469,85 @@ button { cursor: pointer; }
     max-height:220px;
   }
 }
+
+
+/* Earnings period buttons stay above the chart card; the card keeps a fixed footprint. */
+.report-period-toolbar-top {
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  flex-wrap:wrap;
+  gap:8px;
+  width:100%;
+  margin:0 0 12px;
+  padding:0;
+}
+.report-period-toolbar-top .btn {
+  min-height:36px;
+  padding:7px 14px;
+  border:1px solid #cbd5e1!important;
+  border-radius:10px!important;
+  background:#f1f5f9!important;
+  color:#26384a!important;
+  font-size:.82rem;
+  font-weight:700;
+}
+.report-period-toolbar-top .btn:hover {
+  background:#e2eaf2!important;
+  color:#172b3d!important;
+}
+.report-period-toolbar-top .btn.is-active {
+  background:#ffc400!important;
+  border-color:#e6ae00!important;
+  color:#17212b!important;
+}
+:root[data-theme="dark"] .report-period-toolbar-top .btn {
+  background:#243443!important;
+  border-color:#405264!important;
+  color:#e4ebf2!important;
+}
+:root[data-theme="dark"] .report-period-toolbar-top .btn:hover {
+  background:#304456!important;
+  color:#fff!important;
+}
+:root[data-theme="dark"] .report-period-toolbar-top .btn.is-active {
+  background:#ffc400!important;
+  border-color:#e6ae00!important;
+  color:#17212b!important;
+}
+.report-earnings-panel {
+  display:flex;
+  flex-direction:column;
+  height:330px;
+  min-height:330px;
+  max-height:330px;
+  overflow:hidden;
+}
+.report-earnings-panel .report-daily-svg-chart,
+.report-earnings-panel > .analytics-empty {
+  flex:1 1 auto;
+  width:100%;
+  min-height:0;
+  height:auto;
+  max-height:none;
+  overflow:hidden;
+}
+.report-earnings-panel .report-daily-svg-chart svg {
+  display:block;
+  width:100%;
+  height:100%;
+}
+.report-earnings-panel > .d-flex.justify-content-between {
+  flex:0 0 auto;
+  margin-top:auto!important;
+  padding-top:8px;
+}
+@media(max-width:575.98px) {
+  .report-period-toolbar-top { gap:6px; }
+  .report-period-toolbar-top .btn { flex:1 1 auto; padding:7px 9px; }
+  .report-earnings-panel {
+    height:330px;
+    min-height:330px;
+    max-height:330px;
+  }
+}
