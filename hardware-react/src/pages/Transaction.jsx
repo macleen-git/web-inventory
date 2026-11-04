@@ -62,7 +62,7 @@ function Transactions() {
         <div id="mainContent">
           <div className="analytics-page-header">
             <div><span className="analytics-kicker">RECORDS / ACTIVITY LOG</span><h1>Transactions</h1><p>Combined history of sales, stock-in, and damaged-item records.</p></div>
-            <button type="button" className="btn analytics-refresh-btn" onClick={loadTransactions} disabled={loading}><i className="bi bi-arrow-clockwise me-2" />{loading ? 'Refreshing…' : 'Refresh records'}</button>
+
           </div>
 
           {error && <div className="alert alert-danger" role="alert">{error}</div>}
