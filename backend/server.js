@@ -265,49 +265,28 @@ app.get("/api/sales", (req, res) => {
 function validateSale(body) {
     const productName = String(body.product || "").trim();
     const quantity = Number(body.quantity);
-    const amount = Number(body.amount);
+    if (!productName) return { error: "Please select a valid product." };
+    if (!Number.isInteger(quantity) || quantity <= 0) return { error: "Quantity must be a positive whole number." };
 
-    if (!productName) {
-        return { error: "Please select a valid product." };
-    }
+    const inventoryProduct = products.find(item => String(item.product || "").toLowerCase() === productName.toLowerCase());
+    if (!inventoryProduct) return { error: "Product not found in inventory." };
 
-    if (!Number.isInteger(quantity) || quantity <= 0) {
-        return { error: "Quantity must be a positive whole number." };
-    }
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-        return { error: "Sale amount must be greater than zero." };
-    }
-
-    const inventoryProduct = products.find(
-        (item) => String(item.product || "").toLowerCase() === productName.toLowerCase()
-    );
-
-    if (!inventoryProduct) {
-        return { error: "Product not found in inventory. Please select an existing product." };
-    }
+    const availableStock = Number(inventoryProduct.stock) || 0;
+    if (availableStock <= 0) return { error: "OUT OF STOCK: This product is currently unavailable." };
+    if (quantity > availableStock) return { error: `INSUFFICIENT STOCK: Only ${availableStock} unit(s) are available.` };
 
     const unitCost = Number(inventoryProduct.buy);
-    if (!Number.isFinite(unitCost) || unitCost < 0) {
-        return { error: "The product cost is invalid. Please update its inventory cost first." };
+    const sellingPricePerUnit = Number(inventoryProduct.sell);
+    if (!Number.isFinite(unitCost) || unitCost < 0 || !Number.isFinite(sellingPricePerUnit) || sellingPricePerUnit <= 0) {
+        return { error: "The product cost or selling price is invalid. Please update its inventory details." };
     }
-
-    const sellingPricePerUnit = amount / quantity;
     if (sellingPricePerUnit < unitCost) {
-        const lossPerUnit = unitCost - sellingPricePerUnit;
-        const totalLoss = lossPerUnit * quantity;
-        return {
-            error: `LOSS PREVENTED: Selling price (₱${sellingPricePerUnit.toFixed(2)} per unit) is below the cost (₱${unitCost.toFixed(2)}). This sale would lose ₱${totalLoss.toFixed(2)} in total.`
-        };
+        const totalLoss = (unitCost - sellingPricePerUnit) * quantity;
+        return { error: `LOSS PREVENTED: Selling price (₱${sellingPricePerUnit.toFixed(2)} per unit) is below the cost (₱${unitCost.toFixed(2)}). This sale would lose ₱${totalLoss.toFixed(2)} in total.` };
     }
 
-    return {
-        product: inventoryProduct.product,
-        quantity,
-        amount,
-        unitCost,
-        profit: amount - (unitCost * quantity)
-    };
+    const amount = sellingPricePerUnit * quantity;
+    return { product: inventoryProduct.product, quantity, amount, unitCost, profit: amount - (unitCost * quantity), inventoryProduct };
 }
 
 
@@ -331,6 +310,7 @@ app.post("/api/sales", (req, res) => {
 
     nextSalesID++;
     sales.push(newSale);
+    validated.inventoryProduct.stock = String((Number(validated.inventoryProduct.stock) || 0) - validated.quantity);
 
     console.log("Sale added:", newSale);
     res.status(201).json(newSale);
