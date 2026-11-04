@@ -9,3 +9,39 @@ a { text-decoration: none; }
 button { cursor: pointer; }
 
 .report-daily-chart{position:relative;min-height:225px;overflow-x:auto;padding:8px 4px 0}.report-grid-lines{position:absolute;inset:8px 0 29px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}.report-grid-lines span{border-top:1px dashed rgba(130,148,166,.28)}.report-daily-columns{position:relative;z-index:1;display:flex;gap:7px;min-width:max-content;height:220px}.report-day-column{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:8px;min-width:38px;padding:0 4px 2px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--hw-text);cursor:pointer}.report-day-column:hover,.report-day-column.is-selected{background:rgba(108,158,232,.10);border-color:rgba(108,158,232,.45)}.report-day-column small{font-size:10px;color:var(--hw-muted-text);white-space:nowrap}.report-day-bars{height:178px;display:flex;align-items:flex-end;justify-content:center;gap:3px;width:100%}.report-day-bars i{display:block;width:8px;max-height:170px;border-radius:4px 4px 0 0}.report-bar-revenue{background:#6c9ee8}.report-bar-profit{background:#20b779}.report-bar-damage{background:#e0a43b}.hw-report-modal-backdrop{position:fixed;inset:0;z-index:2100;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(2,15,29,.72);backdrop-filter:blur(4px)}.hw-report-modal{width:min(900px,100%);max-height:90vh;overflow:auto;padding:22px;border:1px solid var(--hw-border);border-radius:16px;background:var(--hw-card);color:var(--hw-text);box-shadow:0 24px 70px rgba(0,0,0,.35)}.hw-report-modal>header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.hw-report-modal h2{font-size:1.25rem;font-weight:800;margin:3px 0 0}.hw-report-modal h3{font-size:1rem;font-weight:800;margin:22px 0 10px}.hw-report-modal-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.hw-report-modal-summary>div{padding:12px;border:1px solid var(--hw-border);border-radius:10px;background:var(--hw-page)}.hw-report-modal-summary small,.hw-report-modal-summary strong{display:block}.hw-report-modal-summary small{color:var(--hw-muted-text);font-size:.75rem}.hw-report-modal-summary strong{font-size:1rem;overflow-wrap:anywhere}.hw-report-stock-list{padding:0;list-style:none}.hw-report-stock-list li{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--hw-border)}.app-sidebar-collapse-row{display:flex;justify-content:center;padding:8px 12px 12px}.app-sidebar-collapse-row .sidebar-collapse-button{position:static;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:36px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.06);color:inherit}.app-sidebar-desktop.is-collapsed .app-sidebar-collapse-row{padding-inline:8px}.app-sidebar-desktop.is-collapsed .app-sidebar-collapse-row .sidebar-collapse-button{width:42px}:root[data-theme="dark"] .hw-report-modal{background:#1c2a38;color:#fff;border-color:#354657}:root[data-theme="dark"] .hw-report-modal h2,:root[data-theme="dark"] .hw-report-modal h3,:root[data-theme="dark"] .hw-report-modal p{color:#fff}:root[data-theme="dark"] .hw-report-modal .btn-close{filter:invert(1)}@media(max-width:640px){.hw-report-modal-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.hw-report-modal{padding:16px}.report-day-column{min-width:34px}}
+
+
+/* Consistent slate modal surfaces and legible dark-mode controls across inventory workflows. */
+:root[data-theme="dark"] .app-main [role="dialog"] > div {
+  background:#1c2a38!important;
+  color:#edf2f7!important;
+  border:1px solid #354657!important;
+}
+:root[data-theme="dark"] .app-main [role="dialog"] > div .modal-header {
+  background:#243443!important;
+  color:#fff!important;
+  border-color:#354657!important;
+}
+:root[data-theme="dark"] .app-main [role="dialog"] > div label,
+:root[data-theme="dark"] .app-main [role="dialog"] > div .form-label,
+:root[data-theme="dark"] .app-main [role="dialog"] > div p,
+:root[data-theme="dark"] .app-main [role="dialog"] > div h1,
+:root[data-theme="dark"] .app-main [role="dialog"] > div h2,
+:root[data-theme="dark"] .app-main [role="dialog"] > div h3,
+:root[data-theme="dark"] .app-main [role="dialog"] > div h4,
+:root[data-theme="dark"] .app-main [role="dialog"] > div h5,
+:root[data-theme="dark"] .app-main [role="dialog"] > div small {
+  color:#edf2f7!important;
+}
+:root[data-theme="dark"] .app-main [role="dialog"] > div .form-control,
+:root[data-theme="dark"] .app-main [role="dialog"] > div .form-select,
+:root[data-theme="dark"] .app-main [role="dialog"] > div input,
+:root[data-theme="dark"] .app-main [role="dialog"] > div textarea {
+  background:#243443!important;
+  color:#fff!important;
+  border-color:#526579!important;
+}
+:root[data-theme="dark"] .app-main [role="dialog"] > div .form-control::placeholder,
+:root[data-theme="dark"] .app-main [role="dialog"] > div input::placeholder {
+  color:#b8c5d1!important;
+}
