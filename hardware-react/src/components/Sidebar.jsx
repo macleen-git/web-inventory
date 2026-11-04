@@ -147,6 +147,8 @@ function Sidebar({ active, onLogout, admin = false }) {
           <div className="app-user-row" title={displayName}>
             <span className="app-user-avatar"><i className="bi bi-person-fill" /></span>
             <span className="app-user-copy"><strong>{displayName}</strong><small>{email || (admin ? 'Administrator' : 'Signed in')}</small></span>
+          </div>
+          <div className="app-sidebar-actions">
             {themeButton('desktop')}
             {logoutButton('desktop')}
           </div>
