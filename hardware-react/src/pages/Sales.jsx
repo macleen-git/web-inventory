@@ -6,6 +6,7 @@ export default function Sales() {
   const api_url = 'https://web-inventory-rfai.onrender.com/api/sales'
 
   const [sales, setSales] = useState([])
+  const [products, setProducts] = useState([])
 
   // ADD SALE
   const [product, setProduct] = useState('')
@@ -59,8 +60,31 @@ export default function Sales() {
       }
     }
 
+    async function loadProducts() {
+      try {
+        const response = await fetch('https://web-inventory-rfai.onrender.com/api/product')
+        if (!response.ok) throw new Error('Failed to fetch products')
+        const data = await response.json()
+        setProducts(Array.isArray(data) ? data : [])
+      } catch (error) {
+        console.error('Fetch products error:', error)
+      }
+    }
+
     loadSales()
+    loadProducts()
   }, [])
+
+  const selectedProduct = products.find(
+    (item) => String(item.product || '').toLowerCase() === product.trim().toLowerCase()
+  )
+  const unitCost = Number(selectedProduct?.buy) || 0
+  const saleQuantity = Number(quantity) || 0
+  const saleAmount = Number(amount) || 0
+  const saleUnitPrice = saleQuantity > 0 ? saleAmount / saleQuantity : 0
+  const estimatedLoss = saleQuantity > 0 && unitCost > saleUnitPrice
+    ? (unitCost - saleUnitPrice) * saleQuantity
+    : 0
 
   // =========================
   // SEARCH
@@ -696,15 +720,23 @@ export default function Sales() {
                   <label htmlFor="product" className="form-label fw-bold">
                     Product
                   </label>
-                  <input
+                  <select
                     id="product"
-                    type="text"
-                    className="form-control"
-                    placeholder="Enter product name"
+                    className="form-select"
                     value={product}
                     onChange={(event) => setProduct(event.target.value)}
                     required
-                  />
+                  >
+                    <option value="">Select a product</option>
+                    {products.map((item) => (
+                      <option key={item.id} value={item.product}>
+                        {item.product} — Cost: ₱{Number(item.buy || 0).toFixed(2)}
+                      </option>
+                    ))}
+                  </select>
+                  {products.length === 0 && (
+                    <small className="text-danger">No inventory products were loaded. Check the product API connection.</small>
+                  )}
                 </div>
 
                 <div className="row g-3">
@@ -756,6 +788,25 @@ export default function Sales() {
                     required
                   />
                 </div>
+
+                {selectedProduct && quantity && amount && (
+                  <div className={estimatedLoss > 0 ? "alert alert-danger mt-3 mb-3" : "alert alert-success mt-3 mb-3"} role="status">
+                    {estimatedLoss > 0 ? (
+                      <>
+                        <strong>LOSS WARNING — Sale blocked</strong>
+                        <div>Cost per unit: ₱{unitCost.toFixed(2)}</div>
+                        <div>Selling price per unit: ₱{saleUnitPrice.toFixed(2)}</div>
+                        <div className="fw-bold">Estimated loss: ₱{estimatedLoss.toFixed(2)}</div>
+                        <small>The selling price is below the product cost. Increase the amount to continue.</small>
+                      </>
+                    ) : (
+                      <>
+                        <strong>Sale price check passed</strong>
+                        <div>Estimated profit: ₱{((saleUnitPrice - unitCost) * saleQuantity).toFixed(2)}</div>
+                      </>
+                    )}
+                  </div>
+                )}
 
                 <div className="mb-2">
                   <label htmlFor="note" className="form-label fw-bold">
