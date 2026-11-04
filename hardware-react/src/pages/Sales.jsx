@@ -1,9 +1,10 @@
 
 import { useEffect, useState } from 'react'
 import Sidebar from '../components/Sidebar'
+import { API_URL } from '../config/api'
 
 export default function Sales() {
-  const api_url = 'https://web-inventory-rfai.onrender.com/api/sales'
+  const api_url = API_URL('/api/sales')
 
   const [sales, setSales] = useState([])
   const [products, setProducts] = useState([])
@@ -64,7 +65,7 @@ export default function Sales() {
 
     async function loadProducts() {
       try {
-        const response = await fetch('https://web-inventory-rfai.onrender.com/api/product')
+        const response = await fetch(API_URL('/api/product'))
         if (!response.ok) throw new Error('Failed to fetch products')
         const data = await response.json()
         setProducts(Array.isArray(data) ? data : [])

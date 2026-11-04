@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
+import { API_URL } from '../config/api'
 
 export default function StockIn() {
   const [stockIns, setStockIns] = useState([])
@@ -30,7 +31,7 @@ export default function StockIn() {
   const [confirmation, setConfirmation] = useState(null)
   const [isConfirming, setIsConfirming] = useState(false)
 
-  const api_url = 'https://web-inventory-rfai.onrender.com/api/stock-in'
+  const api_url = API_URL('/api/stock-in')
 
   // =========================
   // GET STOCK-IN RECORDS

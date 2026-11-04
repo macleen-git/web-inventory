@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
+import { API_URL } from '../config/api'
 
 function Reports() {
 
@@ -19,10 +20,10 @@ function Reports() {
         setLoading(true)
         setError('')
 
-        const productResponse = await fetch('https://web-inventory-rfai.onrender.com/api/product')
-        const salesResponse = await fetch('https://web-inventory-rfai.onrender.com/api/sales')
-        const stockResponse = await fetch('https://web-inventory-rfai.onrender.com/api/stock-in')
-        const damagedResponse = await fetch('https://web-inventory-rfai.onrender.com/api/damaged')
+        const productResponse = await fetch(API_URL('/api/product'))
+        const salesResponse = await fetch(API_URL('/api/sales'))
+        const stockResponse = await fetch(API_URL('/api/stock-in'))
+        const damagedResponse = await fetch(API_URL('/api/damaged'))
 
         if (
           !productResponse.ok ||

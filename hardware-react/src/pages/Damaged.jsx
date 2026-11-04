@@ -1,9 +1,10 @@
 
 import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
+import { API_URL } from '../config/api'
 
 function Damaged() {
-  const api_url = 'https://web-inventory-rfai.onrender.com/api/damaged'
+  const api_url = API_URL('/api/damaged')
 
   const [damagedItems, setDamagedItems] = useState([])
 

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import Sidebar from '../components/Sidebar'
+import { API_URL } from '../config/api'
 
-const API = 'https://web-inventory-rfai.onrender.com/api'
+const API = API_URL('/api')
 
 function Transactions() {
   const [records, setRecords] = useState([])
