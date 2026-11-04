@@ -35,7 +35,7 @@ import './App.css'
 
 
 function isAdminRole(role) {
-  return isAdminRole(role) || role === 'superadmin'
+  return role === 'admin' || role === 'superadmin'
 }
 
 function AppRoutes({ user, role, handleLogin, handleLogout }) {
@@ -277,21 +277,6 @@ function App() {
         try {
           if (currentUser) {
             setUser(currentUser)
-
-            // Provision the signed-in Firebase account in the MySQL user directory.
-            try {
-              const token = await currentUser.getIdToken()
-              const syncResponse = await fetch(API_URL('/api/auth/sync'), {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-              })
-              if (!syncResponse.ok) {
-                const syncError = await syncResponse.json().catch(() => ({}))
-                console.error('MySQL account sync failed:', syncError.message || syncResponse.status)
-              }
-            } catch (syncError) {
-              console.error('MySQL account sync failed:', syncError)
-            }
 
             // MySQL is the source of truth for roles. Firebase is used only for authentication.
             const syncResponse = await fetch(API_URL('/api/auth/sync'), {
