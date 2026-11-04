@@ -1332,3 +1332,102 @@ button { cursor: pointer; }
   from { stroke-dashoffset: 1; }
   to { stroke-dashoffset: 0; }
 }
+
+
+/* Reports: keep the period selector and SVG chart neatly inside the earnings card. */
+.report-period-toolbar {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px;
+  width:100%;
+  margin:16px 0 12px;
+  padding:0;
+}
+.report-period-toolbar .btn {
+  min-height:36px;
+  padding:7px 14px;
+  border:1px solid #cbd5e1!important;
+  border-radius:10px!important;
+  background:#f1f5f9!important;
+  color:#26384a!important;
+  font-size:.82rem;
+  font-weight:700;
+  line-height:1.2;
+  box-shadow:none;
+  transition:background-color .18s ease,border-color .18s ease,color .18s ease,transform .18s ease;
+}
+.report-period-toolbar .btn:hover {
+  background:#e2eaf2!important;
+  border-color:#9aabba!important;
+  color:#172b3d!important;
+  transform:translateY(-1px);
+}
+.report-period-toolbar .btn.is-active {
+  background:#ffc400!important;
+  border-color:#e6ae00!important;
+  color:#17212b!important;
+  box-shadow:0 2px 8px rgba(255,196,0,.2);
+}
+.report-period-toolbar .btn:focus-visible {
+  outline:2px solid #ffc400;
+  outline-offset:2px;
+}
+:root[data-theme="dark"] .report-period-toolbar .btn {
+  background:#243443!important;
+  border-color:#405264!important;
+  color:#e4ebf2!important;
+}
+:root[data-theme="dark"] .report-period-toolbar .btn:hover {
+  background:#304456!important;
+  border-color:#647b90!important;
+  color:#fff!important;
+}
+:root[data-theme="dark"] .report-period-toolbar .btn.is-active {
+  background:#ffc400!important;
+  border-color:#e6ae00!important;
+  color:#17212b!important;
+}
+.report-daily-svg-chart {
+  width:100%;
+  max-width:100%;
+  height:clamp(210px, 28vw, 290px);
+  overflow:hidden;
+  border-radius:10px;
+}
+.report-daily-svg-chart svg {
+  display:block;
+  width:100%;
+  height:100%;
+  overflow:visible;
+}
+.report-svg-grid line {
+  stroke:rgba(125,145,165,.24);
+  stroke-width:1;
+  stroke-dasharray:3 4;
+}
+.report-daily-svg-chart text {
+  fill:#64748b;
+  font-size:11px;
+}
+:root[data-theme="dark"] .report-daily-svg-chart text {
+  fill:#bdc9d5;
+}
+.report-svg-day { cursor:pointer; outline:none; }
+.report-svg-day:focus-visible rect:last-child {
+  stroke:#ffc400;
+  stroke-width:2;
+}
+.report-bar-revenue { fill:#6c9ee8; }
+.report-bar-profit { fill:#20b779; }
+.report-bar-damage { fill:#e0a43b; }
+.report-svg-day.is-selected .report-bar-revenue,
+.report-svg-day.is-selected .report-bar-profit,
+.report-svg-day.is-selected .report-bar-damage {
+  filter:brightness(1.12);
+}
+@media(max-width:575.98px) {
+  .report-period-toolbar { gap:6px; margin-top:13px; }
+  .report-period-toolbar .btn { flex:1 1 auto; padding:7px 9px; }
+  .report-daily-svg-chart { height:220px; }
+}
