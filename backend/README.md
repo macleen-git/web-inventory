@@ -36,7 +36,7 @@ If you configured a password for the XAMPP database user, put it in `DB_PASSWORD
 
 ## Option B: Aiven Cloud MySQL
 
-1. In the Aiven Console, open your MySQL service and copy its **host**, **port**, **user**, and **password** from the connection information.
+1. In the Aiven Console, open your MySQL service and copy its **host**, **port**, **user**, and **password** from the connection information. Also check the database name shown by Aiven; do not assume it is `hardware_inventory_v2`.
 2. Download the service's **CA certificate** from the Aiven connection information.
 3. Create `backend/certs` and save the downloaded certificate as `backend/certs/ca.pem`. The `certs/` folder and `.pem` files are ignored by Git.
 4. Set `backend/.env` to the Aiven values:
@@ -47,7 +47,7 @@ DB_HOST=your-aiven-host
 DB_PORT=your-aiven-port
 DB_USER=your-aiven-username
 DB_PASSWORD=your-aiven-password
-DB_NAME=hardware_inventory_v2
+DB_NAME=your-aiven-database-name
 DB_SSL=true
 DB_SSL_CA=./certs/ca.pem
 ```
