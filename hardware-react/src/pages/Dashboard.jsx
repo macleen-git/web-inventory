@@ -53,7 +53,7 @@ function MetricCard({ label, value, note, icon, accent }) {
   )
 }
 
-function BarChart({ title, subtitle, items, format = value => value }) {
+function BarChart({ title, subtitle, items, format = value => value, refreshing = false }) {
   const width = 720
   const height = 230
   const left = 62
@@ -68,10 +68,10 @@ function BarChart({ title, subtitle, items, format = value => value }) {
   }))
   const line = points.map(point => `${point.x},${point.y}`).join(' ')
   return (
-    <section className="analytics-panel h-100">
+    <section className={`analytics-panel h-100 ${refreshing ? 'analytics-chart-refreshing' : ''}`}>
       <div className="analytics-panel-heading"><div><h2>{title}</h2><p>{subtitle}</p></div></div>
       {items.length ? (
-        <div className="sales-trend-chart">
+        <div className="sales-trend-chart analytics-sales-trend">
           <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={title} preserveAspectRatio="none">
             {[0,1,2,3,4].map(tick => {
               const y = top + tick * (height - top - bottom) / 4
@@ -79,10 +79,10 @@ function BarChart({ title, subtitle, items, format = value => value }) {
               return <g key={tick}><line x1={left} y1={y} x2={width-right} y2={y} className="sales-chart-grid" /><text x={left-9} y={y+4} textAnchor="end" className="sales-chart-axis">{format(value)}</text></g>
             })}
             {points.length > 1 && <polyline points={line} className="sales-chart-line" />}
-            {points.map(point => <g key={point.label}><circle cx={point.x} cy={point.y} r="4.5" className="sales-chart-dot"><title>{point.label}: {format(point.value)}</title></circle><text x={point.x} y={height-8} textAnchor="middle" className="sales-chart-axis">{point.label}</text></g>)}
+            {points.map(point => <g key={point.key || point.label}><circle cx={point.x} cy={point.y} r="4.5" className="sales-chart-dot"><title>{point.label}: {format(point.value)}</title></circle><text x={point.x} y={height-8} textAnchor="middle" className="sales-chart-axis">{point.label}</text></g>)}
           </svg>
         </div>
-      ) : <div className="analytics-empty">No records for this date.</div>}
+      ) : <div className="analytics-empty">No sales records available for this period.</div>}
     </section>
   )
 }
@@ -90,6 +90,7 @@ function BarChart({ title, subtitle, items, format = value => value }) {
 function Dashboard() {
   const [data, setData] = useState({ products: [], sales: [], stockIns: [], damaged: [] })
   const [selectedDate, setSelectedDate] = useState(todayKey)
+  const [trendPeriod, setTrendPeriod] = useState('Today')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [updatedAt, setUpdatedAt] = useState(null)
@@ -128,16 +129,60 @@ function Dashboard() {
   const unitsSold = filteredSales.reduce((sum, item) => sum + asNumber(item.quantity), 0)
 
   const salesTrend = useMemo(() => {
-    const groups = new Map()
-    filteredSales.forEach(item => {
-      const date = parseDate(item.date)
-      if (!date) return
-      const label = date.toLocaleDateString('en-PH', { month: '2-digit', day: '2-digit' })
-      const key = dateKey(date)
-      groups.set(key, { label, value: (groups.get(key)?.value || 0) + asNumber(item.amount) })
+    const now = new Date()
+    const records = data.sales.map(item => ({ date: parseDate(item.date), amount: asNumber(item.amount) })).filter(item => item.date)
+    const makeKey = date => dateKey(date)
+
+    if (trendPeriod === 'Today') {
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const hourly = Array.from({ length: 24 }, (_, hour) => ({ key: String(hour), label: hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`, value: 0 }))
+      records.filter(item => makeKey(item.date) === makeKey(today)).forEach(item => {
+        const bucket = hourly[item.date.getHours()]
+        bucket.value += item.amount
+      })
+      return hourly.filter((item, index) => index % 2 === 0)
+    }
+
+    if (trendPeriod === '7 Days' || trendPeriod === '30 Days') {
+      const days = trendPeriod === '7 Days' ? 7 : 30
+      const buckets = Array.from({ length: days }, (_, index) => {
+        const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1 - index))
+        return { key: makeKey(date), label: date.toLocaleDateString('en-PH', { month: 'numeric', day: 'numeric' }), value: 0 }
+      })
+      const lookup = new Map(buckets.map(bucket => [bucket.key, bucket]))
+      records.forEach(item => {
+        const bucket = lookup.get(makeKey(item.date))
+        if (bucket) bucket.value += item.amount
+      })
+      return buckets
+    }
+
+    if (trendPeriod === '90 Days') {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 89)
+      const buckets = Array.from({ length: 13 }, (_, index) => {
+        const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + index * 7)
+        return { key: makeKey(date), label: date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }), value: 0 }
+      })
+      records.forEach(item => {
+        const day = Math.floor((new Date(item.date.getFullYear(), item.date.getMonth(), item.date.getDate()) - start) / 86400000)
+        if (day >= 0 && day < 90) buckets[Math.min(12, Math.floor(day / 7))].value += item.amount
+      })
+      return buckets
+    }
+
+    if (!records.length) return []
+    const earliest = records.reduce((min, item) => item.date < min ? item.date : min, records[0].date)
+    const monthCount = Math.max(1, (now.getFullYear() - earliest.getFullYear()) * 12 + now.getMonth() - earliest.getMonth() + 1)
+    const buckets = Array.from({ length: monthCount }, (_, index) => {
+      const date = new Date(earliest.getFullYear(), earliest.getMonth() + index, 1)
+      return { key: `${date.getFullYear()}-${date.getMonth()}`, label: date.toLocaleDateString('en-PH', { month: 'short', year: '2-digit' }), value: 0 }
     })
-    return [...groups.values()].slice(-12)
-  }, [filteredSales])
+    records.forEach(item => {
+      const index = (item.date.getFullYear() - earliest.getFullYear()) * 12 + item.date.getMonth() - earliest.getMonth()
+      if (buckets[index]) buckets[index].value += item.amount
+    })
+    return buckets
+  }, [data.sales, trendPeriod])
 
   const movement = [
     { label: 'Stock In', value: filteredStockIns.reduce((sum, item) => sum + asNumber(item.quantity), 0) },
@@ -204,7 +249,16 @@ function Dashboard() {
           </div>
 
           <div className="row g-3 mb-4">
-            <div className="col-12 col-xl-8"><BarChart title="Sales trend" subtitle={`Revenue · ${new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-PH', { dateStyle: 'medium' })}`} items={salesTrend} format={money} /></div>
+            <div className="col-12 col-xl-8">
+              <div className="analytics-trend-toolbar">
+                <div className="analytics-trend-periods" role="group" aria-label="Sales trend period">
+                  {['Today', '7 Days', '30 Days', '90 Days', 'All Time'].map(period => (
+                    <button key={period} type="button" className={`btn btn-sm ${trendPeriod === period ? 'is-active' : ''}`} onClick={() => setTrendPeriod(period)}>{period}</button>
+                  ))}
+                </div>
+              </div>
+              <BarChart title="Sales trend" subtitle={`Revenue · ${trendPeriod === 'Today' ? 'Hourly' : trendPeriod === 'All Time' ? 'Monthly' : trendPeriod === '90 Days' ? 'Weekly' : 'Daily'} view`} items={salesTrend} format={money} refreshing={loading && Boolean(updatedAt)} />
+            </div>
             <div className="col-12 col-xl-4">
               <section className="analytics-panel h-100">
                 <div className="analytics-panel-heading"><div><h2>Inventory movement</h2><p>Recorded units on selected date</p></div></div>
