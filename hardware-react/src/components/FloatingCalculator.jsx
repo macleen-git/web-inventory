@@ -99,7 +99,6 @@ export default function FloatingCalculator() {
   }, [])
 
   const startDrag = (event) => {
-    event.preventDefault()
     moved.current = false
     drag.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, startX: position.x, startY: position.y }
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -129,6 +128,7 @@ export default function FloatingCalculator() {
         onPointerMove={moveDrag}
         onPointerUp={stopDrag}
         onPointerCancel={stopDrag}
+        onLostPointerCapture={stopDrag}
         onClick={() => { if (!moved.current) setOpen(true) }}
       >
         <i className="bi bi-calculator-fill" aria-hidden="true" />
