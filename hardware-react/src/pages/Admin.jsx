@@ -1,238 +1,130 @@
-import { useEffect, useMemo, useState } from 'react'
-import { collection, doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
-import { db } from '../components/firebase'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { auth } from '../components/firebase'
+import { API_URL } from '../config/api'
 import Sidebar from '../components/Sidebar'
 
-function MetricCard({ label, value, note, icon, accent = '' }) {
-  return (
-    <article className="analytics-metric-card">
-      <div className="d-flex align-items-start justify-content-between gap-3">
-        <div>
-          <p className="analytics-eyebrow mb-2">{label}</p>
-          <div className="analytics-metric-value">{value}</div>
-          <small className="analytics-muted">{note}</small>
-        </div>
-        <span className={`analytics-metric-icon ${accent}`} aria-hidden="true">
-          <i className={`bi ${icon}`} />
-        </span>
-      </div>
-    </article>
-  )
+const API = API_URL('/api')
+
+function Metric({ label, value, note, icon, tone = '' }) {
+  return <article className="admin-v2-metric">
+    <div><p>{label}</p><strong>{Number(value || 0).toLocaleString()}</strong><small>{note}</small></div>
+    <span className={tone}><i className={`bi ${icon}`} /></span>
+  </article>
 }
 
 function Admin({ user, onLogout }) {
   const [users, setUsers] = useState([])
+  const [overview, setOverview] = useState(null)
+  const [period, setPeriod] = useState('month')
   const [search, setSearch] = useState('')
-  const [roleFilter, setRoleFilter] = useState('all')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [selectedUser, setSelectedUser] = useState(null)
-  const [editRole, setEditRole] = useState('user')
-  const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState('')
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [lastUpdated, setLastUpdated] = useState(null)
 
-  useEffect(() => {
-    const unsubscribe = onSnapshot(
-      collection(db, 'users'),
-      (snapshot) => {
-        setUsers(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })))
-        setError('')
-      },
-      (snapshotError) => setError(`Unable to load users: ${snapshotError.message}`)
-    )
-    return () => unsubscribe()
+  const request = useCallback(async (path, options = {}) => {
+    const token = await auth.currentUser?.getIdToken()
+    if (!token) throw new Error('Your sign-in session expired. Please sign in again.')
+    const response = await fetch(API + path, {
+      ...options,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(options.headers || {}) },
+    })
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}))
+      throw new Error(body.message || `Request failed (HTTP ${response.status}).`)
+    }
+    return response.status === 204 ? null : response.json()
   }, [])
 
-  const activeUsers = users.filter((item) => item.role !== 'inactive')
-  const inactiveUsers = users.filter((item) => item.role === 'inactive')
-  const admins = users.filter((item) => item.role === 'admin')
-
-  const filteredUsers = useMemo(() => {
-    const keyword = search.trim().toLowerCase()
-    return users.filter((item) => {
-      const role = item.role || 'user'
-      const status = role === 'inactive' ? 'inactive' : 'active'
-      const matchesSearch = !keyword || [item.displayName, item.name, item.email, role, item.id]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(keyword))
-      return matchesSearch && (roleFilter === 'all' || role === roleFilter) &&
-        (statusFilter === 'all' || status === statusFilter)
-    })
-  }, [users, search, roleFilter, statusFilter])
-
-  const openEdit = (item) => {
-    setSelectedUser(item)
-    setEditRole(item.role === 'admin' ? 'admin' : item.role === 'inactive' ? 'inactive' : 'user')
-    setMessage('')
-    setError('')
-  }
-
-  const saveRole = async () => {
-    if (!selectedUser) return
-    if (selectedUser.id === user?.uid && editRole !== 'admin') {
-      setError('You cannot remove your own administrator access.')
-      return
-    }
-    if (!window.confirm("Save the changes to this user's account?")) return
-
-    setSaving(true)
-    setMessage('')
+  const load = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true)
     setError('')
     try {
-      await setDoc(doc(db, 'users', selectedUser.id), {
-        role: editRole,
-        updatedAt: serverTimestamp(),
-      }, { merge: true })
-      setMessage('Account changes saved.')
-      setSelectedUser(null)
-    } catch (saveError) {
-      setError(`Unable to update account: ${saveError.message}`)
+      const [directory, stats] = await Promise.all([
+        request('/admin/users'),
+        request(`/admin/overview?period=${period}`),
+      ])
+      setUsers(Array.isArray(directory) ? directory : [])
+      setOverview(stats)
+      setLastUpdated(new Date())
+    } catch (err) {
+      setError(err.message || 'Unable to load administrator data.')
     } finally {
-      setSaving(false)
+      setLoading(false)
     }
-  }
+  }, [period, request])
 
-  return (
-    <div className="app-layout">
-      <Sidebar active="/admin" admin onLogout={onLogout} />
-      <main className="app-main min-vh-100">
-        <div id="mainContent">
-          <div className="analytics-page-header">
-            <div>
-              <span className="analytics-kicker">HARDWARE TOOLS / ADMINISTRATION</span>
-              <h1>Admin Dashboard</h1>
-              <p>Manage registered accounts, access roles, and account status.</p>
-            </div>
-            <div className="admin-session-chip">
-              <span className="app-user-avatar"><i className="bi bi-shield-lock-fill" /></span>
-              <span><strong>{user?.displayName || 'Administrator'}</strong><small>{user?.email || 'Signed in'}</small></span>
-            </div>
-          </div>
+  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    const heartbeat = async () => {
+      try { await request('/activity/heartbeat', { method: 'POST' }) } catch (err) { /* Dashboard displays API errors on its next refresh. */ }
+    }
+    heartbeat()
+    const timer = window.setInterval(heartbeat, 60000)
+    const refresh = window.setInterval(() => load(false), 60000)
+    return () => { window.clearInterval(timer); window.clearInterval(refresh) }
+  }, [load, request])
 
-          {message && <div className="alert alert-success mx-3 mx-md-4" role="status">{message}</div>}
-          {error && <div className="alert alert-danger mx-3 mx-md-4" role="alert">{error}</div>}
+  const summary = overview?.summary || {}
+  const filteredUsers = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    if (!term) return users
+    return users.filter(item => [item.displayName, item.email, item.role, item.status].some(value => String(value || '').toLowerCase().includes(term)))
+  }, [users, search])
+  const activity = overview?.realtime || []
+  const maxActivity = Math.max(1, ...activity.map(item => Number(item.users) || 0))
+  const onlineNow = activity.length ? Math.max(...activity.map(item => Number(item.users) || 0)) : 0
+  const newTrend = overview?.newUsersTrend || []
 
-          <div className="row g-3 mb-4 px-3 px-md-4">
-            <div className="col-12 col-sm-6 col-xl-3">
-              <MetricCard label="Total accounts" value={users.length.toLocaleString()} note="All registered accounts" icon="bi-people" />
-            </div>
-            <div className="col-12 col-sm-6 col-xl-3">
-              <MetricCard label="Active accounts" value={activeUsers.length.toLocaleString()} note="Accounts with access" icon="bi-person-check" />
-            </div>
-            <div className="col-12 col-sm-6 col-xl-3">
-              <MetricCard label="Administrators" value={admins.length.toLocaleString()} note="Accounts with admin role" icon="bi-shield-check" accent="is-yellow" />
-            </div>
-            <div className="col-12 col-sm-6 col-xl-3">
-              <MetricCard label="Inactive accounts" value={inactiveUsers.length.toLocaleString()} note="Accounts marked inactive" icon="bi-person-x" accent="is-alert" />
-            </div>
-          </div>
+  return <div className="app-layout">
+    <Sidebar active="/admin" admin onLogout={onLogout} />
+    <main className="app-main min-vh-100">
+      <div id="mainContent" className="admin-v2-content">
+        <header className="admin-v2-header">
+          <div><span className="admin-v2-kicker">HARDWARE TOOLS / ADMINISTRATION</span><h1>General Users</h1><p>Efficient management for everyday users.</p></div>
+          <div className="admin-v2-profile"><span><i className="bi bi-shield-check" /></span><div><strong>{user?.displayName || 'Administrator'}</strong><small>{user?.email || 'Signed in'}</small></div></div>
+        </header>
 
-          <section className="analytics-panel mx-3 mx-md-4 mb-4">
-            <div className="analytics-panel-heading admin-users-heading">
-              <div>
-                <h2>Account management</h2>
-                <p>Search accounts and manage their current access role.</p>
-              </div>
-              <span className="analytics-count">{filteredUsers.length} accounts</span>
-            </div>
-
-            <div className="row g-2 mb-3">
-              <div className="col-12 col-lg-5">
-                <div className="input-group admin-search">
-                  <span className="input-group-text"><i className="bi bi-search" /></span>
-                  <input type="search" className="form-control" placeholder="Search name, email, or account ID" value={search} onChange={(event) => setSearch(event.target.value)} />
-                </div>
-              </div>
-              <div className="col-6 col-lg-3">
-                <select className="form-select admin-filter" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} aria-label="Filter by role">
-                  <option value="all">All roles</option>
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                  <option value="inactive">Inactive (legacy)</option>
-                </select>
-              </div>
-              <div className="col-6 col-lg-3">
-                <select className="form-select admin-filter" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status">
-                  <option value="all">All statuses</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </div>
-              <div className="col-12 col-lg-1 d-grid">
-                <button type="button" className="btn analytics-refresh-btn" onClick={() => { setSearch(''); setRoleFilter('all'); setStatusFilter('all') }} title="Clear filters">
-                  <i className="bi bi-arrow-counterclockwise" /><span className="d-lg-none ms-2">Clear filters</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="table-responsive">
-              <table className="table analytics-table align-middle mb-0 admin-users-table">
-                <thead><tr><th>Account</th><th>Email</th><th>Role</th><th>Status</th><th className="text-end">Action</th></tr></thead>
-                <tbody>
-                  {filteredUsers.length ? filteredUsers.map((item) => {
-                    const name = item.displayName || item.name || 'Unnamed User'
-                    const role = item.role || 'user'
-                    const inactive = role === 'inactive'
-                    return (
-                      <tr key={item.id}>
-                        <td>
-                          <div className="d-flex align-items-center gap-2">
-                            {item.photoURL
-                              ? <img src={item.photoURL} alt="" className="admin-avatar" />
-                              : <span className="admin-avatar admin-avatar-fallback">{name.charAt(0).toUpperCase()}</span>}
-                            <span className="min-w-0"><strong className="d-block text-truncate">{name}</strong><small className="analytics-muted">{item.id}</small></span>
-                          </div>
-                        </td>
-                        <td>{item.email || 'No email'}</td>
-                        <td><span className={`analytics-type-badge ${role === 'admin' ? 'type-stock-in' : 'type-sales'}`}>{role}</span></td>
-                        <td><span className={`admin-status ${inactive ? 'is-inactive' : 'is-active'}`}><span />{inactive ? 'Inactive' : 'Active'}</span></td>
-                        <td className="text-end"><button type="button" className="btn admin-edit-btn" onClick={() => openEdit(item)}><i className="bi bi-pencil-square me-1" />Manage</button></td>
-                      </tr>
-                    )
-                  }) : (
-                    <tr><td colSpan="5" className="text-center py-5 analytics-muted">No matching accounts found.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
-          <p className="analytics-footnote px-3 px-md-4">Account information shown here is read from the current users collection.</p>
+        {error && <div className="alert alert-danger" role="alert">{error}</div>}
+        <div className="row g-3 admin-v2-metrics">
+          <div className="col-12 col-md-4"><Metric label="Total Users" value={summary.totalUsers} note="Registered accounts" icon="bi-people" /></div>
+          <div className="col-12 col-md-4"><Metric label="New Users" value={summary.newUsers} note="Joined in the last 30 days" icon="bi-person-plus" tone="purple" /></div>
+          <div className="col-12 col-md-4"><Metric label="Total Admins" value={summary.totalAdmins} note="Admin and superadmin accounts" icon="bi-person-check" tone="blue" /></div>
         </div>
-      </main>
 
-      {selectedUser && (
-        <div className="modal d-block admin-modal-layer" tabIndex="-1" role="dialog" aria-modal="true" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedUser(null) }}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content admin-modal-content">
-              <div className="modal-header">
-                <div><span className="analytics-kicker">ACCOUNT SETTINGS</span><h5 className="modal-title fw-bold mb-0">Manage account</h5></div>
-                <button type="button" className="btn-close" aria-label="Close" onClick={() => setSelectedUser(null)} />
+        <div className="row g-3 mt-1 align-items-stretch">
+          <div className="col-12 col-xl-8">
+            <section className="admin-v2-panel h-100">
+              <div className="admin-v2-panel-head"><div><h2>User Management</h2><p>Registered accounts and access status</p></div><button className="admin-v2-refresh" type="button" onClick={() => load()} disabled={loading}><i className="bi bi-arrow-clockwise" /> Refresh</button></div>
+              <div className="admin-v2-search"><i className="bi bi-search" /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search user name, email, or role" aria-label="Search users" /></div>
+              <div className="table-responsive">
+                <table className="table align-middle admin-v2-table mb-0"><thead><tr><th>User</th><th>Email</th><th>Role</th><th>Status</th></tr></thead>
+                  <tbody>{loading ? <tr><td colSpan="4" className="text-center py-5">Loading users from MySQL…</td></tr> : filteredUsers.length ? filteredUsers.map(item => <tr key={item.id}>
+                    <td><div className="admin-v2-user">{item.photoURL ? <img src={item.photoURL} alt="" /> : <span>{(item.displayName || 'U').charAt(0).toUpperCase()}</span>}<strong>{item.displayName || 'Unnamed User'}</strong></div></td>
+                    <td>{item.email || '—'}</td><td><span className={`admin-v2-role ${item.role}`}>{item.role}</span></td>
+                    <td><span className={`admin-v2-status ${item.status}`}>{item.status}</span></td>
+                  </tr>) : <tr><td colSpan="4" className="text-center py-5">No user accounts found.</td></tr>}</tbody>
+                </table>
               </div>
-              <form onSubmit={(event) => { event.preventDefault(); saveRole() }}>
-                <div className="modal-body">
-                  <div className="admin-modal-user mb-4">
-                    <span className="admin-avatar admin-avatar-fallback">{(selectedUser.displayName || selectedUser.name || 'U').charAt(0).toUpperCase()}</span>
-                    <span><strong>{selectedUser.displayName || selectedUser.name || 'Unnamed User'}</strong><small>{selectedUser.email || 'No email address'}</small></span>
-                  </div>
-                  <label className="form-label fw-semibold" htmlFor="admin-role">Access role / account state</label>
-                  <select id="admin-role" className="form-select admin-filter" value={editRole} onChange={(event) => setEditRole(event.target.value)}>
-                    <option value="user">User</option>
-                    <option value="admin">Admin</option>
-                    <option value="inactive">Inactive (legacy)</option>
-                  </select>
-                  <p className="form-text mt-2 mb-0">Role changes affect access to the application. Confirm the account before saving.</p>
-                </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-light" onClick={() => setSelectedUser(null)}>Cancel</button>
-                  <button type="submit" className="btn admin-primary-btn" disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</button>
-                </div>
-              </form>
-            </div>
+              <div className="admin-v2-foot">{filteredUsers.length} account(s) {lastUpdated && <span>· Updated {lastUpdated.toLocaleTimeString()}</span>}</div>
+            </section>
+          </div>
+
+          <div className="col-12 col-xl-4">
+            <section className="admin-v2-panel admin-v2-realtime h-100">
+              <div className="admin-v2-panel-head"><div><h2>Realtime User</h2><p>Activity recorded in the last 30 minutes</p></div>
+                <select value={period} onChange={event => setPeriod(event.target.value)} aria-label="New user trend period"><option value="day">Daily</option><option value="week">Weekly</option><option value="month">Monthly</option></select>
+              </div>
+              <div className="admin-v2-online"><span>Peak active users / minute</span><strong>{onlineNow}</strong></div>
+              {activity.length ? <div className="admin-v2-bars" role="img" aria-label="User activity over the last 30 minutes">{activity.map((item,index) => <div key={item.label + index} title={`${item.label}: ${item.users} active users`}><span style={{height:`${Math.max(5,(Number(item.users)||0)/maxActivity*100)}%`}} /></div>)}</div> : <div className="admin-v2-no-data">No recent activity yet. Activity appears as signed-in users open the app.</div>}
+              <div className="admin-v2-trend-head"><strong>New user registrations</strong><span>{period === 'day' ? 'Daily' : period === 'week' ? '7 days' : '30 days'}</span></div>
+              <div className="admin-v2-trend-list">{newTrend.length ? newTrend.slice(-5).map(item => <div key={String(item.label)}><span>{new Date(item.label).toLocaleDateString('en-PH',{month:'short',day:'numeric'})}</span><strong>{Number(item.count).toLocaleString()}</strong></div>) : <p>No new registrations in this period.</p>}</div>
+            </section>
           </div>
         </div>
-      )}
-    </div>
-  )
+        <p className="admin-v2-note">User records and activity metrics are loaded from the MySQL database. Last refresh: {lastUpdated ? lastUpdated.toLocaleString() : '—'}.</p>
+      </div>
+    </main>
+  </div>
 }
 
 export default Admin
