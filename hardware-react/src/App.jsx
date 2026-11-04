@@ -268,6 +268,7 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
 function App() {
   const [user, setUser] = useState(null)
   const [role, setRole] = useState(null)
+  const [authError, setAuthError] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -275,8 +276,10 @@ function App() {
       auth,
       async (currentUser) => {
         try {
+          setAuthError('')
           if (currentUser) {
             setUser(currentUser)
+            setRole(null)
 
             // MySQL is the source of truth for roles. Firebase is used only for authentication.
             const syncResponse = await fetch(API_URL('/api/auth/sync'), {
@@ -291,6 +294,7 @@ function App() {
           } else {
             setUser(null)
             setRole(null)
+            setAuthError('')
           }
         } catch (error) {
           console.error(
@@ -298,7 +302,10 @@ function App() {
             error
           )
 
-          setRole(currentUser ? 'user' : null)
+          setRole(null)
+          setAuthError(currentUser
+            ? (error?.message || 'We could not verify your account with the database. Please try again.')
+            : '')
         } finally {
           setLoading(false)
         }
@@ -332,6 +339,34 @@ function App() {
     }
   }
 
+  const retryAccountSync = async () => {
+    if (!auth.currentUser) return
+    setLoading(true)
+    setAuthError('')
+    try {
+      const currentUser = auth.currentUser
+      const response = await fetch(API_URL('/api/auth/sync'), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${await currentUser.getIdToken(true)}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(data.message || 'Unable to synchronize your account with the database.')
+      }
+      setUser(currentUser)
+      setRole(['user', 'admin', 'superadmin'].includes(data.role) ? data.role : 'user')
+      setAuthError('')
+    } catch (error) {
+      setRole(null)
+      setAuthError(error?.message || 'Account verification failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <main
@@ -356,6 +391,32 @@ function App() {
           <p className="app-loading-message">
             Preparing your inventory workspace...
           </p>
+        </div>
+      </main>
+    )
+  }
+
+  if (user && authError) {
+    return (
+      <main className="app-loading-screen" role="alert">
+        <div className="app-loading-content">
+          <div className="app-loading-logo" aria-hidden="true">
+            <i className="bi bi-exclamation-triangle-fill" />
+          </div>
+          <div className="app-loading-brand">
+            <h1>ACCOUNT VERIFICATION</h1>
+            <p>HARDWARE TOOLS INVENTORY</p>
+          </div>
+          <h2>We couldn't verify your account</h2>
+          <p className="app-loading-message">{authError}</p>
+          <div className="d-flex flex-column flex-sm-row justify-content-center gap-2 mt-3">
+            <button className="btn btn-primary" type="button" onClick={retryAccountSync}>
+              Try Again
+            </button>
+            <button className="btn btn-outline-secondary" type="button" onClick={handleLogout}>
+              Sign Out
+            </button>
+          </div>
         </div>
       </main>
     )
