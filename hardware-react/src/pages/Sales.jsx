@@ -373,6 +373,8 @@ export default function Sales() {
   function closeAddModal() {
     setShowAddSale(false)
     setProduct('')
+    setProductSearch('')
+    setShowProductSuggestions(false)
     setQuantity('')
     setDate('')
     setAmount('')
