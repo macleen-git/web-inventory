@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Sidebar from '../components/Sidebar'
 import { API_URL } from '../config/api'
 
@@ -138,6 +138,21 @@ function Reports() {
     return total + getQuantity(item) * (Number(product?.buy) || 0)
   }, 0)
 
+  const dailyEarnings = useMemo(() => {
+    const grouped = new Map()
+    filteredSales.forEach(item => {
+      if (!item.date) return
+      const date = new Date(item.date)
+      if (Number.isNaN(date.getTime())) return
+      const key = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0')
+      const current = grouped.get(key) || { date: key, revenue: 0, profit: 0 }
+      current.revenue += getRevenue(item)
+      current.profit += getProfit(item)
+      grouped.set(key, current)
+    })
+    return [...grouped.values()].sort((a, b) => a.date.localeCompare(b.date))
+  }, [filteredSales, products])
+
   function formatMoney(amount) {
     return '₱' + amount.toLocaleString('en-PH', {
       minimumFractionDigits: 2,
@@ -234,6 +249,33 @@ function Reports() {
                   </div>
                 </div>
 
+              </div>
+
+              <div className="card mb-4">
+                <div className="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+                  <div><h5 className="mb-1"><b>Daily Earnings Overview</b></h5><small className="text-muted">Compare daily revenue and profit from your recorded sales</small></div>
+                  <div className="d-flex gap-3 small"><span><i className="bi bi-square-fill me-1" style={{color:'#6c9ee8'}} />Revenue</span><span><i className="bi bi-square-fill me-1" style={{color:'#20b779'}} />Profit</span></div>
+                </div>
+                <div className="card-body">
+                  {dailyEarnings.length ? <div className="d-flex align-items-end gap-2" style={{height:'230px',borderBottom:'1px solid #dee2e6',padding:'8px 4px 0',overflowX:'auto'}}>
+                    {dailyEarnings.map(item => {
+                      const max = Math.max(1,...dailyEarnings.map(day=>day.revenue))
+                      const revenueHeight = Math.max(2,item.revenue/max*185)
+                      const profitHeight = Math.max(2,item.profit/max*185)
+                      return <div key={item.date} className="d-flex flex-column align-items-center justify-content-end flex-grow-1" style={{minWidth:dailyEarnings.length>14?'24px':'32px',height:'100%'}} title={`${item.date} | Revenue: ${formatMoney(item.revenue)} | Profit: ${formatMoney(item.profit)}`}>
+                        <div className="d-flex align-items-end justify-content-center gap-1 w-100" style={{height:'185px'}}>
+                          <div style={{height:revenueHeight,width:'42%',maxWidth:'18px',background:'#6c9ee8',borderRadius:'4px 4px 0 0'}} />
+                          <div style={{height:profitHeight,width:'42%',maxWidth:'18px',background:'#20b779',borderRadius:'4px 4px 0 0'}} />
+                        </div>
+                        <small className="text-muted mt-2" style={{fontSize:'10px',whiteSpace:'nowrap'}}>{new Date(item.date+'T00:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric'})}</small>
+                      </div>
+                    })}
+                  </div> : <div className="text-center text-muted py-5">No sales records for this period yet. The graph will appear when sales are recorded.</div>}
+                  <div className="d-flex flex-wrap justify-content-between gap-2 mt-3 small">
+                    <span><b>Total revenue:</b> {formatMoney(dailyEarnings.reduce((sum,item)=>sum+item.revenue,0))}</span>
+                    <span><b>Total profit:</b> {formatMoney(dailyEarnings.reduce((sum,item)=>sum+item.profit,0))}</span>
+                  </div>
+                </div>
               </div>
 
               <div className="card">
