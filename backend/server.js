@@ -43,9 +43,18 @@ const damagedDto = r => ({ id:r.id, product:r.product, quantity:String(r.quantit
 app.get("/api/health", route(async (req,res) => { await pool.query("SELECT 1"); res.json({status:"ok",database:"connected"}); }));
 app.get("/api/product", requireFirebaseUser, requireActiveUser, route(async (req,res) => { const [rows]=await pool.execute("SELECT * FROM products WHERE user_uid=? ORDER BY id DESC",[req.firebaseUser.uid]); res.json(rows.map(productDto)); }));
 app.post("/api/product", requireFirebaseUser, requireActiveUser, route(async (req,res) => {
- const b=req.body; if(!String(b.product||"").trim()||!String(b.category||"").trim()||!Number.isFinite(Number(b.buy))||Number(b.buy)<0||!Number.isFinite(Number(b.sell))||Number(b.sell)<0||!Number.isInteger(Number(b.stock??0))||Number(b.stock??0)<0) return res.status(400).json({message:"Enter valid product details and non-negative whole-number stock."});
- const [r]=await pool.execute("INSERT INTO products(user_uid,product,category,buy,sell,stock) VALUES(?,?,?,?,?,?)",[req.firebaseUser.uid,b.product.trim(),b.category.trim(),Number(b.buy),Number(b.sell),Number(b.stock??0)]);
- const [rows]=await pool.execute("SELECT * FROM products WHERE id=?",[r.insertId]); res.status(201).json(productDto(rows[0]));
+ const b=req.body;
+ if(!String(b.product||"").trim()||!String(b.category||"").trim()||!Number.isFinite(Number(b.buy))||Number(b.buy)<0||!Number.isFinite(Number(b.sell))||Number(b.sell)<0||!Number.isInteger(Number(b.stock??0))||Number(b.stock??0)<0) return res.status(400).json({message:"Enter valid product details and non-negative whole-number stock."});
+ const c=await pool.getConnection();
+ try {
+  await c.beginTransaction();
+  const initialStock=Number(b.stock??0);
+  const [r]=await c.execute("INSERT INTO products(user_uid,product,category,buy,sell,stock) VALUES(?,?,?,?,?,?)",[req.firebaseUser.uid,b.product.trim(),b.category.trim(),Number(b.buy),Number(b.sell),initialStock]);
+  if(initialStock>0) await c.execute("INSERT INTO stock_in(product_id,quantity,unit_cost,total_cost,date,note) VALUES(?,?,?,?,CURDATE(),?)",[r.insertId,initialStock,Number(b.buy),Number(b.buy)*initialStock,"Opening stock"]);
+  const [rows]=await c.execute("SELECT * FROM products WHERE id=? AND user_uid=?",[r.insertId,req.firebaseUser.uid]);
+  await c.commit();
+  res.status(201).json(productDto(rows[0]));
+ } catch(error) { await c.rollback(); throw error; } finally { c.release(); }
 }));
 app.put("/api/product/:id", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{ const b=req.body,id=Number(req.params.id); if(!Number.isInteger(id)||id<1||!String(b.product||"").trim()||!String(b.category||"").trim()||!Number.isFinite(Number(b.buy))||Number(b.buy)<0||!Number.isFinite(Number(b.sell))||Number(b.sell)<0||!Number.isInteger(Number(b.stock))||Number(b.stock)<0) return res.status(400).json({message:"Invalid product details."}); const [r]=await pool.execute("UPDATE products SET product=?,category=?,buy=?,sell=?,stock=? WHERE id=? AND user_uid=?",[b.product.trim(),b.category.trim(),Number(b.buy),Number(b.sell),Number(b.stock),id,req.firebaseUser.uid]); if(!r.affectedRows)return res.status(404).json({message:"Product not found."}); const [rows]=await pool.execute("SELECT * FROM products WHERE id=? AND user_uid=?",[id,req.firebaseUser.uid]); res.json(productDto(rows[0])); }));
 app.delete("/api/product/:id", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{ const [r]=await pool.execute("DELETE FROM products WHERE id=? AND user_uid=?",[Number(req.params.id),req.firebaseUser.uid]); if(!r.affectedRows)return res.status(404).json({message:"Product not found."}); res.json({message:"Product deleted successfully."}); }));
