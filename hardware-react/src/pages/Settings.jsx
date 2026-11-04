@@ -8,7 +8,7 @@ import {
 } from 'firebase/auth'
 import Sidebar from '../components/Sidebar'
 import { auth, googleProvider } from '../components/firebase'
-import { API_URL } from '../config/api'
+import { API_URL, apiFetch } from '../config/api'
 
 function Settings() {
   const [storeName, setStoreName] = useState('Hardware Store')
@@ -36,7 +36,7 @@ function Settings() {
       setLoading(false)
       return
     }
-    fetch(API_URL('/api/settings/' + encodeURIComponent(user.uid)))
+    apiFetch(API_URL('/api/settings/' + encodeURIComponent(user.uid)))
       .then(async response => {
         const data = await response.json()
         if (!response.ok) throw new Error(data.message || 'Unable to load store settings.')
@@ -55,7 +55,7 @@ function Settings() {
     setSaving(true)
     setStoreMessage({ type: '', text: '' })
     try {
-      const response = await fetch(API_URL('/api/settings/' + encodeURIComponent(user.uid)), {
+      const response = await apiFetch(API_URL('/api/settings/' + encodeURIComponent(user.uid)), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ storeName, ownerName, currency }),
