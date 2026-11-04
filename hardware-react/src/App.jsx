@@ -15,14 +15,7 @@ import {
   signInWithPopup
 } from 'firebase/auth'
 
-import {
-  doc,
-  getDoc,
-  serverTimestamp,
-  setDoc
-} from 'firebase/firestore'
-
-import { auth, db, googleProvider } from './components/firebase'
+import { auth, googleProvider } from './components/firebase'
 
 import Landing from './pages/Landing'
 import Login from './pages/Login'
@@ -40,6 +33,10 @@ import { API_URL } from './config/api'
 
 import './App.css'
 
+
+function isAdminRole(role) {
+  return isAdminRole(role) || role === 'superadmin'
+}
 
 function AppRoutes({ user, role, handleLogin, handleLogout }) {
   const navigate = useNavigate()
@@ -94,7 +91,7 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         path="/"
         element={
           user ? (
-            role === 'admin'
+            isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/dashboard" replace />
           ) : (
@@ -111,7 +108,7 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         path="/login"
         element={
           user ? (
-            role === 'admin'
+            isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/dashboard" replace />
           ) : (
@@ -129,7 +126,7 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         path="/signup"
         element={
           user ? (
-            role === 'admin'
+            isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/dashboard" replace />
           ) : (
@@ -144,7 +141,7 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         element={
           user && role === 'user'
             ? <Dashboard />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -156,7 +153,7 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         element={
           user && role === 'user'
             ? <Inventory />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -168,7 +165,7 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         element={
           user && role === 'user'
             ? <StockIn />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -180,7 +177,7 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         element={
           user && role === 'user'
             ? <Sales />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -192,7 +189,7 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         element={
           user && role === 'user'
             ? <Damaged />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -204,7 +201,7 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         element={
           user && role === 'user'
             ? <Reports />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -216,7 +213,7 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         element={
           user && role === 'user'
             ? <Transactions />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -228,7 +225,7 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         element={
           user && role === 'user'
             ? <Settings />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -238,7 +235,7 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
       <Route
         path="/admin"
         element={
-          user && role === 'admin'
+          user && isAdminRole(role)
             ? <Admin user={user} onLogout={handleLogout} />
             : user && role === 'user'
               ? <Navigate to="/dashboard" replace />
@@ -253,7 +250,7 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
           <Navigate
             to={
               user
-                ? role === 'admin'
+                ? isAdminRole(role)
                   ? '/admin'
                   : '/dashboard'
                 : '/'
@@ -296,25 +293,16 @@ function App() {
               console.error('MySQL account sync failed:', syncError)
             }
 
-            const userRef = doc(db, 'users', currentUser.uid)
-            const userSnap = await getDoc(userRef)
-
-            if (userSnap.exists()) {
-              const userData = userSnap.data()
-              setRole(userData.role || 'user')
-            } else {
-              const defaultRole = 'user'
-
-              await setDoc(userRef, {
-                displayName: currentUser.displayName,
-                email: currentUser.email,
-                photoURL: currentUser.photoURL,
-                role: defaultRole,
-                createdAt: serverTimestamp()
-              })
-
-              setRole(defaultRole)
+            // MySQL is the source of truth for roles. Firebase is used only for authentication.
+            const syncResponse = await fetch(API_URL('/api/auth/sync'), {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${await currentUser.getIdToken()}`, 'Content-Type': 'application/json' },
+            })
+            const syncData = await syncResponse.json().catch(() => ({}))
+            if (!syncResponse.ok) {
+              throw new Error(syncData.message || 'Unable to synchronize your account with the database.')
             }
+            setRole(['user', 'admin', 'superadmin'].includes(syncData.role) ? syncData.role : 'user')
           } else {
             setUser(null)
             setRole(null)
@@ -325,9 +313,7 @@ function App() {
             error
           )
 
-          setRole((currentRole) =>
-            currentRole || (currentUser ? 'user' : null)
-          )
+          setRole(currentUser ? 'user' : null)
         } finally {
           setLoading(false)
         }
