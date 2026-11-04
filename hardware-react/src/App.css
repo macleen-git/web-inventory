@@ -1007,3 +1007,39 @@ button { cursor: pointer; }
   width:34px;
   height:28px;
 }
+
+
+/* Keep dashboard refresh and period selector on one aligned row. */
+.analytics-page-header > div:last-child {
+  display:flex!important;
+  flex-direction:row!important;
+  flex-wrap:nowrap!important;
+  align-items:center!important;
+  justify-content:flex-end;
+  gap:10px!important;
+  width:auto!important;
+  flex:0 0 auto;
+  white-space:nowrap;
+}
+.analytics-page-header > div:last-child .analytics-refresh-btn {
+  flex:0 0 auto;
+  height:42px;
+  white-space:nowrap;
+}
+.analytics-page-header > div:last-child .analytics-period-select {
+  flex:0 0 234px;
+  width:234px;
+  min-width:0;
+  height:42px;
+}
+@media (max-width:575.98px) {
+  .analytics-page-header > div:last-child {
+    width:100%!important;
+    justify-content:flex-end;
+  }
+  .analytics-page-header > div:last-child .analytics-period-select {
+    flex:1 1 auto;
+    width:auto;
+    min-width:0;
+  }
+}
