@@ -29,6 +29,7 @@ import Reports from './pages/Reports'
 import Transactions from './pages/Transaction'
 import Settings from './pages/Settings'
 import Admin from './pages/Admin'
+import FloatingCalculator from './components/FloatingCalculator'
 import { API_URL } from './config/api'
 
 import './App.css'
@@ -260,6 +261,7 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         }
       />
     </Routes>
+    {user && role === 'user' && ['/dashboard','/inventory','/stock-in','/sales','/damaged-items','/reports','/transactions','/settings'].includes(location.pathname) && <FloatingCalculator />}
     </>
   )
 }
