@@ -3,16 +3,31 @@ const express = require("express");
 const cors = require("cors");
 const mysql = require("mysql2/promise");
 const fs = require("fs");
+const path = require("path");
 const app = express();
 const PORT = Number(process.env.PORT || 8080);
 app.use(cors({ origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",").map(x => x.trim()) : true }));
 app.use(express.json({ limit: "1mb" }));
+const sslEnabled = String(process.env.DB_SSL || "").toLowerCase() === "true" || Boolean(process.env.DB_SSL_CA);
+let databaseSsl;
+if (sslEnabled) {
+ const caPath = process.env.DB_SSL_CA
+  ? path.resolve(__dirname, process.env.DB_SSL_CA)
+  : null;
+ if (!caPath) {
+  throw new Error("DB_SSL is enabled but DB_SSL_CA is missing. Download the Aiven CA certificate and set DB_SSL_CA=./certs/ca.pem.");
+ }
+ if (!fs.existsSync(caPath)) {
+  throw new Error("Database CA certificate not found at " + caPath + ". Save the Aiven CA certificate there or update DB_SSL_CA.");
+ }
+ databaseSsl = { ca: fs.readFileSync(caPath, "utf8"), rejectUnauthorized: true };
+}
 const pool = mysql.createPool({
  host: process.env.DB_HOST || "127.0.0.1", port: Number(process.env.DB_PORT || 3306),
  user: process.env.DB_USER || "root", password: process.env.DB_PASSWORD || "",
  database: process.env.DB_NAME || "hardware_inventory_v2", waitForConnections: true,
  connectionLimit: 10, queueLimit: 0, dateStrings: true, decimalNumbers: true,
- ssl: process.env.DB_SSL_CA ? { ca: fs.readFileSync(process.env.DB_SSL_CA, "utf8"), rejectUnauthorized: true } : undefined
+ ssl: databaseSsl
 });
 const route = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const positiveInt = v => Number.isInteger(Number(v)) && Number(v) > 0;
