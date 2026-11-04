@@ -1303,3 +1303,14 @@ button { cursor: pointer; }
   .analytics-trend-periods { gap:6px; }
   .analytics-trend-periods .btn { flex:1 1 auto; padding:7px 9px; }
 }
+
+
+/* Keep the lower dashboard cards clearly separated from the trend and movement panels. */
+.analytics-trend-row + .analytics-lower-row {
+  margin-top: 28px!important;
+  position: relative;
+  clear: both;
+}
+.analytics-lower-row > [class*="col-"] {
+  min-width: 0;
+}
