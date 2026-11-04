@@ -27,6 +27,10 @@ function Settings() {
   const [storeMessage, setStoreMessage] = useState({ type: '', text: '' })
   const [emailMessage, setEmailMessage] = useState({ type: '', text: '' })
   const [passwordMessage, setPasswordMessage] = useState({ type: '', text: '' })
+  const [showResetModal, setShowResetModal] = useState(false)
+  const [resetConfirmation, setResetConfirmation] = useState('')
+  const [resetting, setResetting] = useState(false)
+  const [resetMessage, setResetMessage] = useState({ type: '', text: '' })
 
   useEffect(() => {
     const user = auth.currentUser
@@ -67,6 +71,29 @@ function Settings() {
       setStoreMessage({ type: 'danger', text: error.message || 'Unable to save settings.' })
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function resetInventory(event) {
+    event.preventDefault()
+    if (resetConfirmation !== 'RESET INVENTORY') return
+    setResetting(true)
+    setResetMessage({ type: '', text: '' })
+    try {
+      const response = await apiFetch(API_URL('/api/settings/reset-inventory'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmation: resetConfirmation }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message || 'Unable to reset inventory.')
+      setResetMessage({ type: 'success', text: 'Your inventory records were reset. Your account and Store Information were preserved.' })
+      setResetConfirmation('')
+      setShowResetModal(false)
+    } catch (error) {
+      setResetMessage({ type: 'danger', text: error.message || 'Unable to reset inventory.' })
+    } finally {
+      setResetting(false)
     }
   }
 
@@ -164,6 +191,14 @@ function Settings() {
                 </form>
               </div>
             </div>
+            <div className="col-12">
+              <div className="bg-white border border-danger p-4 rounded shadow-sm">
+                <h5 className="mb-2 text-danger"><b>Reset Inventory Data</b></h5>
+                <p className="text-muted mb-2">Permanently remove your own Products, Stock In, Sales, and Damaged Items records. Your login account and Store Information will remain unchanged. Other users' inventory will not be affected.</p>
+                <button type="button" className="btn btn-outline-danger mt-2" onClick={() => { setResetConfirmation(''); setShowResetModal(true) }} disabled={resetting}>Reset My Inventory</button>
+                {message(resetMessage)}
+              </div>
+            </div>
             <div className="col-12 col-lg-6">
               <div className="bg-white p-4 rounded shadow-sm h-100">
                 <h5 className="mb-2"><b>Change Email</b></h5>
@@ -210,6 +245,27 @@ function Settings() {
             </div>
           </div>
         </div>
+        {showResetModal && <div className="modal d-block" tabIndex="-1" role="dialog" aria-modal="true" style={{ backgroundColor: 'rgba(0,0,0,.55)' }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <form onSubmit={resetInventory}>
+                <div className="modal-header">
+                  <h5 className="modal-title text-danger"><b>Confirm Inventory Reset</b></h5>
+                  <button type="button" className="btn-close" onClick={() => setShowResetModal(false)} disabled={resetting} aria-label="Close"></button>
+                </div>
+                <div className="modal-body">
+                  <p>This action permanently deletes your Products, Stock In, Sales, and Damaged Items records. Your account and Store Information will be kept.</p>
+                  <p className="mb-2">To continue, type <b>RESET INVENTORY</b> exactly as shown.</p>
+                  <input className="form-control" value={resetConfirmation} onChange={event => setResetConfirmation(event.target.value)} placeholder="RESET INVENTORY" autoComplete="off" required />
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowResetModal(false)} disabled={resetting}>Cancel</button>
+                  <button type="submit" className="btn btn-danger" disabled={resetting || resetConfirmation !== 'RESET INVENTORY'}>{resetting ? 'Resetting...' : 'Permanently Reset Inventory'}</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>}
       </div>
     </div>
   )
