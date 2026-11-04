@@ -177,12 +177,3 @@ function Sidebar({ active, onLogout, admin = false }) {
 }
 
 export default Sidebar
-
-
-/* Keep the collapse control on its own row below the brand, never beside the logo. */
-.app-sidebar-collapse-row { display:flex; flex:0 0 auto; justify-content:center; width:100%; padding:0 14px 12px; }
-.app-sidebar-collapse-row .sidebar-collapse-button { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:36px; }
-.app-sidebar-desktop.is-collapsed .app-sidebar-brand { min-height:58px; padding:10px 5px 6px; justify-content:center; }
-.app-sidebar-desktop.is-collapsed .app-sidebar-brand .app-brand-mark { justify-content:center; }
-.app-sidebar-desktop.is-collapsed .app-sidebar-collapse-row { padding:0 8px 10px; }
-.app-sidebar-desktop.is-collapsed .app-sidebar-collapse-row .sidebar-collapse-button { width:34px; min-height:32px; }
