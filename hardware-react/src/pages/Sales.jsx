@@ -777,7 +777,7 @@ export default function Sales() {
                       id="product"
                       type="text"
                       className="form-control"
-                      placeholder="Search product (type H for Hammer)"
+                      placeholder="Search product"
                       autoComplete="off"
                       value={productSearch}
                       onFocus={() => setShowProductSuggestions(true)}
