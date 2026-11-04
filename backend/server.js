@@ -332,10 +332,27 @@ app.put("/api/sales/:id", (req, res) => {
         });
     }
 
+    const previousSale = sales[editID];
+    const previousProduct = products.find(
+        (item) => String(item.product || "").toLowerCase() === String(previousSale.product || "").toLowerCase()
+    );
+
+    // Temporarily return the previous quantity so the edited sale can be revalidated.
+    if (previousProduct) {
+        previousProduct.stock = String((Number(previousProduct.stock) || 0) + (Number(previousSale.quantity) || 0));
+    }
+
     const validated = validateSale(req.body);
     if (validated.error) {
+        if (previousProduct) {
+            previousProduct.stock = String((Number(previousProduct.stock) || 0) - (Number(previousSale.quantity) || 0));
+        }
         return res.status(400).json({ message: validated.error });
     }
+
+    validated.inventoryProduct.stock = String(
+        (Number(validated.inventoryProduct.stock) || 0) - validated.quantity
+    );
 
     sales[editID] = {
         id: id,
@@ -369,6 +386,14 @@ app.delete("/api/sales/:id", (req, res) => {
     }
 
     const deletedSale = sales[deleteID];
+    const inventoryProduct = products.find(
+        (item) => String(item.product || "").toLowerCase() === String(deletedSale.product || "").toLowerCase()
+    );
+    if (inventoryProduct) {
+        inventoryProduct.stock = String(
+            (Number(inventoryProduct.stock) || 0) + (Number(deletedSale.quantity) || 0)
+        );
+    }
 
     sales.splice(deleteID, 1);
 
