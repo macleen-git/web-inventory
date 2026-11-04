@@ -36,6 +36,7 @@ import Reports from './pages/Reports'
 import Transactions from './pages/Transaction'
 import Settings from './pages/Settings'
 import Admin from './pages/Admin'
+import { API_URL } from './config/api'
 
 import './App.css'
 
@@ -259,6 +260,21 @@ function App() {
         try {
           if (currentUser) {
             setUser(currentUser)
+
+            // Provision the signed-in Firebase account in the MySQL user directory.
+            try {
+              const token = await currentUser.getIdToken()
+              const syncResponse = await fetch(API_URL('/api/auth/sync'), {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+              })
+              if (!syncResponse.ok) {
+                const syncError = await syncResponse.json().catch(() => ({}))
+                console.error('MySQL account sync failed:', syncError.message || syncResponse.status)
+              }
+            } catch (syncError) {
+              console.error('MySQL account sync failed:', syncError)
+            }
 
             const userRef = doc(db, 'users', currentUser.uid)
             const userSnap = await getDoc(userRef)
