@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import Sidebar from '../components/Sidebar'
-import { API_URL } from '../config/api'
+import { API_URL, apiFetch } from '../config/api'
 
 const API = API_URL('/api')
 
@@ -16,9 +16,9 @@ function Transactions() {
     setError('')
     try {
       const [salesResponse, stockResponse, damagedResponse] = await Promise.all([
-        fetch(`${API}/sales`),
-        fetch(`${API}/stock-in`),
-        fetch(`${API}/damaged`),
+        apiFetch(`${API}/sales`),
+        apiFetch(`${API}/stock-in`),
+        apiFetch(`${API}/damaged`),
       ])
       const failed = [salesResponse, stockResponse, damagedResponse].find(response => !response.ok)
       if (failed) throw new Error(`Unable to load transactions (HTTP ${failed.status}).`)
