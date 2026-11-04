@@ -261,24 +261,58 @@ app.get("/api/sales", (req, res) => {
 });
 
 
+// Validate a sale against the current inventory cost.
+function validateSale(body) {
+    const productName = String(body.product || "").trim();
+    const quantity = Number(body.quantity);
+    if (!productName) return { error: "Please select a valid product." };
+    if (!Number.isInteger(quantity) || quantity <= 0) return { error: "Quantity must be a positive whole number." };
+
+    const inventoryProduct = products.find(item => String(item.product || "").toLowerCase() === productName.toLowerCase());
+    if (!inventoryProduct) return { error: "Product not found in inventory." };
+
+    const availableStock = Number(inventoryProduct.stock) || 0;
+    if (availableStock <= 0) return { error: "OUT OF STOCK: This product is currently unavailable." };
+    if (quantity > availableStock) return { error: `INSUFFICIENT STOCK: Only ${availableStock} unit(s) are available.` };
+
+    const unitCost = Number(inventoryProduct.buy);
+    const sellingPricePerUnit = Number(inventoryProduct.sell);
+    if (!Number.isFinite(unitCost) || unitCost < 0 || !Number.isFinite(sellingPricePerUnit) || sellingPricePerUnit <= 0) {
+        return { error: "The product cost or selling price is invalid. Please update its inventory details." };
+    }
+    if (sellingPricePerUnit < unitCost) {
+        const totalLoss = (unitCost - sellingPricePerUnit) * quantity;
+        return { error: `LOSS PREVENTED: Selling price (₱${sellingPricePerUnit.toFixed(2)} per unit) is below the cost (₱${unitCost.toFixed(2)}). This sale would lose ₱${totalLoss.toFixed(2)} in total.` };
+    }
+
+    const amount = sellingPricePerUnit * quantity;
+    return { product: inventoryProduct.product, quantity, amount, unitCost, profit: amount - (unitCost * quantity), inventoryProduct };
+}
+
+
 // ADD SALE
 app.post("/api/sales", (req, res) => {
+    const validated = validateSale(req.body);
+    if (validated.error) {
+        return res.status(400).json({ message: validated.error });
+    }
 
     const newSale = {
         id: nextSalesID,
-        product: req.body.product,
-        quantity: req.body.quantity,
+        product: validated.product,
+        quantity: String(validated.quantity),
         date: req.body.date,
-        amount: req.body.amount,
+        amount: String(validated.amount),
+        unitCost: validated.unitCost,
+        profit: validated.profit,
         note: req.body.note || ""
     };
 
     nextSalesID++;
-
     sales.push(newSale);
+    validated.inventoryProduct.stock = String((Number(validated.inventoryProduct.stock) || 0) - validated.quantity);
 
     console.log("Sale added:", newSale);
-
     res.status(201).json(newSale);
 });
 
@@ -298,17 +332,40 @@ app.put("/api/sales/:id", (req, res) => {
         });
     }
 
+    const previousSale = sales[editID];
+    const previousProduct = products.find(
+        (item) => String(item.product || "").toLowerCase() === String(previousSale.product || "").toLowerCase()
+    );
+
+    // Temporarily return the previous quantity so the edited sale can be revalidated.
+    if (previousProduct) {
+        previousProduct.stock = String((Number(previousProduct.stock) || 0) + (Number(previousSale.quantity) || 0));
+    }
+
+    const validated = validateSale(req.body);
+    if (validated.error) {
+        if (previousProduct) {
+            previousProduct.stock = String((Number(previousProduct.stock) || 0) - (Number(previousSale.quantity) || 0));
+        }
+        return res.status(400).json({ message: validated.error });
+    }
+
+    validated.inventoryProduct.stock = String(
+        (Number(validated.inventoryProduct.stock) || 0) - validated.quantity
+    );
+
     sales[editID] = {
         id: id,
-        product: req.body.product,
-        quantity: req.body.quantity,
+        product: validated.product,
+        quantity: String(validated.quantity),
         date: req.body.date,
-        amount: req.body.amount,
+        amount: String(validated.amount),
+        unitCost: validated.unitCost,
+        profit: validated.profit,
         note: req.body.note || ""
     };
 
     console.log("Updated sale:", sales[editID]);
-
     res.json(sales[editID]);
 });
 
@@ -329,6 +386,14 @@ app.delete("/api/sales/:id", (req, res) => {
     }
 
     const deletedSale = sales[deleteID];
+    const inventoryProduct = products.find(
+        (item) => String(item.product || "").toLowerCase() === String(deletedSale.product || "").toLowerCase()
+    );
+    if (inventoryProduct) {
+        inventoryProduct.stock = String(
+            (Number(inventoryProduct.stock) || 0) + (Number(deletedSale.quantity) || 0)
+        );
+    }
 
     sales.splice(deleteID, 1);
 
