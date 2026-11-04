@@ -193,6 +193,22 @@ function Landing({ onLogin, onSignUp }) {
               ))}
             </ul>
 
+            <div className="landing-nav-actions">
+              <button
+                type="button"
+                className="btn btn-login"
+                onClick={handleLogin}
+              >
+                LOG IN
+              </button>
+              <button
+                type="button"
+                className="btn btn-signup"
+                onClick={handleSignUp}
+              >
+                SIGN UP
+              </button>
+            </div>
           </div>
 
         </div>
