@@ -19,10 +19,10 @@ function Reports() {
         setLoading(true)
         setError('')
 
-        const productResponse = await fetch('http://localhost:8080/api/product')
-        const salesResponse = await fetch('http://localhost:8080/api/sales')
-        const stockResponse = await fetch('http://localhost:8080/api/stock-in')
-        const damagedResponse = await fetch('http://localhost:8080/api/damaged')
+        const productResponse = await fetch('https://web-inventory-rfai.onrender.com/api/product')
+        const salesResponse = await fetch('https://web-inventory-rfai.onrender.com/api/sales')
+        const stockResponse = await fetch('https://web-inventory-rfai.onrender.com/api/stock-in')
+        const damagedResponse = await fetch('https://web-inventory-rfai.onrender.com/api/damaged')
 
         if (
           !productResponse.ok ||
