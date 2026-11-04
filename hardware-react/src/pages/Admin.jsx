@@ -55,14 +55,9 @@ function Admin({ user, onLogout }) {
 
   useEffect(() => { load() }, [load])
   useEffect(() => {
-    const heartbeat = async () => {
-      try { await request('/activity/heartbeat', { method: 'POST' }) } catch (err) { /* Dashboard displays API errors on its next refresh. */ }
-    }
-    heartbeat()
-    const timer = window.setInterval(heartbeat, 60000)
     const refresh = window.setInterval(() => load(false), 60000)
-    return () => { window.clearInterval(timer); window.clearInterval(refresh) }
-  }, [load, request])
+    return () => window.clearInterval(refresh)
+  }, [load])
 
   const summary = overview?.summary || {}
   const filteredUsers = useMemo(() => {
