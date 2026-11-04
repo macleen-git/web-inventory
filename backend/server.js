@@ -75,6 +75,68 @@ app.put("/api/settings/:uid", route(async (req,res) => {
  await pool.execute("INSERT INTO store_settings (user_uid,store_name,owner_name,currency_symbol) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE store_name=VALUES(store_name),owner_name=VALUES(owner_name),currency_symbol=VALUES(currency_symbol)",[uid,storeName,ownerName,currency]);
  res.json({message:"Store settings saved successfully.",settings:{storeName,ownerName,currency}});
 }));
+
+// --- Firebase-authenticated user directory and activity analytics ---
+let firebaseAdminApp = null;
+try {
+ const admin = require("firebase-admin");
+ const serviceAccountText = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+ if (serviceAccountText) {
+  const serviceAccount = JSON.parse(serviceAccountText);
+  firebaseAdminApp = admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+ } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  firebaseAdminApp = admin.initializeApp({ credential: admin.credential.applicationDefault() });
+ }
+} catch (error) {
+ console.error("Firebase Admin initialization failed:", error.message);
+}
+async function requireFirebaseUser(req,res,next) {
+ try {
+  if (!firebaseAdminApp) return res.status(503).json({message:"Firebase Admin is not configured. Set FIREBASE_SERVICE_ACCOUNT_JSON on the backend."});
+  const header = String(req.headers.authorization || "");
+  if (!header.startsWith("Bearer ")) return res.status(401).json({message:"Firebase sign-in is required."});
+  req.firebaseUser = await firebaseAdminApp.auth().verifyIdToken(header.slice(7));
+  next();
+ } catch (error) { return res.status(401).json({message:"Your session is invalid or expired. Please sign in again."}); }
+}
+async function requireDatabaseAdmin(req,res,next) {
+ try {
+  const [rows] = await pool.execute("SELECT role,status FROM app_users WHERE firebase_uid=? LIMIT 1",[req.firebaseUser.uid]);
+  if (!rows.length || !["admin","superadmin"].includes(rows[0].role) || rows[0].status !== "active") return res.status(403).json({message:"Administrator access is required."});
+  req.databaseRole = rows[0].role;
+  next();
+ } catch (error) { next(error); }
+}
+app.post("/api/auth/sync", requireFirebaseUser, route(async(req,res) => {
+ const u=req.firebaseUser;
+ const displayName=String(u.name || u.email || "User").slice(0,150);
+ const email=String(u.email || "").slice(0,190);
+ await pool.execute(
+  "INSERT INTO app_users(firebase_uid,display_name,email,photo_url,role,status,last_seen_at) VALUES(?,?,?,?, 'user','active',NOW()) ON DUPLICATE KEY UPDATE display_name=VALUES(display_name),email=VALUES(email),photo_url=VALUES(photo_url),last_seen_at=NOW()",
+  [u.uid,displayName,email,u.picture || null]
+ );
+ await pool.execute("INSERT INTO activity_logs(firebase_uid,event_type,created_at) VALUES(?,'session_sync',NOW())",[u.uid]);
+ res.json({message:"Account synchronized with the inventory database."});
+}));
+app.post("/api/activity/heartbeat", requireFirebaseUser, route(async(req,res) => {
+ const u=req.firebaseUser;
+ await pool.execute("UPDATE app_users SET last_seen_at=NOW() WHERE firebase_uid=?",[u.uid]);
+ await pool.execute("INSERT INTO activity_logs(firebase_uid,event_type,created_at) VALUES(?,'heartbeat',NOW())",[u.uid]);
+ res.status(204).end();
+}));
+app.get("/api/admin/users", requireFirebaseUser, requireDatabaseAdmin, route(async(req,res) => {
+ const [rows]=await pool.query("SELECT firebase_uid AS id,display_name AS displayName,email,photo_url AS photoURL,role,status,last_seen_at AS lastSeenAt,created_at AS createdAt FROM app_users ORDER BY created_at DESC");
+ res.json(rows);
+}));
+app.get("/api/admin/overview", requireFirebaseUser, requireDatabaseAdmin, route(async(req,res) => {
+ const period=["day","week","month"].includes(req.query.period) ? req.query.period : "month";
+ const interval=period==="day" ? 1 : period==="week" ? 7 : 30;
+ const [counts]=await pool.query("SELECT COUNT(*) AS totalUsers,SUM(status='active') AS activeUsers,SUM(role IN ('admin','superadmin')) AS totalAdmins,SUM(created_at >= DATE_SUB(NOW(),INTERVAL 30 DAY)) AS newUsers FROM app_users");
+ const [activity]=await pool.execute("SELECT DATE_FORMAT(created_at,'%Y-%m-%d %H:%i:00') AS bucket,COUNT(DISTINCT firebase_uid) AS users FROM activity_logs WHERE created_at >= DATE_SUB(NOW(),INTERVAL 30 MINUTE) GROUP BY bucket ORDER BY bucket",[ ]);
+ const [trend]=await pool.execute("SELECT DATE(created_at) AS day,COUNT(*) AS count FROM app_users WHERE created_at >= DATE_SUB(CURDATE(),INTERVAL ? DAY) GROUP BY DATE(created_at) ORDER BY day",[interval]);
+ res.json({period,summary:counts[0],realtime:activity.map(x=>({label:x.bucket,users:Number(x.users)})),newUsersTrend:trend.map(x=>({label:x.day,count:Number(x.count)}))});
+}));
+
 app.use((error,req,res,next)=>{console.error(error);if(res.headersSent)return next(error);res.status(error.status||500).json({message:error.status?error.message:"Server or database error. Check backend logs and database connection."});});
 async function start(){try{await pool.query("SELECT 1");app.listen(PORT,()=>console.log("Hardware Inventory API running on port "+PORT+"; database connected."));}catch(error){console.error("Database connection failed:",error.message);process.exit(1);}}
 start();
