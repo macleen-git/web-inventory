@@ -7,6 +7,8 @@ export default function Sales() {
 
   const [sales, setSales] = useState([])
   const [products, setProducts] = useState([])
+  const [productSearch, setProductSearch] = useState('')
+  const [showProductSuggestions, setShowProductSuggestions] = useState(false)
 
   // ADD SALE
   const [product, setProduct] = useState('')
@@ -79,12 +81,55 @@ export default function Sales() {
     (item) => String(item.product || '').toLowerCase() === product.trim().toLowerCase()
   )
   const unitCost = Number(selectedProduct?.buy) || 0
+  const unitSellingPrice = Number(selectedProduct?.sell) || 0
+  const availableStock = Number(selectedProduct?.stock) || 0
   const saleQuantity = Number(quantity) || 0
-  const saleAmount = Number(amount) || 0
-  const saleUnitPrice = saleQuantity > 0 ? saleAmount / saleQuantity : 0
-  const estimatedLoss = saleQuantity > 0 && unitCost > saleUnitPrice
-    ? (unitCost - saleUnitPrice) * saleQuantity
-    : 0
+  const calculatedAmount = selectedProduct && saleQuantity > 0 ? unitSellingPrice * saleQuantity : 0
+  const saleUnitPrice = unitSellingPrice
+  const estimatedLoss = saleQuantity > 0 && unitCost > saleUnitPrice ? (unitCost - saleUnitPrice) * saleQuantity : 0
+  const exceedsStock = Boolean(selectedProduct) && saleQuantity > availableStock
+
+  function editDistance(a, b) {
+    const left = a.toLowerCase()
+    const right = b.toLowerCase()
+    const row = Array.from({ length: right.length + 1 }, (_, index) => index)
+    for (let i = 1; i <= left.length; i++) {
+      let diagonal = row[0]
+      row[0] = i
+      for (let j = 1; j <= right.length; j++) {
+        const above = row[j]
+        row[j] = Math.min(row[j] + 1, row[j - 1] + 1, diagonal + (left[i - 1] === right[j - 1] ? 0 : 1))
+        diagonal = above
+      }
+    }
+    return row[right.length]
+  }
+
+  const matchingProducts = productSearch.trim()
+    ? products.map((item) => {
+        const name = String(item.product || '')
+        const normalized = name.toLowerCase()
+        const query = productSearch.trim().toLowerCase()
+        const distance = editDistance(query, normalized)
+        const score = normalized.startsWith(query) ? 0 : normalized.includes(query) ? 1 : distance <= Math.max(1, Math.floor(query.length / 3)) ? 2 : 3
+        return { item, score, distance }
+      }).filter((entry) => entry.score < 3)
+        .sort((a, b) => a.score - b.score || a.distance - b.distance)
+        .slice(0, 6).map((entry) => entry.item)
+    : products.slice(0, 6)
+
+  function getStockStatus(stock) {
+    const count = Number(stock) || 0
+    if (count <= 0) return { label: 'Out of Stock', className: 'bg-danger' }
+    if (count <= 5) return { label: 'Low Stock', className: 'bg-warning text-dark' }
+    return { label: 'In Stock', className: 'bg-success' }
+  }
+
+  function selectProduct(item) {
+    setProduct(item.product)
+    setProductSearch(item.product)
+    setShowProductSuggestions(false)
+  }
 
   // =========================
   // SEARCH
@@ -112,6 +157,11 @@ export default function Sales() {
   async function formSubmit(event) {
     event.preventDefault()
 
+    if (!selectedProduct) return alert('Please select a product from the inventory suggestions.')
+    if (!Number.isInteger(saleQuantity) || saleQuantity <= 0) return alert('Quantity must be a positive whole number.')
+    if (exceedsStock) return alert(`Insufficient stock. Only ${availableStock} unit(s) are available.`)
+    if (estimatedLoss > 0) return alert(`LOSS PREVENTED: This sale would lose ₱${estimatedLoss.toFixed(2)}.`)
+
     try {
       const response = await fetch(api_url, {
         method: 'POST',
@@ -122,7 +172,7 @@ export default function Sales() {
           product,
           quantity,
           date,
-          amount,
+          amount: calculatedAmount,
           note
         })
       })
@@ -720,23 +770,56 @@ export default function Sales() {
                   <label htmlFor="product" className="form-label fw-bold">
                     Product
                   </label>
-                  <select
-                    id="product"
-                    className="form-select"
-                    value={product}
-                    onChange={(event) => setProduct(event.target.value)}
-                    required
-                  >
-                    <option value="">Select a product</option>
-                    {products.map((item) => (
-                      <option key={item.id} value={item.product}>
-                        {item.product} — Cost: ₱{Number(item.buy || 0).toFixed(2)}
-                      </option>
-                    ))}
-                  </select>
-                  {products.length === 0 && (
-                    <small className="text-danger">No inventory products were loaded. Check the product API connection.</small>
+                  <div className="position-relative">
+                    <input
+                      id="product"
+                      type="text"
+                      className="form-control"
+                      placeholder="Search product (type H for Hammer)"
+                      autoComplete="off"
+                      value={productSearch}
+                      onFocus={() => setShowProductSuggestions(true)}
+                      onChange={(event) => {
+                        setProductSearch(event.target.value)
+                        setProduct('')
+                        setShowProductSuggestions(true)
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Escape') setShowProductSuggestions(false)
+                        if (event.key === 'Enter' && matchingProducts.length) {
+                          event.preventDefault()
+                          selectProduct(matchingProducts[0])
+                        }
+                      }}
+                      required
+                    />
+                    {showProductSuggestions && (
+                      <div className="position-absolute w-100 bg-white border rounded shadow" style={{ zIndex: 1100, top: 'calc(100% + 5px)', maxHeight: '250px', overflowY: 'auto' }}>
+                        {matchingProducts.length ? matchingProducts.map((item) => {
+                          const status = getStockStatus(item.stock)
+                          return (
+                            <button type="button" key={item.id} className="w-100 text-start border-0 border-bottom bg-white px-3 py-2" onMouseDown={(event) => event.preventDefault()} onClick={() => selectProduct(item)}>
+                              <span className="d-flex justify-content-between align-items-center gap-2">
+                                <strong>{item.product}</strong>
+                                <span className={`badge ${status.className}`}>{status.label}</span>
+                              </span>
+                              <small className="d-flex justify-content-between text-muted mt-1">
+                                <span>₱{Number(item.sell || 0).toFixed(2)} each</span>
+                                <span>Stock: {Number(item.stock) || 0}</span>
+                              </small>
+                            </button>
+                          )
+                        }) : <div className="p-3 text-muted small">No close product matches found.</div>}
+                      </div>
+                    )}
+                  </div>
+                  {selectedProduct && (
+                    <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 p-2 rounded bg-light">
+                      <div><strong>{selectedProduct.product}</strong><div className="small text-muted">Selling price: ₱{unitSellingPrice.toFixed(2)} · Cost: ₱{unitCost.toFixed(2)}</div></div>
+                      <div className="text-end"><span className={`badge ${getStockStatus(availableStock).className}`}>{getStockStatus(availableStock).label}</span><div className="small fw-semibold mt-1">{availableStock} available</div></div>
+                    </div>
                   )}
+                  {products.length === 0 && <small className="text-danger">No inventory products were loaded. Check the product API connection.</small>}
                 </div>
 
                 <div className="row g-3">
@@ -776,17 +859,8 @@ export default function Sales() {
                   <label htmlFor="amount" className="form-label fw-bold">
                     Amount
                   </label>
-                  <input
-                    id="amount"
-                    type="number"
-                    className="form-control"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={amount}
-                    onChange={(event) => setAmount(event.target.value)}
-                    required
-                  />
+                  <input id="amount" type="number" className="form-control bg-light" value={calculatedAmount.toFixed(2)} readOnly required />
+                  <small className="text-muted">{selectedProduct ? `${saleQuantity || 0} × ₱${unitSellingPrice.toFixed(2)} per unit` : 'Select a product and enter quantity to calculate the total.'}</small>
                 </div>
 
                 {selectedProduct && quantity && amount && (
@@ -832,7 +906,7 @@ export default function Sales() {
                   Cancel
                 </button>
 
-                <button type="submit" className="btn btn-warning fw-bold">
+                <button type="submit" className="btn btn-warning fw-bold" disabled={!selectedProduct || saleQuantity <= 0 || exceedsStock || estimatedLoss > 0}>
                   Record Sale
                 </button>
               </div>
