@@ -30,10 +30,16 @@ function Sidebar({ active, onLogout, admin = false }) {
   })
   const [displayName, setDisplayName] = useState('User')
   const [email, setEmail] = useState('')
+  const [darkMode, setDarkMode] = useState(() => window.localStorage.getItem('hardware-theme') === 'dark')
   const [isResizing, setIsResizing] = useState(false)
   const navRef = useRef(null)
   const items = admin ? ADMIN_NAV_ITEMS : USER_NAV_ITEMS
   const collapsed = width <= MIN_WIDTH + 2
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = darkMode ? 'dark' : 'light'
+    window.localStorage.setItem('hardware-theme', darkMode ? 'dark' : 'light')
+  }, [darkMode])
 
   useEffect(() => onAuthStateChanged(auth, (user) => {
     setDisplayName(user?.displayName || user?.email?.split('@')[0] || 'User')
@@ -106,6 +112,13 @@ function Sidebar({ active, onLogout, admin = false }) {
     </NavLink>
   ))
 
+  const themeButton = (mode) => (
+    <button type="button" title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'} aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'} className={`nav-link app-nav-link app-theme-toggle ${mode === 'mobile' ? 'app-mobile-icon-link' : ''} text-start border-0 bg-transparent`} onClick={() => setDarkMode(value => !value)}>
+      <i className={`bi ${darkMode ? 'bi-sun-fill' : 'bi-moon-stars-fill'} nav-icon`} aria-hidden="true" />
+      <b>{darkMode ? 'Light mode' : 'Dark mode'}</b>
+    </button>
+  )
+
   const logoutButton = (mode) => (
     <button
       type="button"
@@ -134,6 +147,7 @@ function Sidebar({ active, onLogout, admin = false }) {
           <div className="app-user-row" title={displayName}>
             <span className="app-user-avatar"><i className="bi bi-person-fill" /></span>
             <span className="app-user-copy"><strong>{displayName}</strong><small>{email || (admin ? 'Administrator' : 'Signed in')}</small></span>
+            {themeButton('desktop')}
             {logoutButton('desktop')}
           </div>
         </div>
@@ -152,6 +166,7 @@ function Sidebar({ active, onLogout, admin = false }) {
       {/* Phones: fixed bottom icon navigation */}
       <nav className="app-mobile-bottom-nav" aria-label="Mobile navigation">
         {links('mobile')}
+        {themeButton('mobile')}
         {logoutButton('mobile')}
       </nav>
     </>
