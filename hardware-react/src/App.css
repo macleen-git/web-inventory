@@ -958,3 +958,52 @@ button { cursor: pointer; }
 .app-sidebar-desktop.is-collapsed .app-sidebar-collapse-row { padding:0 8px 10px; }
 .app-sidebar-desktop.is-collapsed .app-sidebar-collapse-row .sidebar-collapse-button { width:34px; min-height:32px; }
 
+
+/* Responsive brand/toggle arrangement: side-by-side while brand text fits;
+   stacked under the icon only at the fully-collapsed width. */
+.app-sidebar-desktop .app-sidebar-brand {
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.app-sidebar-desktop .app-sidebar-brand .app-brand-mark {
+  display:flex;
+  align-items:center;
+  flex:1 1 auto;
+  min-width:0;
+  overflow:hidden;
+}
+.app-sidebar-desktop .app-sidebar-brand .app-brand-copy {
+  display:block;
+  min-width:0;
+  overflow:hidden;
+}
+.app-sidebar-desktop .app-sidebar-brand .sidebar-collapse-button {
+  position:static;
+  flex:0 0 34px;
+  width:34px;
+  height:34px;
+  margin:0;
+}
+.app-sidebar-desktop.is-collapsed .app-sidebar-brand {
+  min-height:76px;
+  flex-direction:column;
+  justify-content:center;
+  gap:5px;
+  padding:9px 5px 10px;
+}
+.app-sidebar-desktop.is-collapsed .app-sidebar-brand .app-brand-mark {
+  flex:0 0 auto;
+  justify-content:center;
+  overflow:visible;
+}
+.app-sidebar-desktop.is-collapsed .app-sidebar-brand .app-brand-copy {
+  display:none;
+}
+.app-sidebar-desktop.is-collapsed .app-sidebar-brand .sidebar-collapse-button {
+  flex:0 0 28px;
+  width:34px;
+  height:28px;
+}
