@@ -218,7 +218,7 @@ function AppRoutes({ user, role, handleLogin }) {
         path="/admin"
         element={
           user && role === 'admin'
-            ? <Admin />
+            ? <Admin user={user} onLogout={handleLogout} />
             : user && role === 'user'
               ? <Navigate to="/dashboard" replace />
               : <Navigate to="/login" replace />
