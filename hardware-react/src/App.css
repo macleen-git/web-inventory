@@ -1043,3 +1043,34 @@ button { cursor: pointer; }
     min-width:0;
   }
 }
+
+
+/* Product autocomplete dropdown must follow the active theme, including dark mode. */
+.product-suggestion-list {
+  background:var(--hw-card,#fff);
+  color:var(--hw-text,#17212b);
+  border-color:var(--hw-border,#dee2e6)!important;
+}
+.product-suggestion-item {
+  background:var(--hw-card,#fff);
+  color:var(--hw-text,#17212b);
+  border-color:var(--hw-border,#dee2e6)!important;
+}
+.product-suggestion-item:hover,
+.product-suggestion-item:focus {
+  background:var(--hw-hover,#edf2f7);
+  color:var(--hw-text,#17212b);
+}
+.product-suggestion-meta { color:var(--hw-muted,#64748b); }
+:root[data-theme="dark"] .product-suggestion-list,
+:root[data-theme="dark"] .product-suggestion-item {
+  background:#1c2a38!important;
+  color:#fff!important;
+  border-color:#354657!important;
+}
+:root[data-theme="dark"] .product-suggestion-item:hover,
+:root[data-theme="dark"] .product-suggestion-item:focus {
+  background:#2b4052!important;
+  color:#fff!important;
+}
+:root[data-theme="dark"] .product-suggestion-meta { color:#cbd5e1!important; }
