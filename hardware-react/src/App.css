@@ -708,3 +708,65 @@ button { cursor: pointer; }
   .analytics-bars { min-height:185px; }
   .analytics-bar-column { height:172px; }
 }
+
+
+/* Unified low-glare charcoal and slate theme with restrained gold accents. */
+:root[data-theme="dark"] {
+  --hw-page:#111b25;
+  --hw-card:#1c2a38;
+  --hw-text:#e4ebf2;
+  --hw-muted-text:#a9b7c5;
+  --hw-border:#354657;
+  --hw-shadow:0 8px 24px rgba(0,0,0,.16);
+}
+:root[data-theme="dark"] .app-main { background:#111b25!important; color:#e4ebf2; }
+:root[data-theme="dark"] .analytics-metric-card,
+:root[data-theme="dark"] .analytics-panel,
+:root[data-theme="dark"] .app-main .card { background:#1c2a38!important; border-color:#354657!important; color:#e4ebf2; }
+:root[data-theme="dark"] .analytics-page-header h1,
+:root[data-theme="dark"] .analytics-panel-heading h2,
+:root[data-theme="dark"] .analytics-metric-value,
+:root[data-theme="dark"] .analytics-movement-row strong,
+:root[data-theme="dark"] .analytics-rank-row strong,
+:root[data-theme="dark"] .analytics-category-row strong { color:#edf2f7!important; }
+:root[data-theme="dark"] .analytics-kicker { color:#d5ad42; }
+:root[data-theme="dark"] .analytics-metric-icon,
+:root[data-theme="dark"] .analytics-metric-icon.is-yellow,
+:root[data-theme="dark"] .analytics-metric-icon.is-alert { background:#293a49; color:#e2b94f; }
+:root[data-theme="dark"] .analytics-period-select,
+:root[data-theme="dark"] .analytics-refresh-btn,
+:root[data-theme="dark"] .app-main .form-control,
+:root[data-theme="dark"] .app-main .form-select { background:#243443!important; border-color:#405264!important; color:#e4ebf2!important; }
+:root[data-theme="dark"] .analytics-movement-row,
+:root[data-theme="dark"] .analytics-rank-row,
+:root[data-theme="dark"] .analytics-stock-row { border-color:#354657; }
+:root[data-theme="dark"] .analytics-table { --bs-table-bg:transparent; --bs-table-color:#dce6ef; --bs-table-border-color:#354657; --bs-table-hover-bg:#263747; }
+:root[data-theme="dark"] .analytics-table thead th { background:#243443; color:#bdc9d5; }
+:root[data-theme="dark"] .analytics-table td { color:#dce6ef; border-color:#354657; }
+:root[data-theme="dark"] .app-main .card-header { background:#243443!important; border-color:#354657!important; color:#e4ebf2; }
+:root[data-theme="dark"] .app-main .text-muted,
+:root[data-theme="dark"] .app-main p { color:#a9b7c5; }
+:root[data-theme="dark"] .app-main .table { --bs-table-color:#dce6ef; --bs-table-bg:transparent; --bs-table-border-color:#354657; --bs-table-hover-bg:#263747; }
+:root[data-theme="dark"] .app-main .table thead th { background:#243443; color:#bdc9d5; }
+.sales-trend-chart,.report-trend-chart { width:100%; min-width:0; overflow-x:auto; }
+.sales-trend-chart svg,.report-trend-chart svg { display:block; width:100%; min-width:560px; height:auto; overflow:visible; }
+.sales-chart-grid { stroke:rgba(126,145,163,.22); stroke-width:1; }
+.sales-chart-axis { fill:var(--hw-muted-text); font-size:10px; }
+.sales-chart-line { fill:none; stroke:#d9aa32; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
+.sales-chart-dot { fill:#e5b43d; stroke:#1c2a38; stroke-width:2; }
+.report-trend-chart { padding:8px 0; }
+.reports-page-content { padding:clamp(16px,2.2vw,30px)!important; }
+:root[data-theme="dark"] .app-sidebar-footer { display:flex; flex-direction:column; align-items:stretch; gap:12px; }
+.app-sidebar-actions { display:flex; flex-direction:column; gap:7px; width:100%; }
+.app-sidebar-actions .app-theme-toggle,.app-sidebar-actions .app-nav-logout { width:100%; min-width:0; justify-content:flex-start; margin:0; padding:9px 12px; border-radius:9px; }
+.app-sidebar-actions .app-theme-toggle b,.app-sidebar-actions .app-nav-logout b { display:block; }
+.app-sidebar-desktop.is-collapsed .app-sidebar-actions .app-theme-toggle,
+.app-sidebar-desktop.is-collapsed .app-sidebar-actions .app-nav-logout { justify-content:center; padding:9px 0; }
+.app-sidebar-desktop.is-collapsed .app-sidebar-actions .app-theme-toggle b,
+.app-sidebar-desktop.is-collapsed .app-sidebar-actions .app-nav-logout b { display:none; }
+.app-sidebar-footer .app-user-row { min-width:0; }
+@media(max-width:767.98px) {
+  .reports-page-content { padding:14px!important; }
+  .report-trend-chart svg { min-width:620px; }
+  .app-mobile-bottom-nav { overflow-x:auto; }
+}
