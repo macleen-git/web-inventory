@@ -799,16 +799,16 @@ export default function Sales() {
                       required
                     />
                     {showProductSuggestions && (
-                      <div className="position-absolute w-100 bg-white border rounded shadow" style={{ zIndex: 1100, top: 'calc(100% + 5px)', maxHeight: '250px', overflowY: 'auto' }}>
+                      <div className="position-absolute w-100 product-suggestion-list border rounded shadow" style={{ zIndex: 1100, top: 'calc(100% + 5px)', maxHeight: '250px', overflowY: 'auto' }}>
                         {matchingProducts.length ? matchingProducts.map((item) => {
                           const status = getStockStatus(item.stock)
                           return (
-                            <button type="button" key={item.id} className="w-100 text-start border-0 border-bottom bg-white px-3 py-2" onMouseDown={(event) => event.preventDefault()} onClick={() => selectProduct(item)}>
+                            <button type="button" key={item.id} className="w-100 text-start border-0 border-bottom product-suggestion-item px-3 py-2" onMouseDown={(event) => event.preventDefault()} onClick={() => selectProduct(item)}>
                               <span className="d-flex justify-content-between align-items-center gap-2">
                                 <strong>{item.product}</strong>
                                 <span className={`badge ${status.className}`}>{status.label}</span>
                               </span>
-                              <small className="d-flex justify-content-between text-muted mt-1">
+                              <small className="d-flex justify-content-between product-suggestion-meta mt-1">
                                 <span>₱{Number(item.sell || 0).toFixed(2)} each</span>
                                 <span>Stock: {Number(item.stock) || 0}</span>
                               </small>
