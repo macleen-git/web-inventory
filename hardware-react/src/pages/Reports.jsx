@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Sidebar from '../components/Sidebar'
-import { API_URL } from '../config/api'
+import { API_URL, apiFetch } from '../config/api'
 
 function Reports() {
 
@@ -20,10 +20,10 @@ function Reports() {
         setLoading(true)
         setError('')
 
-        const productResponse = await fetch(API_URL('/api/product'))
-        const salesResponse = await fetch(API_URL('/api/sales'))
-        const stockResponse = await fetch(API_URL('/api/stock-in'))
-        const damagedResponse = await fetch(API_URL('/api/damaged'))
+        const productResponse = await apiFetch(API_URL('/api/product'))
+        const salesResponse = await apiFetch(API_URL('/api/sales'))
+        const stockResponse = await apiFetch(API_URL('/api/stock-in'))
+        const damagedResponse = await apiFetch(API_URL('/api/damaged'))
 
         if (
           !productResponse.ok ||
