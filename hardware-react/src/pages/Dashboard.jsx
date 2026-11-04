@@ -46,7 +46,7 @@ function MetricCard({ label, value, note, icon, accent }) {
       <div className="d-flex align-items-start justify-content-between gap-3">
         <div>
           <p className="analytics-eyebrow mb-2">{label}</p>
-          <div className="analytics-metric-value">{value}</div>
+          <div className="analytics-metric-value" title={String(value)}>{value}</div>
           <small className="analytics-muted">{note}</small>
         </div>
         <span className={`analytics-metric-icon ${accent || ''}`} aria-hidden="true">
@@ -86,7 +86,7 @@ function BarChart({ title, subtitle, items, format = value => value }) {
 
 function Dashboard() {
   const [data, setData] = useState({ products: [], sales: [], stockIns: [], damaged: [] })
-  const [period, setPeriod] = useState('Last 7 days')
+  const [period, setPeriod] = useState(() => window.localStorage.getItem('hardware-dashboard-period') || 'Last 7 days')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [updatedAt, setUpdatedAt] = useState(null)
@@ -114,6 +114,7 @@ function Dashboard() {
   }, [])
 
   useEffect(() => { loadData() }, [loadData])
+  useEffect(() => { window.localStorage.setItem('hardware-dashboard-period', period) }, [period])
 
   const filteredSales = useMemo(() => data.sales.filter(item => inSelectedPeriod(item.date, period)), [data.sales, period])
   const filteredStockIns = useMemo(() => data.stockIns.filter(item => inSelectedPeriod(item.date, period)), [data.stockIns, period])
@@ -131,8 +132,8 @@ function Dashboard() {
       const date = parseDate(item.date)
       if (!date) return
       const label = period === 'Last 7 days' || period === 'Last 30 days'
-        ? date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
-        : date.toLocaleDateString('en-PH', { month: 'short', year: '2-digit' })
+        ? date.toLocaleDateString('en-PH', { month: '2-digit', day: '2-digit' })
+        : date.toLocaleDateString('en-PH', { month: '2-digit', year: '2-digit' })
       const key = period === 'Last 7 days' || period === 'Last 30 days'
         ? dateKey(date)
         : `${date.getFullYear()}-${date.getMonth()}`
