@@ -92,7 +92,7 @@ try {
 }
 async function requireFirebaseUser(req,res,next) {
  try {
-  if (!firebaseAdminApp) return res.status(503).json({message:"Firebase Admin is not configured. Set FIREBASE_SERVICE_ACCOUNT_JSON on the backend."});
+  if (!firebaseAdminApp) return res.status(503).json({message:"Firebase ID-token verification is not configured. Set FIREBASE_SERVICE_ACCOUNT_JSON or GOOGLE_APPLICATION_CREDENTIALS on the backend."});
   const header = String(req.headers.authorization || "");
   if (!header.startsWith("Bearer ")) return res.status(401).json({message:"Firebase sign-in is required."});
   req.firebaseUser = await firebaseAdminApp.auth().verifyIdToken(header.slice(7));
@@ -116,7 +116,9 @@ app.post("/api/auth/sync", requireFirebaseUser, route(async(req,res) => {
   [u.uid,displayName,email,u.picture || null]
  );
  await pool.execute("INSERT INTO activity_logs(firebase_uid,event_type,created_at) VALUES(?,'session_sync',NOW())",[u.uid]);
- res.json({message:"Account synchronized with the inventory database."});
+ const [accountRows] = await pool.execute("SELECT role,status FROM app_users WHERE firebase_uid=? LIMIT 1",[u.uid]);
+ const account = accountRows[0];
+ res.json({message:"Account synchronized with the inventory database.",role:account?.role || "user",status:account?.status || "active"});
 }));
 app.post("/api/activity/heartbeat", requireFirebaseUser, route(async(req,res) => {
  const u=req.firebaseUser;
