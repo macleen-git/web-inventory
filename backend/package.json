@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "description": "Hardware Inventory Express API",
   "main": "server.js",
-  "scripts": { "dev": "nodemon server.js", "start": "node server.js" },
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -12,7 +15,10 @@
     "cors": "^2.8.6",
     "dotenv": "^16.4.7",
     "express": "^5.2.1",
-    "mysql2": "^3.14.0"
+    "mysql2": "^3.14.0",
+    "firebase-admin": "^13.5.0"
   },
-  "devDependencies": { "nodemon": "^3.1.14" }
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
 }
