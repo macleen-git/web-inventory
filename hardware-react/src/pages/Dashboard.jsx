@@ -225,10 +225,7 @@ function Dashboard() {
               <p>Monitor inventory health, sales performance, and recent activity.</p>
             </div>
             <div className="d-flex flex-wrap align-items-center gap-2">
-              <button type="button" className="btn analytics-refresh-btn" onClick={loadData} disabled={loading}>
-                <i className="bi bi-arrow-clockwise me-2" />{loading ? 'Refreshing…' : 'Refresh'}
-              </button>
-              <input
+<input
                 type="date"
                 className="form-control analytics-period-select"
                 value={selectedDate}
