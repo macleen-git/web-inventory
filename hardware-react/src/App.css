@@ -1551,3 +1551,119 @@ button { cursor: pointer; }
     max-height:330px;
   }
 }
+
+
+/* Consistent dark theme for all application tables and Bootstrap modals. */
+:root[data-theme="dark"] {
+  --bs-body-color: #e8eef5;
+  --bs-body-bg: #111c26;
+  --bs-border-color: #3b5062;
+  --bs-table-color: #e8eef5;
+  --bs-table-bg: #1c2a38;
+  --bs-table-border-color: #3b5062;
+  --bs-table-striped-color: #e8eef5;
+  --bs-table-striped-bg: #223342;
+  --bs-table-hover-color: #fff;
+  --bs-table-hover-bg: #2a4052;
+}
+:root[data-theme="dark"] .table,
+:root[data-theme="dark"] table {
+  --bs-table-color: #e8eef5;
+  --bs-table-bg: #1c2a38;
+  --bs-table-border-color: #3b5062;
+  color: #e8eef5!important;
+  border-color: #3b5062!important;
+}
+:root[data-theme="dark"] .table > :not(caption) > * > *,
+:root[data-theme="dark"] table > :not(caption) > * > * {
+  color: #e8eef5!important;
+  background-color: #1c2a38!important;
+  border-bottom-color: #3b5062!important;
+  box-shadow:none!important;
+}
+:root[data-theme="dark"] .table thead th,
+:root[data-theme="dark"] table thead th,
+:root[data-theme="dark"] .table thead td {
+  color:#f4f7fb!important;
+  background:#243443!important;
+  font-weight:700;
+}
+:root[data-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) > *,
+:root[data-theme="dark"] .table-hover > tbody > tr:hover > * {
+  --bs-table-bg-type:#263a4b;
+  color:#fff!important;
+  background:#263a4b!important;
+}
+:root[data-theme="dark"] .modal .modal-content,
+:root[data-theme="dark"] .modal-content {
+  color:#e8eef5!important;
+  background:#1c2a38!important;
+  border:1px solid #40566a!important;
+  border-radius:14px;
+  box-shadow:0 22px 60px rgba(0,0,0,.45);
+}
+:root[data-theme="dark"] .modal .modal-header,
+:root[data-theme="dark"] .modal .modal-footer {
+  color:#f4f7fb!important;
+  background:#243443!important;
+  border-color:#40566a!important;
+}
+:root[data-theme="dark"] .modal .modal-title,
+:root[data-theme="dark"] .modal .modal-body,
+:root[data-theme="dark"] .modal .modal-body label,
+:root[data-theme="dark"] .modal .modal-body p,
+:root[data-theme="dark"] .modal .modal-body small,
+:root[data-theme="dark"] .modal .modal-body strong,
+:root[data-theme="dark"] .modal .modal-body span {
+  color:#e8eef5;
+}
+:root[data-theme="dark"] .modal .btn-close {
+  filter:invert(1) grayscale(1) brightness(1.8);
+  opacity:.9;
+}
+:root[data-theme="dark"] .modal .form-control,
+:root[data-theme="dark"] .modal .form-select,
+:root[data-theme="dark"] .modal textarea,
+:root[data-theme="dark"] .modal input:not([type="checkbox"]):not([type="radio"]) {
+  color:#f4f7fb!important;
+  background:#243443!important;
+  border-color:#52697d!important;
+}
+:root[data-theme="dark"] .modal .form-control::placeholder,
+:root[data-theme="dark"] .modal textarea::placeholder,
+:root[data-theme="dark"] .modal input::placeholder {
+  color:#aebdca!important;
+  opacity:1;
+}
+:root[data-theme="dark"] .modal .form-select option {
+  color:#f4f7fb;
+  background:#243443;
+}
+:root[data-theme="dark"] .modal .form-control:focus,
+:root[data-theme="dark"] .modal .form-select:focus,
+:root[data-theme="dark"] .modal textarea:focus,
+:root[data-theme="dark"] .modal input:focus {
+  border-color:#ffc400!important;
+  box-shadow:0 0 0 .2rem rgba(255,196,0,.16)!important;
+}
+:root[data-theme="dark"] .modal .text-muted,
+:root[data-theme="dark"] .modal .form-text {
+  color:#b8c6d3!important;
+}
+:root[data-theme="dark"] .modal .btn-outline-secondary {
+  color:#e1e9f0!important;
+  border-color:#64798b!important;
+}
+:root[data-theme="dark"] .modal .btn-outline-secondary:hover {
+  color:#fff!important;
+  background:#304456!important;
+}
+:root[data-theme="dark"] .modal .alert {
+  color:#e8eef5;
+  background:#263a4b;
+  border-color:#52697d;
+}
+:root[data-theme="dark"] .modal .bi,
+:root[data-theme="dark"] .modal svg {
+  color:currentColor;
+}
