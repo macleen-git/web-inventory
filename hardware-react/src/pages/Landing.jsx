@@ -19,6 +19,71 @@ function Landing({ onLogin, onSignUp }) {
     }
   }, [])
 
+  useEffect(() => {
+    const page = document.querySelector('.landing-page')
+    if (!page) return undefined
+
+    const revealTargets = page.querySelectorAll(
+      '.hero-section .col-lg-6, .about-section .store-visual, .about-section .col-lg-7, .feature-card, .inventory-section .col-lg-7, .inventory-visual, .cta-section .container, .landing-footer .row'
+    )
+
+    revealTargets.forEach((element, index) => {
+      element.classList.add('scroll-reveal')
+      if (element.classList.contains('feature-card')) {
+        element.style.setProperty('--reveal-delay', `${(index % 4) * 90}ms`)
+      }
+    })
+
+    const reducedMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    ).matches
+
+    if (reducedMotion) {
+      revealTargets.forEach(element => element.classList.add('is-visible'))
+      return undefined
+    }
+
+    let observer
+
+    if ('IntersectionObserver' in window) {
+      observer = new IntersectionObserver(
+        entries => {
+          entries.forEach(entry => {
+            if (!entry.isIntersecting) return
+            entry.target.classList.add('is-visible')
+            observer.unobserve(entry.target)
+          })
+        },
+        { threshold: 0.14, rootMargin: '0px 0px -45px 0px' }
+      )
+
+      revealTargets.forEach(element => observer.observe(element))
+    } else {
+      revealTargets.forEach(element => element.classList.add('is-visible'))
+    }
+
+    let frame = 0
+    const updateScrollMotion = () => {
+      if (frame) window.cancelAnimationFrame(frame)
+
+      frame = window.requestAnimationFrame(() => {
+        const scrollY = window.scrollY || 0
+        page.style.setProperty('--page-shift', `${scrollY * 0.16}px`)
+        page.style.setProperty('--screw-rotation', `${scrollY * 1.35}deg`)
+        page.style.setProperty('--screw-rotation-reverse', `${scrollY * -1.1}deg`)
+      })
+    }
+
+    window.addEventListener('scroll', updateScrollMotion, { passive: true })
+    updateScrollMotion()
+
+    return () => {
+      window.removeEventListener('scroll', updateScrollMotion)
+      if (frame) window.cancelAnimationFrame(frame)
+      observer?.disconnect()
+    }
+  }, [])
+
   function scrollToSection(id) {
     setOpenMenu(false)
 
@@ -188,6 +253,16 @@ function Landing({ onLogin, onSignUp }) {
 
         <div className="hero-gear gear-two" aria-hidden="true">
           <i className="bi bi-gear-fill" />
+        </div>
+
+        <div className="scroll-screw screw-one" aria-hidden="true">
+          <span />
+        </div>
+        <div className="scroll-screw screw-two" aria-hidden="true">
+          <span />
+        </div>
+        <div className="scroll-screw screw-three" aria-hidden="true">
+          <span />
         </div>
 
         <div className="container hero-container">
