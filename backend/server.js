@@ -55,11 +55,22 @@ const saleDto = r => ({ id:r.id, product:r.product, quantity:String(r.quantity),
 const damagedDto = r => ({ id:r.id, product:r.product, quantity:String(r.quantity), date:r.date, unitCost:String(r.unit_cost ?? 0), loss:String(r.total_loss ?? 0), reason:r.reason || "" });
 app.get("/", (req, res) => res.json({ name: "Hardware Inventory API", status: "running" }));
 app.get("/api/health", route(async (req,res) => {
- await pool.query("SELECT 1");
  const firebaseReady = Boolean(firebaseAdminApp);
- res.status(firebaseReady ? 200 : 503).json({
-  status: firebaseReady ? "ok" : "degraded",
-  database: "connected",
+ let databaseReady = false;
+ let databaseError = null;
+
+ try {
+  await pool.query("SELECT 1");
+  databaseReady = true;
+ } catch (error) {
+  databaseError = error.message;
+  console.warn("[HEALTH] MySQL is not ready:", databaseError);
+ }
+
+ const ready = databaseReady && firebaseReady;
+ res.status(ready ? 200 : 503).json({
+  status: ready ? "ok" : "starting",
+  database: databaseReady ? "connected" : "unavailable",
   firebaseAdmin: firebaseReady ? "configured" : "not_configured"
  });
 }));
@@ -244,19 +255,28 @@ app.get("/api/admin/overview", requireFirebaseUser, requireDatabaseAdmin, route(
 }));
 
 app.use((error,req,res,next)=>{console.error(error);if(res.headersSent)return next(error);res.status(error.status||500).json({message:error.status?error.message:"Server or database error. Check backend logs and database connection."});});
-async function start(){
+// Bind the HTTP port immediately so Render can detect the service and wake it.
+const server = app.listen(PORT, () => {
+ console.log("Hardware Inventory API listening on port " + PORT);
+ console.log("[STARTUP] Firebase Admin:", firebaseAdminApp ? "configured" : "NOT CONFIGURED");
+});
+
+// Check MySQL in the background. A temporary database outage must not prevent
+// the web server from starting; /api/health reports when all dependencies are ready.
+async function checkDatabaseAtStartup() {
  try {
-  console.log("[STARTUP] Checking MySQL connection...");
   await pool.query("SELECT 1");
   console.log("[STARTUP] MySQL connected:", process.env.DB_NAME || "hardware_inventory_v2");
-  app.listen(PORT, () => {
-   console.log("Hardware Inventory API running on port " + PORT);
-   console.log("[STARTUP] Firebase Admin:", firebaseAdminApp ? "configured" : "NOT CONFIGURED");
-  });
- } catch(error) {
-  console.error("[STARTUP] Database connection failed:", error.message);
-  console.error("[STARTUP] Check XAMPP MySQL, DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, and DB_NAME in backend/.env.");
-  process.exit(1);
+ } catch (error) {
+  console.error("[STARTUP] MySQL is not ready yet:", error.message);
+  console.error("[STARTUP] The API remains online and /api/health will report when the database is ready.");
  }
 }
-start();
+checkDatabaseAtStartup();
+
+process.on("SIGTERM", () => {
+ console.log("[SHUTDOWN] SIGTERM received.");
+ server.close(() => {
+  pool.end().finally(() => process.exit(0));
+ });
+});
