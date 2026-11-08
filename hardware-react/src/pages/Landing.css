@@ -476,15 +476,9 @@
   pointer-events: none;
 }
 
-.gear-one {
-  top: 20px;
-  left: 55%;
-}
-
+.gear-one,
 .gear-two {
-  right: 4%;
-  bottom: 20px;
-  font-size: 65px;
+  display: none;
 }
 
 /* GENERAL SECTIONS */
@@ -1592,4 +1586,45 @@
   .landing-page .scroll-screw.screw-click-roll { animation: none !important; }
   .landing-page .landing-navbar .nav-link,
   .landing-page .landing-navbar .landing-nav-actions .btn { transition: none !important; }
+}
+
+
+/* Use the same round steel-and-yellow screw for the former gear decorations */
+.landing-page .screw-hero-one,
+.landing-page .screw-hero-two {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 5px solid #ffc400;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 28%, #dce7ec 0%, #91a7b2 38%, #354f5e 75%, #142e3d 100%);
+  box-shadow: 0 5px 15px rgba(0,0,0,.28), inset 0 2px 4px rgba(255,255,255,.55);
+  pointer-events: auto;
+  cursor: pointer;
+}
+.landing-page .screw-hero-one { top: 20px; left: 55%; }
+.landing-page .screw-hero-two { right: 4%; bottom: 20px; width: 36px; height: 36px; }
+.landing-page .scroll-screw::before,
+.landing-page .scroll-screw::after,
+.landing-page .screw-hero-one::before,
+.landing-page .screw-hero-one::after,
+.landing-page .screw-hero-two::before,
+.landing-page .screw-hero-two::after {
+  content: '';
+  position: absolute;
+  width: 19px;
+  height: 4px;
+  border-radius: 4px;
+  background: #183344;
+}
+.landing-page .scroll-screw::after,
+.landing-page .screw-hero-one::after,
+.landing-page .screw-hero-two::after { transform: rotate(90deg); }
+@media (max-width: 575.98px) {
+  .landing-page .screw-hero-one,
+  .landing-page .screw-hero-two { width: 30px; height: 30px; border-width: 4px; }
 }
