@@ -1649,7 +1649,7 @@
 .landing-page .background-gear {
   position: absolute; z-index: 1; display: grid; place-items: center;
   padding: 0; border: 0; background: transparent;
-  color: rgba(151,181,194,.19); line-height: 1; cursor: pointer;
+  color: rgba(185,198,207,.58); line-height: 1; cursor: pointer;
   pointer-events: auto; transform-origin: center;
   animation: background-gear-idle 16s linear infinite;
   transition: color .3s ease, filter .3s ease;
@@ -1660,9 +1660,9 @@
   filter: drop-shadow(0 0 10px rgba(255,196,0,.18)); outline: none;
 }
 .landing-page .background-gear i { display: block; line-height: 1; pointer-events: none; }
-.landing-page .gear-small { font-size: 30px; opacity: .58; }
-.landing-page .gear-medium { font-size: 54px; opacity: .48; }
-.landing-page .gear-large { font-size: 88px; opacity: .36; }
+.landing-page .gear-small { font-size: 30px; opacity: .78; }
+.landing-page .gear-medium { font-size: 54px; opacity: .72; }
+.landing-page .gear-large { font-size: 88px; opacity: .66; }
 .landing-page .gear-hero-left { top: 4%; left: 6%; }
 .landing-page .gear-hero-right { top: 42%; right: 4%; }
 .landing-page .gear-hero-bottom { bottom: 4%; left: 46%; }
