@@ -298,13 +298,8 @@ function Landing({ onLogin, onSignUp }) {
       {/* HERO SECTION */}
       <header className="hero-section" id="home">
 
-        <div className="hero-gear gear-one" aria-hidden="true">
-          <i className="bi bi-gear-fill" />
-        </div>
-
-        <div className="hero-gear gear-two" aria-hidden="true">
-          <i className="bi bi-gear-fill" />
-        </div>
+        <button type="button" className="scroll-screw screw-hero-one" aria-label="Roll screw decoration"><span /></button>
+        <button type="button" className="scroll-screw screw-hero-two" aria-label="Roll screw decoration"><span /></button>
 
         <div className="scroll-screw screw-one" aria-hidden="true">
           <span />
