@@ -4,39 +4,28 @@ import './Landing.css'
 function Landing({ onLogin, onSignUp }) {
   const [openMenu, setOpenMenu] = useState(false)
   const [installPrompt, setInstallPrompt] = useState(null)
-  const [installMessage, setInstallMessage] = useState('')
 
   useEffect(() => {
-    function handleBeforeInstallPrompt(event) {
+    const handleInstallPrompt = event => {
       event.preventDefault()
       setInstallPrompt(event)
     }
-
-    function handleAppInstalled() {
-      setInstallPrompt(null)
-      setInstallMessage('Hardware Tools Inventory has been installed.')
-    }
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-    window.addEventListener('appinstalled', handleAppInstalled)
-
+    const handleInstalled = () => setInstallPrompt(null)
+    window.addEventListener('beforeinstallprompt', handleInstallPrompt)
+    window.addEventListener('appinstalled', handleInstalled)
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-      window.removeEventListener('appinstalled', handleAppInstalled)
+      window.removeEventListener('beforeinstallprompt', handleInstallPrompt)
+      window.removeEventListener('appinstalled', handleInstalled)
     }
   }, [])
 
   async function handleInstall() {
     if (!installPrompt) {
-      setInstallMessage('To install, open your browser menu and choose “Install app” or “Add to Home Screen,” if available.')
+      window.alert('To install, open your browser menu and choose “Install app” or “Add to Home Screen” when available.')
       return
     }
-
-    await installPrompt.prompt()
-    const choice = await installPrompt.userChoice
-    if (choice?.outcome === 'accepted') {
-      setInstallMessage('Installation started. Follow the prompt on your device.')
-    }
+    installPrompt.prompt()
+    await installPrompt.userChoice
     setInstallPrompt(null)
   }
 
@@ -52,6 +41,92 @@ function Landing({ onLogin, onSignUp }) {
         'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css'
       link.dataset.bootstrapIcons = 'landing'
       document.head.appendChild(link)
+    }
+  }, [])
+
+  useEffect(() => {
+    const page = document.querySelector('.landing-page')
+    if (!page) return undefined
+
+    const handleGearClick = event => {
+      const gear = event.target.closest('.background-gear')
+      if (!gear || !page.contains(gear)) return
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+      gear.classList.remove('gear-click-roll')
+      void gear.offsetWidth
+      gear.classList.add('gear-click-roll')
+      window.setTimeout(() => gear.classList.remove('gear-click-roll'), 2300)
+    }
+    page.addEventListener('click', handleGearClick)
+    return () => page.removeEventListener('click', handleGearClick)
+  }, [])
+
+  useEffect(() => {
+    const page = document.querySelector('.landing-page')
+    if (!page) return undefined
+
+    const revealTargets = page.querySelectorAll(
+      '.hero-section .col-lg-6, .about-section .store-visual, .about-section .col-lg-7, .feature-card, .inventory-section .col-lg-7, .inventory-visual, .cta-section .container, .landing-footer .row, .photo-tool, .mini-benefit, .section-heading'
+    )
+
+    revealTargets.forEach((element, index) => {
+      element.classList.add('scroll-reveal')
+      if (element.classList.contains('feature-card') || element.classList.contains('photo-tool')) {
+        element.style.setProperty('--reveal-delay', `${(index % 4) * 130}ms`)
+      }
+    })
+
+    const reducedMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    ).matches
+
+    if (reducedMotion) {
+      revealTargets.forEach(element => element.classList.add('is-visible'))
+      return undefined
+    }
+
+    let observer
+
+    if ('IntersectionObserver' in window) {
+      observer = new IntersectionObserver(
+        entries => {
+          entries.forEach(entry => {
+            entry.target.classList.toggle('is-visible', entry.isIntersecting)
+          })
+        },
+        { threshold: 0.14, rootMargin: '0px 0px -45px 0px' }
+      )
+
+      revealTargets.forEach(element => observer.observe(element))
+    } else {
+      revealTargets.forEach(element => element.classList.add('is-visible'))
+    }
+
+    let frame = 0
+    let scrollStopTimer
+    const updateScrollMotion = () => {
+      page.classList.add('is-scrolling')
+      window.clearTimeout(scrollStopTimer)
+      scrollStopTimer = window.setTimeout(() => page.classList.remove('is-scrolling'), 150)
+      if (frame) window.cancelAnimationFrame(frame)
+
+      frame = window.requestAnimationFrame(() => {
+        const scrollY = window.scrollY || 0
+        page.style.setProperty('--page-shift', `${scrollY * 0.16}px`)
+        page.style.setProperty('--screw-rotation', `${scrollY * 1.35}deg`)
+        page.style.setProperty('--screw-rotation-reverse', `${scrollY * -1.1}deg`)
+        page.style.setProperty('--scroll-progress', `${(scrollY / Math.max(1, document.documentElement.scrollHeight - window.innerHeight)) * 100}%`)
+      })
+    }
+
+    window.addEventListener('scroll', updateScrollMotion, { passive: true })
+    updateScrollMotion()
+
+    return () => {
+      window.removeEventListener('scroll', updateScrollMotion)
+      if (frame) window.cancelAnimationFrame(frame)
+      window.clearTimeout(scrollStopTimer)
+      observer?.disconnect()
     }
   }, [])
 
@@ -150,6 +225,10 @@ function Landing({ onLogin, onSignUp }) {
 
   return (
     <div className="landing-page">
+      <div className="landing-scroll-progress" aria-hidden="true"><span /></div>
+      <div className="floating-tool-particles" aria-hidden="true">
+        <i className="bi bi-nut particle-one" /><i className="bi bi-gear-fill particle-two" /><i className="bi bi-hammer particle-three" /><i className="bi bi-wrench-adjustable particle-four" />
+      </div>
 
       {/* NAVBAR */}
       <nav className="navbar navbar-expand-lg landing-navbar sticky-top">
@@ -201,6 +280,7 @@ function Landing({ onLogin, onSignUp }) {
               >
                 LOG IN
               </button>
+
               <button
                 type="button"
                 className="btn btn-signup"
@@ -217,13 +297,9 @@ function Landing({ onLogin, onSignUp }) {
       {/* HERO SECTION */}
       <header className="hero-section" id="home">
 
-        <div className="hero-gear gear-one" aria-hidden="true">
-          <i className="bi bi-gear-fill" />
-        </div>
-
-        <div className="hero-gear gear-two" aria-hidden="true">
-          <i className="bi bi-gear-fill" />
-        </div>
+        <button type="button" className="background-gear gear-large gear-hero-left" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
+        <button type="button" className="background-gear gear-small gear-hero-right" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
+        <button type="button" className="background-gear gear-medium gear-hero-bottom" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
 
         <div className="container hero-container">
           <div className="row align-items-center g-5">
@@ -249,17 +325,6 @@ function Landing({ onLogin, onSignUp }) {
                 and organize your inventory in one convenient system. Designed
                 to make inventory management easier, faster, and more organized.
               </p>
-
-              <div className="hero-actions">
-                <button
-                  type="button"
-                  className="btn btn-hero-primary"
-                  onClick={handleInstall}
-                >
-                  <i className="bi bi-download me-2" aria-hidden="true" />
-                  INSTALL NOW
-                </button>
-              </div>
 
               <div className="tool-strip" aria-hidden="true">
                 <span><i className="bi bi-hammer" /></span>
@@ -313,6 +378,8 @@ function Landing({ onLogin, onSignUp }) {
 
       {/* ABOUT US */}
       <section id="about" className="about-section landing-section">
+        <button type="button" className="background-gear gear-medium gear-about-left" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
+        <button type="button" className="background-gear gear-small gear-about-right" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
         <div className="container">
           <div className="row align-items-center g-5">
 
@@ -396,6 +463,8 @@ function Landing({ onLogin, onSignUp }) {
 
       {/* FEATURES */}
       <section id="features" className="features-section landing-section">
+        <button type="button" className="background-gear gear-small gear-features-left" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
+        <button type="button" className="background-gear gear-large gear-features-right" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
         <div className="container">
 
           <div className="section-heading text-center">
@@ -446,6 +515,8 @@ function Landing({ onLogin, onSignUp }) {
 
       {/* INVENTORY MANAGEMENT */}
       <section id="inventory" className="inventory-section landing-section">
+        <button type="button" className="background-gear gear-large gear-inventory-left" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
+        <button type="button" className="background-gear gear-small gear-inventory-right" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
         <div className="container">
           <div className="row g-5 align-items-center">
 
@@ -534,45 +605,67 @@ function Landing({ onLogin, onSignUp }) {
         </div>
       </section>
 
-      {/* CONTACT / GET STARTED */}
+      {/* INSTALL + CONTACT */}
       <section id="contact" className="cta-section landing-section">
+        <button type="button" className="background-gear gear-small gear-contact-left" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
+        <button type="button" className="background-gear gear-medium gear-contact-right" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
         <div className="container text-center">
-
-          <div className="cta-logo">
-            <span className="brand-icon">
-              <i className="bi bi-gear-fill" />
-            </span>
-          </div>
-
-          <span className="section-kicker light">
-            GET STARTED
-          </span>
-
-          <h2 className="light-title">
-            Ready to Manage Your Inventory?
-          </h2>
-
-          <p>
-            Install the app on your device for quick access to your inventory.
-            Manage your tools and stock anytime, right from your home screen.
-          </p>
-
+          <div className="cta-logo"><span className="brand-icon"><i className="bi bi-gear-fill" /></span></div>
+          <span className="section-kicker light">GET STARTED</span>
+          <h2 className="light-title">Ready to Manage Your Inventory?</h2>
+          <p>Install the Hardware Tools Inventory app for quick access from your device.</p>
           <div className="cta-actions">
-            <button
-              type="button"
-              className="btn btn-signup btn-lg"
-              onClick={handleInstall}
-            >
-              <i className="bi bi-download me-2" aria-hidden="true" />
-              INSTALL NOW
+            <button type="button" className="btn btn-signup btn-lg install-app-button" onClick={handleInstall}>
+              <i className="bi bi-download me-2" aria-hidden="true" /> INSTALL APP
             </button>
           </div>
-          {installMessage && (
-            <p className="install-message mt-3" role="status">
-              {installMessage}
-            </p>
-          )}
+          <div className="landing-contact-panel">
+            <span className="section-kicker light">CONTACT US</span>
+            <h3>Need to get in touch?</h3>
+            <p>Connect with us through Facebook or call our contact number.</p>
+            <div className="landing-contact-actions">
+              <a className="contact-action" href="https://web.facebook.com/macleen.quinton.fetalver.2024" target="_blank" rel="noopener noreferrer">
+                <i className="bi bi-facebook" aria-hidden="true" /> Facebook Profile
+              </a>
+              <a className="contact-action" href="tel:09127413810">
+                <i className="bi bi-telephone-fill" aria-hidden="true" /> 09127413810
+              </a>
+            </div>
+          </div>
         </div>
+      </section>
+
+      {/* DEMO LIVE SHOP ACTIVITY — VISUAL ONLY */}
+      <section className="shop-activity-section" aria-label="Illustrative hardware shop activity">
+        <div className="container">
+          <div className="shop-activity-heading">
+            <span className="section-kicker light">HARDWARE SHOP ACTIVITY</span>
+            <h2>Inside a Busy Hardware Shop</h2>
+            <p>Illustrative order activity for demonstration only.</p>
+          </div>
+        </div>
+        <div className="order-ticker" aria-label="Animated sample order cards">
+          <div className="order-ticker-track">
+            {[0, 1].map(copy => (
+              <div className="order-ticker-group" key={copy} aria-hidden={copy === 1}>
+                {[
+                  ['bi-hammer', 'Claw Hammer', 'New demo order'],
+                  ['bi-tools', 'Power Drill', 'Sample purchase'],
+                  ['bi-wrench-adjustable', 'Wrench Set', 'New demo order'],
+                  ['bi-screwdriver', 'Screwdriver Set', 'Sample purchase'],
+                  ['bi-nut', 'Fastener Pack', 'New demo order']
+                ].map(([icon, product, status]) => (
+                  <article className="order-demo-card" key={`${copy}-${product}`}>
+                    <span className="order-demo-icon"><i className={`bi ${icon}`} /></span>
+                    <span><strong>{product}</strong><small>{status}</small></span>
+                    <span className="order-demo-dot" />
+                  </article>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+        <p className="order-demo-disclaimer">DEMO ANIMATION · NOT CONNECTED TO REAL ORDERS</p>
       </section>
 
       {/* FOOTER */}
