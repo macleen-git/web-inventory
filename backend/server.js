@@ -39,6 +39,7 @@ const pool = mysql.createPool({
  user: process.env.DB_USER || "root", password: process.env.DB_PASSWORD || "",
  database: process.env.DB_NAME || "hardware_inventory_v2", waitForConnections: true,
  connectionLimit: 10, queueLimit: 0, dateStrings: true, decimalNumbers: true,
+ connectTimeout: 10000, enableKeepAlive: true, keepAliveInitialDelay: 0,
  ssl: databaseSsl
 });
 const route = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -52,7 +53,16 @@ const productDto = r => ({ id:r.id, product:r.product, category:r.category, buy:
 const stockDto = r => ({ id:r.id, product:r.product, quantity:String(r.quantity), date:r.date, note:r.note || "" });
 const saleDto = r => ({ id:r.id, product:r.product, quantity:String(r.quantity), date:r.date, amount:String(r.amount), unitCost:Number(r.unit_cost), profit:Number(r.profit), note:r.note || "" });
 const damagedDto = r => ({ id:r.id, product:r.product, quantity:String(r.quantity), date:r.date, unitCost:String(r.unit_cost ?? 0), loss:String(r.total_loss ?? 0), reason:r.reason || "" });
-app.get("/api/health", route(async (req,res) => { await pool.query("SELECT 1"); res.json({status:"ok",database:"connected"}); }));
+app.get("/", (req, res) => res.json({ name: "Hardware Inventory API", status: "running" }));
+app.get("/api/health", route(async (req,res) => {
+ await pool.query("SELECT 1");
+ const firebaseReady = Boolean(firebaseAdminApp);
+ res.status(firebaseReady ? 200 : 503).json({
+  status: firebaseReady ? "ok" : "degraded",
+  database: "connected",
+  firebaseAdmin: firebaseReady ? "configured" : "not_configured"
+ });
+}));
 app.get("/api/product", requireFirebaseUser, requireActiveUser, route(async (req,res) => { const [rows]=await pool.execute("SELECT * FROM products WHERE user_uid=? ORDER BY id DESC",[req.firebaseUser.uid]); res.json(rows.map(productDto)); }));
 app.post("/api/product", requireFirebaseUser, requireActiveUser, route(async (req,res) => {
  const b=req.body;
@@ -121,28 +131,63 @@ let firebaseAdminApp = null;
 try {
  const admin = require("firebase-admin");
  const serviceAccountText = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+ const credentialPathSetting = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+
  if (serviceAccountText) {
   const serviceAccount = JSON.parse(serviceAccountText);
-  firebaseAdminApp = admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
- } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-  firebaseAdminApp = admin.initializeApp({ credential: admin.credential.applicationDefault() });
+  firebaseAdminApp = admin.apps.length ? admin.app() : admin.initializeApp({
+   credential: admin.credential.cert(serviceAccount)
+  });
+ } else if (credentialPathSetting) {
+  // Resolve relative paths from this backend folder, not the shell's working directory.
+  const credentialPath = path.isAbsolute(credentialPathSetting)
+   ? credentialPathSetting
+   : path.resolve(__dirname, credentialPathSetting);
+  if (!fs.existsSync(credentialPath)) {
+   throw new Error("Firebase service-account file not found at " + credentialPath);
+  }
+  const serviceAccount = JSON.parse(fs.readFileSync(credentialPath, "utf8"));
+  firebaseAdminApp = admin.apps.length ? admin.app() : admin.initializeApp({
+   credential: admin.credential.cert(serviceAccount)
+  });
+ } else {
+  console.warn("[FIREBASE] Admin credentials are not configured. Account verification will return HTTP 503.");
  }
+ console.log("[FIREBASE] Admin authentication", firebaseAdminApp ? "ready" : "not configured");
 } catch (error) {
- console.error("Firebase Admin initialization failed:", error.message);
+ console.error("[FIREBASE] Admin initialization failed:", error.message);
 }
 async function requireFirebaseUser(req,res,next) {
  const startedAt = Date.now();
+ let timeoutId;
  try {
-  if (!firebaseAdminApp) return res.status(503).json({message:"Firebase ID-token verification is not configured. Set FIREBASE_SERVICE_ACCOUNT_JSON or GOOGLE_APPLICATION_CREDENTIALS on the backend."});
+  if (!firebaseAdminApp) {
+   return res.status(503).json({message:"Firebase Admin is not configured. Set GOOGLE_APPLICATION_CREDENTIALS to the service-account JSON file in the backend folder."});
+  }
   const header = String(req.headers.authorization || "");
   if (!header.startsWith("Bearer ")) return res.status(401).json({message:"Firebase sign-in is required."});
   console.log("[AUTH] Verifying Firebase ID token for", req.method, req.path);
-  req.firebaseUser = await firebaseAdminApp.auth().verifyIdToken(header.slice(7));
+  const verificationTimeout = new Promise((resolve, reject) => {
+   timeoutId = setTimeout(() => {
+    const error = new Error("Firebase token verification timed out after 10 seconds.");
+    error.status = 503;
+    reject(error);
+   }, 10000);
+  });
+  req.firebaseUser = await Promise.race([
+   firebaseAdminApp.auth().verifyIdToken(header.slice(7)),
+   verificationTimeout
+  ]);
   console.log("[AUTH] Firebase token verified in", Date.now() - startedAt + "ms");
-  next();
+  return next();
  } catch (error) {
   console.error("[AUTH] Firebase token verification failed after", Date.now() - startedAt + "ms", error.message);
+  if (error.status === 503) {
+   return res.status(503).json({message:"Firebase verification is taking too long. Check the backend internet connection and Firebase service-account configuration."});
+  }
   return res.status(401).json({message:"Your session is invalid or expired. Please sign in again."});
+ } finally {
+  if (timeoutId) clearTimeout(timeoutId);
  }
 }
 async function requireActiveUser(req,res,next) {
@@ -199,5 +244,19 @@ app.get("/api/admin/overview", requireFirebaseUser, requireDatabaseAdmin, route(
 }));
 
 app.use((error,req,res,next)=>{console.error(error);if(res.headersSent)return next(error);res.status(error.status||500).json({message:error.status?error.message:"Server or database error. Check backend logs and database connection."});});
-async function start(){try{await pool.query("SELECT 1");app.listen(PORT,()=>console.log("Hardware Inventory API running on port "+PORT+"; database connected."));}catch(error){console.error("Database connection failed:",error.message);process.exit(1);}}
+async function start(){
+ try {
+  console.log("[STARTUP] Checking MySQL connection...");
+  await pool.query("SELECT 1");
+  console.log("[STARTUP] MySQL connected:", process.env.DB_NAME || "hardware_inventory_v2");
+  app.listen(PORT, () => {
+   console.log("Hardware Inventory API running on port " + PORT);
+   console.log("[STARTUP] Firebase Admin:", firebaseAdminApp ? "configured" : "NOT CONFIGURED");
+  });
+ } catch(error) {
+  console.error("[STARTUP] Database connection failed:", error.message);
+  console.error("[STARTUP] Check XAMPP MySQL, DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, and DB_NAME in backend/.env.");
+  process.exit(1);
+ }
+}
 start();
