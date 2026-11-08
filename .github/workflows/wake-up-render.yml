@@ -8,26 +8,87 @@ permissions:
 
 jobs:
   wake-up:
-    name: Wait for Render API and dependencies
+    name: Resume Render and verify API health
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 7
 
     steps:
-      - name: Wake Render and verify health
+      - name: Resume Render service and verify health
         shell: bash
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
         run: |
           set -uo pipefail
 
+          API_BASE="https://api.render.com/v1"
           HEALTH_URL="https://web-inventory-new.onrender.com/api/health"
           MAX_WAIT_SECONDS=300
           RETRY_INTERVAL_SECONDS=15
+          RESPONSE_FILE="$(mktemp)"
+          SERVICE_FILE="$(mktemp)"
+          trap 'rm -f "$RESPONSE_FILE" "$SERVICE_FILE"' EXIT
+
+          if [[ -z "${RENDER_API_KEY:-}" || -z "${RENDER_SERVICE_ID:-}" ]]; then
+            echo "FAILED: Add RENDER_API_KEY and RENDER_SERVICE_ID in GitHub Actions repository secrets."
+            exit 1
+          fi
+
+          echo "Checking Render service configuration..."
+
+          SERVICE_HTTP_STATUS="$(curl --silent --show-error \
+            --output "$SERVICE_FILE" \
+            --write-out "%{http_code}" \
+            --connect-timeout 10 \
+            --max-time 30 \
+            --header "Accept: application/json" \
+            --header "Authorization: Bearer $RENDER_API_KEY" \
+            "$API_BASE/services/$RENDER_SERVICE_ID" 2>/dev/null || true)"
+
+          if [[ "$SERVICE_HTTP_STATUS" != "200" ]]; then
+            echo "FAILED: Could not retrieve the Render service. HTTP status: ${SERVICE_HTTP_STATUS:-000}"
+            echo "Check the API key, service ID, and API key permissions."
+            exit 1
+          fi
+
+          SERVICE_STATE="$(jq -r '.suspended // "unknown"' "$SERVICE_FILE" 2>/dev/null || echo "unknown")"
+          echo "Render service suspended state: $SERVICE_STATE"
+
+          if [[ "$SERVICE_STATE" == "suspended" ]]; then
+            echo "Service is suspended. Sending official Render resume request..."
+
+            RESUME_HTTP_STATUS="$(curl --silent --show-error \
+              --output "$RESPONSE_FILE" \
+              --write-out "%{http_code}" \
+              --connect-timeout 10 \
+              --max-time 30 \
+              --request POST \
+              --header "Accept: application/json" \
+              --header "Authorization: Bearer $RENDER_API_KEY" \
+              "$API_BASE/services/$RENDER_SERVICE_ID/resume" 2>/dev/null || true)"
+
+            echo "Render resume API HTTP status: ${RESUME_HTTP_STATUS:-000}"
+
+            if [[ "$RESUME_HTTP_STATUS" != "202" ]]; then
+              echo "FAILED: Render did not accept the resume request."
+              cat "$RESPONSE_FILE"
+              exit 1
+            fi
+
+            echo "Render accepted the resume request."
+          elif [[ "$SERVICE_STATE" == "not_suspended" ]]; then
+            echo "Service is not suspended. Skipping resume request and checking whether it can serve traffic."
+          else
+            echo "FAILED: Render returned an unknown suspended state: $SERVICE_STATE"
+            cat "$SERVICE_FILE"
+            exit 1
+          fi
+
           DEADLINE=$((SECONDS + MAX_WAIT_SECONDS))
           ATTEMPT=0
-          RESPONSE_FILE="$(mktemp)"
-          trap 'rm -f "$RESPONSE_FILE"' EXIT
 
-          echo "Starting manual Render wake-up check."
-          echo "Target: $HEALTH_URL"
+          echo ""
+          echo "Checking API health at: $HEALTH_URL"
           echo "Maximum wait: ${MAX_WAIT_SECONDS}s; retry interval: ${RETRY_INTERVAL_SECONDS}s."
 
           while (( SECONDS < DEADLINE )); do
@@ -39,7 +100,7 @@ jobs:
             fi
 
             echo ""
-            echo "[Attempt $ATTEMPT] Sending health request (up to ${REQUEST_TIMEOUT}s; ${REMAINING}s remaining)..."
+            echo "[Attempt $ATTEMPT] Checking API health..."
 
             HTTP_STATUS="$(curl --silent --show-error \
               --output "$RESPONSE_FILE" \
@@ -64,13 +125,13 @@ jobs:
 
               if [[ "$API_STATUS" == "ok" && "$DATABASE_STATUS" == "connected" && "$FIREBASE_STATUS" == "configured" ]]; then
                 echo ""
-                echo "SUCCESS: Render API is awake, MySQL is connected, and Firebase Admin is configured."
+                echo "SUCCESS: Render API is responding, MySQL is connected, and Firebase Admin is configured."
                 exit 0
               fi
 
-              echo "[Attempt $ATTEMPT] HTTP 200 received, but one or more health checks are not ready yet."
+              echo "[Attempt $ATTEMPT] API responded, but one or more dependencies are not ready."
             else
-              echo "[Attempt $ATTEMPT] Backend is not ready yet; will retry if time remains."
+              echo "[Attempt $ATTEMPT] API is not responding yet."
             fi
 
             REMAINING=$((DEADLINE - SECONDS))
@@ -82,10 +143,11 @@ jobs:
             if (( REMAINING < SLEEP_SECONDS )); then
               SLEEP_SECONDS=$REMAINING
             fi
-            echo "Waiting ${SLEEP_SECONDS}s before the next attempt..."
+            echo "Waiting ${SLEEP_SECONDS}s before retry..."
             sleep "$SLEEP_SECONDS"
           done
 
           echo ""
-          echo "FAILED: Render did not report a healthy API, connected database, and configured Firebase Admin within ${MAX_WAIT_SECONDS}s."
+          echo "FAILED: Render did not become healthy within ${MAX_WAIT_SECONDS}s after the resume check."
+          echo "Review the Render service Events and Logs for startup, crash, or availability errors."
           exit 1
