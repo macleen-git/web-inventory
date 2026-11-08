@@ -48,28 +48,18 @@ function Landing({ onLogin, onSignUp }) {
     const page = document.querySelector('.landing-page')
     if (!page) return undefined
 
-    const hardwareIconSelector = [
-      '.hero-gear i', '.scroll-screw', '.tool-strip i', '.photo-tool i',
-      '.store-visual i.bi-hammer', '.store-visual i.bi-tools',
-      '.store-visual i.bi-wrench', '.store-visual i.bi-nut',
-      '.store-visual i.bi-gear', '.store-visual i.bi-boxes',
-      '.store-visual i.bi-box-seam', '.store-visual i.bi-rulers',
-      '.feature-icon i', '.inventory-visual-grid i',
-      '.floating-tool-particles i', '.order-demo-icon i'
-    ].join(', ')
-
-    const handleIconClick = event => {
-      const icon = event.target.closest(hardwareIconSelector)
-      if (!icon || !page.contains(icon)) return
+    const handleScrewClick = event => {
+      const screw = event.target.closest('.scroll-screw')
+      if (!screw || !page.contains(screw)) return
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-      icon.classList.remove('hardware-icon-rolling')
-      void icon.offsetWidth
-      icon.classList.add('hardware-icon-rolling')
-      window.setTimeout(() => icon.classList.remove('hardware-icon-rolling'), 2200)
+      screw.classList.remove('screw-click-roll')
+      void screw.offsetWidth
+      screw.classList.add('screw-click-roll')
+      window.setTimeout(() => screw.classList.remove('screw-click-roll'), 2200)
     }
 
-    page.addEventListener('click', handleIconClick)
-    return () => page.removeEventListener('click', handleIconClick)
+    page.addEventListener('click', handleScrewClick)
+    return () => page.removeEventListener('click', handleScrewClick)
   }, [])
 
   useEffect(() => {
@@ -350,32 +340,6 @@ function Landing({ onLogin, onSignUp }) {
                 and organize your inventory in one convenient system. Designed
                 to make inventory management easier, faster, and more organized.
               </p>
-
-              <div className="hero-actions">
-                <button
-                  type="button"
-                  className="btn btn-hero-primary"
-                  onClick={handleLogin}
-                >
-                  <i
-                    className="bi bi-box-arrow-in-right me-2"
-                    aria-hidden="true"
-                  />
-                  LOG IN
-                </button>
-
-                <button
-                  type="button"
-                  className="btn btn-hero-outline"
-                  onClick={handleSignUp}
-                >
-                  <i
-                    className="bi bi-person-plus me-2"
-                    aria-hidden="true"
-                  />
-                  SIGN UP
-                </button>
-              </div>
 
               <div className="tool-strip" aria-hidden="true">
                 <span><i className="bi bi-hammer" /></span>
