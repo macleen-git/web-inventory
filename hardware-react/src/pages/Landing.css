@@ -1628,3 +1628,75 @@
   .landing-page .screw-hero-one,
   .landing-page .screw-hero-two { width: 30px; height: 30px; border-width: 4px; }
 }
+
+
+/* SUBTLE SCATTERED BACKGROUND GEARS */
+.landing-page { position: relative; overflow: hidden; }
+.landing-page .floating-tool-particles { display: none !important; }
+.landing-page .scroll-screw,
+.landing-page .screw-hero-one,
+.landing-page .screw-hero-two { display: none !important; }
+.landing-page .hero-section,
+.landing-page .about-section,
+.landing-page .features-section,
+.landing-page .inventory-section,
+.landing-page .cta-section { position: relative; isolation: isolate; overflow: hidden; }
+.landing-page .hero-container,
+.landing-page .about-section > .container,
+.landing-page .features-section > .container,
+.landing-page .inventory-section > .container,
+.landing-page .cta-section > .container { position: relative; z-index: 2; }
+.landing-page .background-gear {
+  position: absolute; z-index: 1; display: grid; place-items: center;
+  padding: 0; border: 0; background: transparent;
+  color: rgba(151,181,194,.19); line-height: 1; cursor: pointer;
+  pointer-events: auto; transform-origin: center;
+  animation: background-gear-idle 16s linear infinite;
+  transition: color .3s ease, filter .3s ease;
+}
+.landing-page .background-gear:hover,
+.landing-page .background-gear:focus-visible {
+  color: rgba(255,196,0,.32);
+  filter: drop-shadow(0 0 10px rgba(255,196,0,.18)); outline: none;
+}
+.landing-page .background-gear i { display: block; line-height: 1; pointer-events: none; }
+.landing-page .gear-small { font-size: 30px; opacity: .58; }
+.landing-page .gear-medium { font-size: 54px; opacity: .48; }
+.landing-page .gear-large { font-size: 88px; opacity: .36; }
+.landing-page .gear-hero-left { top: 4%; left: 6%; }
+.landing-page .gear-hero-right { top: 42%; right: 4%; }
+.landing-page .gear-hero-bottom { bottom: 4%; left: 46%; }
+.landing-page .gear-about-left { top: 13%; left: 3%; }
+.landing-page .gear-about-right { right: 3%; bottom: 12%; }
+.landing-page .gear-features-left { top: 12%; left: 3%; }
+.landing-page .gear-features-right { right: 3%; bottom: 8%; }
+.landing-page .gear-inventory-left { top: 10%; left: 3%; }
+.landing-page .gear-inventory-right { right: 4%; bottom: 12%; }
+.landing-page .gear-contact-left { top: 15%; left: 4%; }
+.landing-page .gear-contact-right { right: 5%; bottom: 12%; }
+@keyframes background-gear-idle { to { rotate: 360deg; } }
+.landing-page.is-scrolling .background-gear { animation-duration: 8s; }
+.landing-page .background-gear.gear-click-roll {
+  animation: background-gear-roll 2.2s cubic-bezier(.42,0,.58,1) both !important;
+  z-index: 3;
+}
+@keyframes background-gear-roll {
+  0% { translate: 0 0; rotate: 0deg; }
+  34% { translate: -110vw 0; rotate: -720deg; }
+  36% { translate: 110vw 0; rotate: 0deg; }
+  82% { translate: 0 0; rotate: 720deg; }
+  100% { translate: 0 0; rotate: 720deg; }
+}
+@media (max-width: 767.98px) {
+  .landing-page .gear-large { font-size: 58px; }
+  .landing-page .gear-medium { font-size: 40px; }
+  .landing-page .gear-small { font-size: 24px; }
+  .landing-page .gear-hero-left, .landing-page .gear-about-left,
+  .landing-page .gear-features-left, .landing-page .gear-inventory-left { left: 1%; }
+  .landing-page .gear-hero-right, .landing-page .gear-about-right,
+  .landing-page .gear-features-right, .landing-page .gear-inventory-right { right: 1%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-page .background-gear,
+  .landing-page .background-gear.gear-click-roll { animation: none !important; }
+}
