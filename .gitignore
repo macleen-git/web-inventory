@@ -1,0 +1,19 @@
+# Dependencies
+**/node_modules/
+
+# Environment files and secrets
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.local.example
+
+# Firebase private credentials
+**/firebase-service-account*.json
+**/serviceAccount*.json
+
+# Certificates
+**/certs/
+*.pem
+
+# Build output
+**/dist/
