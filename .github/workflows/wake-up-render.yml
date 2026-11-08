@@ -17,11 +17,11 @@ jobs:
         shell: bash
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
         run: |
           set -uo pipefail
 
           API_BASE="https://api.render.com/v1"
+          SERVICE_ID="srv-dbo1pv15efls73clbvg0"
           HEALTH_URL="https://web-inventory-new.onrender.com/api/health"
           MAX_WAIT_SECONDS=300
           RETRY_INTERVAL_SECONDS=15
@@ -29,12 +29,12 @@ jobs:
           SERVICE_FILE="$(mktemp)"
           trap 'rm -f "$RESPONSE_FILE" "$SERVICE_FILE"' EXIT
 
-          if [[ -z "${RENDER_API_KEY:-}" || -z "${RENDER_SERVICE_ID:-}" ]]; then
-            echo "FAILED: Add RENDER_API_KEY and RENDER_SERVICE_ID in GitHub Actions repository secrets."
+          if [[ -z "${RENDER_API_KEY:-}" ]]; then
+            echo "FAILED: Add RENDER_API_KEY in GitHub Actions repository secrets."
             exit 1
           fi
 
-          echo "Checking Render service configuration..."
+          echo "Checking Render service: $SERVICE_ID"
 
           SERVICE_HTTP_STATUS="$(curl --silent --show-error \
             --output "$SERVICE_FILE" \
@@ -43,19 +43,31 @@ jobs:
             --max-time 30 \
             --header "Accept: application/json" \
             --header "Authorization: Bearer $RENDER_API_KEY" \
-            "$API_BASE/services/$RENDER_SERVICE_ID" 2>/dev/null || true)"
+            "$API_BASE/services/$SERVICE_ID" 2>/dev/null || true)"
 
           if [[ "$SERVICE_HTTP_STATUS" != "200" ]]; then
             echo "FAILED: Could not retrieve the Render service. HTTP status: ${SERVICE_HTTP_STATUS:-000}"
-            echo "Check the API key, service ID, and API key permissions."
+            echo "Check that RENDER_API_KEY is valid and has access to this service."
+            echo "Render response:"
+            cat "$SERVICE_FILE"
             exit 1
           fi
 
-          SERVICE_STATE="$(jq -r '.suspended // "unknown"' "$SERVICE_FILE" 2>/dev/null || echo "unknown")"
-          echo "Render service suspended state: $SERVICE_STATE"
+          RETURNED_SERVICE_ID="$(jq -r '.id // empty' "$SERVICE_FILE" 2>/dev/null || true)"
+          SERVICE_STATE="$(jq -r '.suspended // empty' "$SERVICE_FILE" 2>/dev/null || true)"
+
+          if [[ "$RETURNED_SERVICE_ID" != "$SERVICE_ID" ]]; then
+            echo "FAILED: Render returned an unexpected service object."
+            echo "Expected service ID: $SERVICE_ID"
+            echo "Returned service ID: ${RETURNED_SERVICE_ID:-missing}"
+            cat "$SERVICE_FILE"
+            exit 1
+          fi
+
+          echo "Render suspended state: ${SERVICE_STATE:-missing}"
 
           if [[ "$SERVICE_STATE" == "suspended" ]]; then
-            echo "Service is suspended. Sending official Render resume request..."
+            echo "Service is suspended. Sending Render resume request..."
 
             RESUME_HTTP_STATUS="$(curl --silent --show-error \
               --output "$RESPONSE_FILE" \
@@ -65,7 +77,7 @@ jobs:
               --request POST \
               --header "Accept: application/json" \
               --header "Authorization: Bearer $RENDER_API_KEY" \
-              "$API_BASE/services/$RENDER_SERVICE_ID/resume" 2>/dev/null || true)"
+              "$API_BASE/services/$SERVICE_ID/resume" 2>/dev/null || true)"
 
             echo "Render resume API HTTP status: ${RESUME_HTTP_STATUS:-000}"
 
@@ -77,9 +89,10 @@ jobs:
 
             echo "Render accepted the resume request."
           elif [[ "$SERVICE_STATE" == "not_suspended" ]]; then
-            echo "Service is not suspended. Skipping resume request and checking whether it can serve traffic."
+            echo "Service is already active. Proceeding to health checks."
           else
-            echo "FAILED: Render returned an unknown suspended state: $SERVICE_STATE"
+            echo "FAILED: Could not read the suspended state from the Render service response."
+            echo "The API response was:"
             cat "$SERVICE_FILE"
             exit 1
           fi
@@ -125,7 +138,7 @@ jobs:
 
               if [[ "$API_STATUS" == "ok" && "$DATABASE_STATUS" == "connected" && "$FIREBASE_STATUS" == "configured" ]]; then
                 echo ""
-                echo "SUCCESS: Render API is responding, MySQL is connected, and Firebase Admin is configured."
+                echo "SUCCESS: Render API is healthy, MySQL is connected, and Firebase Admin is configured."
                 exit 0
               fi
 
@@ -148,6 +161,6 @@ jobs:
           done
 
           echo ""
-          echo "FAILED: Render did not become healthy within ${MAX_WAIT_SECONDS}s after the resume check."
-          echo "Review the Render service Events and Logs for startup, crash, or availability errors."
+          echo "FAILED: Render did not become healthy within ${MAX_WAIT_SECONDS}s."
+          echo "Review the Render service Events and Logs for startup or dependency errors."
           exit 1
