@@ -1466,3 +1466,32 @@
   .hero-photo-wrap { opacity: 1; scale: 1; }
   .landing-page .btn-login, .landing-page .btn-signup, .photo-tool, .feature-card { transition: none !important; }
 }
+
+
+/* INSTALL AND DIRECT CONTACT */
+.install-app-button { min-width: 190px; }
+.landing-contact-panel { max-width: 760px; margin: 54px auto 0; padding: 30px 24px; border: 1px solid rgba(255,255,255,.15); border-radius: 20px; background: rgba(255,255,255,.055); }
+.landing-contact-panel h3 { margin: 10px 0; color: #fff; font-size: clamp(22px,3vw,30px); font-weight: 850; }
+.landing-contact-panel p { color: #c5d2db; }
+.landing-contact-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; margin-top: 22px; }
+.contact-action { display: inline-flex; align-items: center; gap: 10px; padding: 12px 18px; border: 1px solid #ffc400; border-radius: 999px; color: #ffc400; font-weight: 800; text-decoration: none; transition: .22s ease; }
+.contact-action:hover { color: #09283b; background: #ffc400; transform: translateY(-3px); }
+.about-section { position: relative; overflow: hidden; }
+.about-nail { position: absolute; z-index: 4; top: 16%; }
+.nail-left { left: 2.5%; }
+.nail-right { right: 2.5%; }
+.about-nail button { position: relative; width: 58px; height: 58px; border: 0; border-radius: 50%; background: rgba(255,196,0,.12); color: #ffc400; cursor: pointer; }
+.about-nail .nail-head { position: absolute; left: 50%; top: 50%; width: 30px; height: 5px; border-radius: 4px; background: linear-gradient(#e9edf0,#8999a2); transform: translate(-50%,-50%) rotate(-35deg); box-shadow: 0 2px 4px #071c29; }
+.about-nail .nail-head::after { content: ''; position: absolute; right: -3px; top: -3px; width: 7px; height: 11px; border-radius: 2px; background: #c6d0d5; }
+.about-nail button i { position: absolute; z-index: 2; top: -22px; left: 6px; font-size: 30px; opacity: 0; transform: rotate(-35deg); }
+.about-nail button:focus-visible { outline: 2px solid #ffc400; outline-offset: 4px; }
+.about-nail button:active i, .about-nail:focus-within button i { animation: hammer-hit .48s ease both; }
+@keyframes hammer-hit { 0% { opacity: 0; transform: translate(12px,-24px) rotate(-55deg); } 45% { opacity: 1; transform: translate(0,12px) rotate(18deg); } 65% { transform: translate(0,4px) rotate(5deg); } 100% { opacity: 0; transform: translate(-4px,-15px) rotate(-35deg); } }
+.about-nail button:active .nail-head, .about-nail:focus-within .nail-head { animation: nail-drive .48s ease both; }
+@keyframes nail-drive { 0%,40% { translate: 0 0; } 65% { translate: 0 5px; } 100% { translate: 0 0; } }
+.rolling-screw { position: absolute; z-index: 3; top: 72%; left: 50%; width: 38px; height: 38px; border: 5px solid #ffc400; border-radius: 50%; background: linear-gradient(145deg,#dce5e9,#607987 55%,#263f4d); box-shadow: 0 5px 14px rgba(0,0,0,.3); animation: screw-crossing 8s ease-in-out infinite; pointer-events: none; }
+.rolling-screw::before, .rolling-screw::after { content: ''; position: absolute; top: 12px; left: 5px; width: 18px; height: 4px; border-radius: 3px; background: #183344; }
+.rolling-screw::after { transform: rotate(90deg); }
+@keyframes screw-crossing { 0% { transform: translateX(0) rotate(0); } 12% { transform: translateX(-50vw) rotate(-360deg); } 25% { transform: translateX(-115vw) rotate(-900deg); } 26% { transform: translateX(115vw) rotate(0); } 39% { transform: translateX(50vw) rotate(360deg); } 52%,100% { transform: translateX(0) rotate(720deg); } }
+@media (max-width: 767.98px) { .about-nail { top: 5%; } .nail-left { left: 1%; } .nail-right { right: 1%; } .about-nail button { width: 42px; height: 42px; } .about-nail button i { font-size: 23px; } .landing-contact-panel { padding: 24px 16px; } }
+@media (prefers-reduced-motion: reduce) { .rolling-screw { animation: none !important; } .about-nail button:active i, .about-nail:focus-within button i, .about-nail button:active .nail-head { animation: none !important; } }
