@@ -4,7 +4,6 @@ import './Landing.css'
 function Landing({ onLogin, onSignUp }) {
   const [openMenu, setOpenMenu] = useState(false)
   const [installPrompt, setInstallPrompt] = useState(null)
-  const [nailStrike, setNailStrike] = useState(0)
 
   useEffect(() => {
     const handleInstallPrompt = event => {
@@ -49,6 +48,34 @@ function Landing({ onLogin, onSignUp }) {
     const page = document.querySelector('.landing-page')
     if (!page) return undefined
 
+    const hardwareIconSelector = [
+      '.hero-gear i', '.scroll-screw', '.tool-strip i', '.photo-tool i',
+      '.store-visual i.bi-hammer', '.store-visual i.bi-tools',
+      '.store-visual i.bi-wrench', '.store-visual i.bi-nut',
+      '.store-visual i.bi-gear', '.store-visual i.bi-boxes',
+      '.store-visual i.bi-box-seam', '.store-visual i.bi-rulers',
+      '.feature-icon i', '.inventory-visual-grid i',
+      '.floating-tool-particles i', '.order-demo-icon i'
+    ].join(', ')
+
+    const handleIconClick = event => {
+      const icon = event.target.closest(hardwareIconSelector)
+      if (!icon || !page.contains(icon)) return
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+      icon.classList.remove('hardware-icon-rolling')
+      void icon.offsetWidth
+      icon.classList.add('hardware-icon-rolling')
+      window.setTimeout(() => icon.classList.remove('hardware-icon-rolling'), 2200)
+    }
+
+    page.addEventListener('click', handleIconClick)
+    return () => page.removeEventListener('click', handleIconClick)
+  }, [])
+
+  useEffect(() => {
+    const page = document.querySelector('.landing-page')
+    if (!page) return undefined
+
     const revealTargets = page.querySelectorAll(
       '.hero-section .col-lg-6, .about-section .store-visual, .about-section .col-lg-7, .feature-card, .inventory-section .col-lg-7, .inventory-visual, .cta-section .container, .landing-footer .row, .photo-tool, .mini-benefit, .section-heading'
     )
@@ -87,7 +114,11 @@ function Landing({ onLogin, onSignUp }) {
     }
 
     let frame = 0
+    let scrollStopTimer
     const updateScrollMotion = () => {
+      page.classList.add('is-scrolling')
+      window.clearTimeout(scrollStopTimer)
+      scrollStopTimer = window.setTimeout(() => page.classList.remove('is-scrolling'), 150)
       if (frame) window.cancelAnimationFrame(frame)
 
       frame = window.requestAnimationFrame(() => {
@@ -105,6 +136,7 @@ function Landing({ onLogin, onSignUp }) {
     return () => {
       window.removeEventListener('scroll', updateScrollMotion)
       if (frame) window.cancelAnimationFrame(frame)
+      window.clearTimeout(scrollStopTimer)
       observer?.disconnect()
     }
   }, [])
@@ -397,9 +429,6 @@ function Landing({ onLogin, onSignUp }) {
 
       {/* ABOUT US */}
       <section id="about" className="about-section landing-section">
-        <div className="about-nail nail-left" key={`left-${nailStrike}`}><button type="button" onClick={() => setNailStrike(value => value + 1)} aria-label="Hammer the left nail"><i className="bi bi-hammer" /><span className="nail-head" /></button></div>
-        <div className="about-nail nail-right" key={`right-${nailStrike}`}><button type="button" onClick={() => setNailStrike(value => value + 1)} aria-label="Hammer the right nail"><i className="bi bi-hammer" /><span className="nail-head" /></button></div>
-        <div className="rolling-screw" aria-hidden="true"><span /></div>
         <div className="container">
           <div className="row align-items-center g-5">
 
