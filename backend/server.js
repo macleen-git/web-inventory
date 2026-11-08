@@ -6,6 +6,18 @@ const fs = require("fs");
 const path = require("path");
 const app = express();
 const PORT = Number(process.env.PORT || 8080);
+
+// Log request lifecycle without recording authorization headers or personal data.
+app.use((req, res, next) => {
+ const startedAt = Date.now();
+ console.log("[HTTP] Started", req.method, req.path);
+ res.on("finish", () => console.log("[HTTP] Finished", req.method, req.path, res.statusCode, Date.now() - startedAt + "ms"));
+ res.on("close", () => {
+  if (!res.writableEnded) console.warn("[HTTP] Connection closed before response", req.method, req.path, Date.now() - startedAt + "ms");
+ });
+ next();
+});
+
 app.use(cors({ origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",").map(x => x.trim()) : true }));
 app.use(express.json({ limit: "1mb" }));
 const sslEnabled = String(process.env.DB_SSL || "").toLowerCase() === "true" || Boolean(process.env.DB_SSL_CA);
@@ -119,13 +131,19 @@ try {
  console.error("Firebase Admin initialization failed:", error.message);
 }
 async function requireFirebaseUser(req,res,next) {
+ const startedAt = Date.now();
  try {
   if (!firebaseAdminApp) return res.status(503).json({message:"Firebase ID-token verification is not configured. Set FIREBASE_SERVICE_ACCOUNT_JSON or GOOGLE_APPLICATION_CREDENTIALS on the backend."});
   const header = String(req.headers.authorization || "");
   if (!header.startsWith("Bearer ")) return res.status(401).json({message:"Firebase sign-in is required."});
+  console.log("[AUTH] Verifying Firebase ID token for", req.method, req.path);
   req.firebaseUser = await firebaseAdminApp.auth().verifyIdToken(header.slice(7));
+  console.log("[AUTH] Firebase token verified in", Date.now() - startedAt + "ms");
   next();
- } catch (error) { return res.status(401).json({message:"Your session is invalid or expired. Please sign in again."}); }
+ } catch (error) {
+  console.error("[AUTH] Firebase token verification failed after", Date.now() - startedAt + "ms", error.message);
+  return res.status(401).json({message:"Your session is invalid or expired. Please sign in again."});
+ }
 }
 async function requireActiveUser(req,res,next) {
  try {
@@ -144,16 +162,21 @@ async function requireDatabaseAdmin(req,res,next) {
  } catch (error) { next(error); }
 }
 app.post("/api/auth/sync", requireFirebaseUser, route(async(req,res) => {
+ const startedAt = Date.now();
  const u=req.firebaseUser;
  const displayName=String(u.name || u.email || "User").slice(0,150);
  const email=String(u.email || "").slice(0,190);
+ console.log("[SYNC] Starting MySQL account sync");
  await pool.execute(
   "INSERT INTO app_users(firebase_uid,display_name,email,photo_url,role,status,last_seen_at) VALUES(?,?,?,?, 'user','active',NOW()) ON DUPLICATE KEY UPDATE display_name=VALUES(display_name),email=VALUES(email),photo_url=VALUES(photo_url),last_seen_at=NOW()",
   [u.uid,displayName,email,u.picture || null]
  );
+ console.log("[SYNC] app_users upsert completed in", Date.now() - startedAt + "ms");
  await pool.execute("INSERT INTO activity_logs(firebase_uid,event_type,created_at) VALUES(?,'session_sync',NOW())",[u.uid]);
+ console.log("[SYNC] activity log insert completed in", Date.now() - startedAt + "ms");
  const [accountRows] = await pool.execute("SELECT role,status FROM app_users WHERE firebase_uid=? LIMIT 1",[u.uid]);
  const account = accountRows[0];
+ console.log("[SYNC] Completed in", Date.now() - startedAt + "ms");
  res.json({message:"Account synchronized with the inventory database.",role:account?.role || "user",status:account?.status || "active"});
 }));
 app.post("/api/activity/heartbeat", requireFirebaseUser, route(async(req,res) => {
