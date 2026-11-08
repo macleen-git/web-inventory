@@ -39,6 +39,66 @@ function isAdminRole(role) {
   return role === 'admin' || role === 'superadmin'
 }
 
+// Wake the Render service with a health request and wait for every required dependency.
+async function waitForBackendReady(setMessage) {
+  const maxWaitMs = 5 * 60 * 1000
+  const startedAt = Date.now()
+  let attempt = 0
+  let lastError = 'The API is still starting.'
+
+  while (Date.now() - startedAt < maxWaitMs) {
+    attempt += 1
+    const remainingMs = maxWaitMs - (Date.now() - startedAt)
+    const controller = new AbortController()
+    const timeoutId = window.setTimeout(
+      () => controller.abort(),
+      Math.min(15000, remainingMs)
+    )
+
+    setMessage?.('Waking up the backend and checking its database...')
+
+    try {
+      const response = await fetch(API_URL('/api/health'), {
+        method: 'GET',
+        cache: 'no-store',
+        signal: controller.signal,
+      })
+      const data = await response.json().catch(() => ({}))
+
+      if (
+        response.ok &&
+        data.status === 'ok' &&
+        data.database === 'connected' &&
+        data.firebaseAdmin === 'configured'
+      ) {
+        setMessage?.('Backend is ready. Loading your account...')
+        return data
+      }
+
+      lastError = data.database === 'unavailable'
+        ? 'Waiting for the database to connect...'
+        : data.firebaseAdmin === 'not_configured'
+          ? 'Waiting for Firebase Admin configuration...'
+          : 'The backend is starting...'
+    } catch (error) {
+      lastError = error?.name === 'AbortError'
+        ? 'The backend is taking longer than expected to respond...'
+        : 'The backend is waking up. Retrying connection...'
+    } finally {
+      window.clearTimeout(timeoutId)
+    }
+
+    const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000)
+    setMessage?.(lastError + ' (Attempt ' + attempt + ', ' + elapsedSeconds + 's elapsed)')
+    const delay = Math.min(5000, Math.max(0, maxWaitMs - (Date.now() - startedAt)))
+    if (delay > 0) {
+      await new Promise(resolve => window.setTimeout(resolve, delay))
+    }
+  }
+
+  throw new Error('The backend did not become ready within 5 minutes. ' + lastError + ' Please try again.')
+}
+
 // Prevent account verification from leaving the app on an endless loading screen.
 async function syncAccountWithBackend(currentUser, forceRefresh = false) {
   const controller = new AbortController()
@@ -309,6 +369,7 @@ function App() {
   const [user, setUser] = useState(null)
   const [role, setRole] = useState(null)
   const [authError, setAuthError] = useState('')
+  const [loadingMessage, setLoadingMessage] = useState('Connecting to the backend...')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -317,6 +378,8 @@ function App() {
       async (currentUser) => {
         try {
           setAuthError('')
+          setLoadingMessage('Connecting to the backend...')
+          await waitForBackendReady(setLoadingMessage)
           if (currentUser) {
             setUser(currentUser)
             setRole(null)
@@ -336,9 +399,7 @@ function App() {
           )
 
           setRole(null)
-          setAuthError(currentUser
-            ? (error?.message || 'We could not verify your account with the database. Please try again.')
-            : '')
+          setAuthError(error?.message || 'The backend is not ready. Please try again.')
         } finally {
           setLoading(false)
         }
@@ -373,14 +434,16 @@ function App() {
   }
 
   const retryAccountSync = async () => {
-    if (!auth.currentUser) return
     setLoading(true)
     setAuthError('')
     try {
+      await waitForBackendReady(setLoadingMessage)
       const currentUser = auth.currentUser
-      const data = await syncAccountWithBackend(currentUser, true)
-      setUser(currentUser)
-      setRole(['user', 'admin', 'superadmin'].includes(data.role) ? data.role : 'user')
+      if (currentUser) {
+        const data = await syncAccountWithBackend(currentUser, true)
+        setUser(currentUser)
+        setRole(['user', 'admin', 'superadmin'].includes(data.role) ? data.role : 'user')
+      }
       setAuthError('')
     } catch (error) {
       setRole(null)
@@ -412,14 +475,14 @@ function App() {
           <h2>Please Wait</h2>
 
           <p className="app-loading-message">
-            Preparing your inventory workspace...
+            {loadingMessage}
           </p>
         </div>
       </main>
     )
   }
 
-  if (user && authError) {
+  if (authError) {
     return (
       <main className="app-loading-screen" role="alert">
         <div className="app-loading-content">
@@ -436,9 +499,11 @@ function App() {
             <button className="btn btn-primary" type="button" onClick={retryAccountSync}>
               Try Again
             </button>
-            <button className="btn btn-outline-secondary" type="button" onClick={handleLogout}>
-              Sign Out
-            </button>
+            {user && (
+              <button className="btn btn-outline-secondary" type="button" onClick={handleLogout}>
+                Sign Out
+              </button>
+            )}
           </div>
         </div>
       </main>
