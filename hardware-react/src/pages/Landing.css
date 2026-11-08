@@ -1520,3 +1520,76 @@
     animation: none !important;
   }
 }
+
+
+/* FINAL REQUEST: ONLY ROUND SCREW DECORATIONS MOVE */
+.landing-page .hero-gear,
+.landing-page .hero-gear i,
+.landing-page .tool-strip i,
+.landing-page .photo-tool i,
+.landing-page .store-visual i,
+.landing-page .feature-icon i,
+.landing-page .inventory-visual-grid i,
+.landing-page .floating-tool-particles i,
+.landing-page .order-demo-icon i {
+  animation: none !important;
+  rotate: none;
+  cursor: default;
+}
+.landing-page .gear-one,
+.landing-page .gear-two {
+  transform: none !important;
+}
+.landing-page .scroll-screw {
+  pointer-events: auto;
+  cursor: pointer;
+  animation: screw-idle-spin 12s linear infinite;
+  transform-origin: center;
+}
+.landing-page.is-scrolling .scroll-screw {
+  animation-duration: 6s;
+}
+@keyframes screw-idle-spin {
+  to { rotate: 360deg; }
+}
+.landing-page .scroll-screw.screw-click-roll {
+  animation: screw-click-roll 2.1s cubic-bezier(.42,0,.58,1) both !important;
+}
+@keyframes screw-click-roll {
+  0% { translate: 0 0; rotate: 0deg; }
+  34% { translate: -110vw 0; rotate: -720deg; }
+  36% { translate: 110vw 0; rotate: 0deg; }
+  82% { translate: 0 0; rotate: 720deg; }
+  100% { translate: 0 0; rotate: 720deg; }
+}
+
+/* AUTH ACTIONS LIVE IN THE HEADER ONLY */
+.landing-page .landing-navbar .nav-link {
+  border-radius: 999px;
+  transition: color .22s ease, background .22s ease, text-shadow .22s ease, box-shadow .22s ease;
+}
+.landing-page .landing-navbar .nav-link:hover,
+.landing-page .landing-navbar .nav-link:focus-visible {
+  color: var(--hw-yellow) !important;
+  background: rgba(255,196,0,.09);
+  text-shadow: 0 0 12px rgba(255,196,0,.55);
+  box-shadow: 0 0 18px rgba(255,196,0,.12);
+}
+.landing-page .landing-navbar .landing-nav-actions .btn {
+  transition: transform .22s ease, box-shadow .22s ease, filter .22s ease;
+}
+.landing-page .landing-navbar .landing-nav-actions .btn:hover,
+.landing-page .landing-navbar .landing-nav-actions .btn:focus-visible {
+  transform: translateY(-3px);
+  box-shadow: 0 0 10px rgba(255,196,0,.5), 0 0 24px rgba(255,196,0,.24);
+  filter: brightness(1.08);
+}
+.landing-page .landing-navbar .landing-nav-actions .btn:active {
+  transform: translateY(0) scale(.96);
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-page .scroll-screw { animation: none !important; }
+  .landing-page .scroll-screw.screw-click-roll { animation: none !important; }
+  .landing-page .landing-navbar .nav-link,
+  .landing-page .landing-navbar .landing-nav-actions .btn { transition: none !important; }
+}
