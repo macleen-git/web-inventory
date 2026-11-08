@@ -39,6 +39,44 @@ function isAdminRole(role) {
   return role === 'admin' || role === 'superadmin'
 }
 
+// Prevent account verification from leaving the app on an endless loading screen.
+async function syncAccountWithBackend(currentUser, forceRefresh = false) {
+  const controller = new AbortController()
+  const timeoutId = window.setTimeout(() => controller.abort(), 15000)
+
+  try {
+    const token = await currentUser.getIdToken(forceRefresh)
+    const response = await fetch(API_URL('/api/auth/sync'), {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      signal: controller.signal,
+    })
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(data.message || `Account verification failed (HTTP ${response.status}).`)
+    }
+
+    return data
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error('The backend did not respond within 15 seconds. Check that the API server and database are running.')
+    }
+
+    if (error instanceof TypeError) {
+      console.error('Account sync network error. API endpoint:', API_URL('/api/auth/sync'), error)
+      throw new Error(`Cannot reach the backend at ${API_URL('/api/auth/sync')}. Start the backend and check VITE_API_URL in hardware-react/.env.`)
+    }
+
+    throw error
+  } finally {
+    window.clearTimeout(timeoutId)
+  }
+}
+
 function AppRoutes({ user, role, handleLogin, handleLogout }) {
   const navigate = useNavigate()
   const location = useLocation()
@@ -284,14 +322,7 @@ function App() {
             setRole(null)
 
             // MySQL is the source of truth for roles. Firebase is used only for authentication.
-            const syncResponse = await fetch(API_URL('/api/auth/sync'), {
-              method: 'POST',
-              headers: { Authorization: `Bearer ${await currentUser.getIdToken()}`, 'Content-Type': 'application/json' },
-            })
-            const syncData = await syncResponse.json().catch(() => ({}))
-            if (!syncResponse.ok) {
-              throw new Error(syncData.message || 'Unable to synchronize your account with the database.')
-            }
+            const syncData = await syncAccountWithBackend(currentUser)
             setRole(['user', 'admin', 'superadmin'].includes(syncData.role) ? syncData.role : 'user')
           } else {
             setUser(null)
@@ -347,17 +378,7 @@ function App() {
     setAuthError('')
     try {
       const currentUser = auth.currentUser
-      const response = await fetch(API_URL('/api/auth/sync'), {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${await currentUser.getIdToken(true)}`,
-          'Content-Type': 'application/json',
-        },
-      })
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok) {
-        throw new Error(data.message || 'Unable to synchronize your account with the database.')
-      }
+      const data = await syncAccountWithBackend(currentUser, true)
       setUser(currentUser)
       setRole(['user', 'admin', 'superadmin'].includes(data.role) ? data.role : 'user')
       setAuthError('')
