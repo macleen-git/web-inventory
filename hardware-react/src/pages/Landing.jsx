@@ -3,6 +3,32 @@ import './Landing.css'
 
 function Landing({ onLogin, onSignUp }) {
   const [openMenu, setOpenMenu] = useState(false)
+  const [installPrompt, setInstallPrompt] = useState(null)
+  const [nailStrike, setNailStrike] = useState(0)
+
+  useEffect(() => {
+    const handleInstallPrompt = event => {
+      event.preventDefault()
+      setInstallPrompt(event)
+    }
+    const handleInstalled = () => setInstallPrompt(null)
+    window.addEventListener('beforeinstallprompt', handleInstallPrompt)
+    window.addEventListener('appinstalled', handleInstalled)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleInstallPrompt)
+      window.removeEventListener('appinstalled', handleInstalled)
+    }
+  }, [])
+
+  async function handleInstall() {
+    if (!installPrompt) {
+      window.alert('To install, open your browser menu and choose “Install app” or “Add to Home Screen” when available.')
+      return
+    }
+    installPrompt.prompt()
+    await installPrompt.userChoice
+    setInstallPrompt(null)
+  }
 
   useEffect(() => {
     const existingLink = document.querySelector(
@@ -371,6 +397,9 @@ function Landing({ onLogin, onSignUp }) {
 
       {/* ABOUT US */}
       <section id="about" className="about-section landing-section">
+        <div className="about-nail nail-left" key={`left-${nailStrike}`}><button type="button" onClick={() => setNailStrike(value => value + 1)} aria-label="Hammer the left nail"><i className="bi bi-hammer" /><span className="nail-head" /></button></div>
+        <div className="about-nail nail-right" key={`right-${nailStrike}`}><button type="button" onClick={() => setNailStrike(value => value + 1)} aria-label="Hammer the right nail"><i className="bi bi-hammer" /><span className="nail-head" /></button></div>
+        <div className="rolling-screw" aria-hidden="true"><span /></div>
         <div className="container">
           <div className="row align-items-center g-5">
 
@@ -592,51 +621,30 @@ function Landing({ onLogin, onSignUp }) {
         </div>
       </section>
 
-      {/* CONTACT / GET STARTED */}
+      {/* INSTALL + CONTACT */}
       <section id="contact" className="cta-section landing-section">
         <div className="container text-center">
-
-          <div className="cta-logo">
-            <span className="brand-icon">
-              <i className="bi bi-gear-fill" />
-            </span>
-          </div>
-
-          <span className="section-kicker light">
-            GET STARTED
-          </span>
-
-          <h2 className="light-title">
-            Ready to Manage Your Inventory?
-          </h2>
-
-          <p>
-            Take control of your hardware tools inventory today.
-            <br className="d-none d-md-block" />
-            Create an account or log in to start managing your products and inventory.
-          </p>
-
+          <div className="cta-logo"><span className="brand-icon"><i className="bi bi-gear-fill" /></span></div>
+          <span className="section-kicker light">GET STARTED</span>
+          <h2 className="light-title">Ready to Manage Your Inventory?</h2>
+          <p>Install the Hardware Tools Inventory app for quick access from your device.</p>
           <div className="cta-actions">
-
-            <button
-              type="button"
-              className="btn btn-signup btn-lg"
-              onClick={handleSignUp}
-            >
-              <i
-                className="bi bi-person-plus me-2"
-                aria-hidden="true"
-              />
-              SIGN UP
+            <button type="button" className="btn btn-signup btn-lg install-app-button" onClick={handleInstall}>
+              <i className="bi bi-download me-2" aria-hidden="true" /> INSTALL APP
             </button>
-
-            <span className="login-prompt">
-              Already have an account?{' '}
-              <button type="button" onClick={handleLogin}>
-                LOG IN
-              </button>
-            </span>
-
+          </div>
+          <div className="landing-contact-panel">
+            <span className="section-kicker light">CONTACT US</span>
+            <h3>Need to get in touch?</h3>
+            <p>Connect with us through Facebook or call our contact number.</p>
+            <div className="landing-contact-actions">
+              <a className="contact-action" href="https://web.facebook.com/macleen.quinton.fetalver.2024" target="_blank" rel="noopener noreferrer">
+                <i className="bi bi-facebook" aria-hidden="true" /> Facebook Profile
+              </a>
+              <a className="contact-action" href="tel:09127413810">
+                <i className="bi bi-telephone-fill" aria-hidden="true" /> 09127413810
+              </a>
+            </div>
           </div>
         </div>
       </section>
