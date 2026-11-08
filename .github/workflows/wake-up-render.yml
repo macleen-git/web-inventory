@@ -1,0 +1,91 @@
+name: Wake Up Render Server
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wake-up:
+    name: Wait for Render API and dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+
+    steps:
+      - name: Wake Render and verify health
+        shell: bash
+        run: |
+          set -uo pipefail
+
+          HEALTH_URL="https://web-inventory-new.onrender.com/api/health"
+          MAX_WAIT_SECONDS=300
+          RETRY_INTERVAL_SECONDS=15
+          DEADLINE=$((SECONDS + MAX_WAIT_SECONDS))
+          ATTEMPT=0
+          RESPONSE_FILE="$(mktemp)"
+          trap 'rm -f "$RESPONSE_FILE"' EXIT
+
+          echo "Starting manual Render wake-up check."
+          echo "Target: $HEALTH_URL"
+          echo "Maximum wait: ${MAX_WAIT_SECONDS}s; retry interval: ${RETRY_INTERVAL_SECONDS}s."
+
+          while (( SECONDS < DEADLINE )); do
+            ATTEMPT=$((ATTEMPT + 1))
+            REMAINING=$((DEADLINE - SECONDS))
+            REQUEST_TIMEOUT=15
+            if (( REMAINING < REQUEST_TIMEOUT )); then
+              REQUEST_TIMEOUT=$REMAINING
+            fi
+
+            echo ""
+            echo "[Attempt $ATTEMPT] Sending health request (up to ${REQUEST_TIMEOUT}s; ${REMAINING}s remaining)..."
+
+            HTTP_STATUS="$(curl --silent --show-error \
+              --output "$RESPONSE_FILE" \
+              --write-out "%{http_code}" \
+              --connect-timeout 10 \
+              --max-time "$REQUEST_TIMEOUT" \
+              "$HEALTH_URL" 2>/dev/null || true)"
+
+            if [[ -z "$HTTP_STATUS" ]]; then
+              HTTP_STATUS="000"
+            fi
+            echo "[Attempt $ATTEMPT] HTTP status: $HTTP_STATUS"
+
+            if [[ "$HTTP_STATUS" == "200" ]]; then
+              API_STATUS="$(jq -r '.status // "missing"' "$RESPONSE_FILE" 2>/dev/null || echo "invalid")"
+              DATABASE_STATUS="$(jq -r '.database // "missing"' "$RESPONSE_FILE" 2>/dev/null || echo "invalid")"
+              FIREBASE_STATUS="$(jq -r '.firebaseAdmin // "missing"' "$RESPONSE_FILE" 2>/dev/null || echo "invalid")"
+
+              echo "[Attempt $ATTEMPT] API status: $API_STATUS"
+              echo "[Attempt $ATTEMPT] Database: $DATABASE_STATUS"
+              echo "[Attempt $ATTEMPT] Firebase Admin: $FIREBASE_STATUS"
+
+              if [[ "$API_STATUS" == "ok" && "$DATABASE_STATUS" == "connected" && "$FIREBASE_STATUS" == "configured" ]]; then
+                echo ""
+                echo "SUCCESS: Render API is awake, MySQL is connected, and Firebase Admin is configured."
+                exit 0
+              fi
+
+              echo "[Attempt $ATTEMPT] HTTP 200 received, but one or more health checks are not ready yet."
+            else
+              echo "[Attempt $ATTEMPT] Backend is not ready yet; will retry if time remains."
+            fi
+
+            REMAINING=$((DEADLINE - SECONDS))
+            if (( REMAINING <= 0 )); then
+              break
+            fi
+
+            SLEEP_SECONDS=$RETRY_INTERVAL_SECONDS
+            if (( REMAINING < SLEEP_SECONDS )); then
+              SLEEP_SECONDS=$REMAINING
+            fi
+            echo "Waiting ${SLEEP_SECONDS}s before the next attempt..."
+            sleep "$SLEEP_SECONDS"
+          done
+
+          echo ""
+          echo "FAILED: Render did not report a healthy API, connected database, and configured Firebase Admin within ${MAX_WAIT_SECONDS}s."
+          exit 1
