@@ -48,18 +48,17 @@ function Landing({ onLogin, onSignUp }) {
     const page = document.querySelector('.landing-page')
     if (!page) return undefined
 
-    const handleScrewClick = event => {
-      const screw = event.target.closest('.scroll-screw')
-      if (!screw || !page.contains(screw)) return
+    const handleGearClick = event => {
+      const gear = event.target.closest('.background-gear')
+      if (!gear || !page.contains(gear)) return
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-      screw.classList.remove('screw-click-roll')
-      void screw.offsetWidth
-      screw.classList.add('screw-click-roll')
-      window.setTimeout(() => screw.classList.remove('screw-click-roll'), 2200)
+      gear.classList.remove('gear-click-roll')
+      void gear.offsetWidth
+      gear.classList.add('gear-click-roll')
+      window.setTimeout(() => gear.classList.remove('gear-click-roll'), 2300)
     }
-
-    page.addEventListener('click', handleScrewClick)
-    return () => page.removeEventListener('click', handleScrewClick)
+    page.addEventListener('click', handleGearClick)
+    return () => page.removeEventListener('click', handleGearClick)
   }, [])
 
   useEffect(() => {
@@ -298,18 +297,9 @@ function Landing({ onLogin, onSignUp }) {
       {/* HERO SECTION */}
       <header className="hero-section" id="home">
 
-        <button type="button" className="scroll-screw screw-hero-one" aria-label="Roll screw decoration"><span /></button>
-        <button type="button" className="scroll-screw screw-hero-two" aria-label="Roll screw decoration"><span /></button>
-
-        <div className="scroll-screw screw-one" aria-hidden="true">
-          <span />
-        </div>
-        <div className="scroll-screw screw-two" aria-hidden="true">
-          <span />
-        </div>
-        <div className="scroll-screw screw-three" aria-hidden="true">
-          <span />
-        </div>
+        <button type="button" className="background-gear gear-large gear-hero-left" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
+        <button type="button" className="background-gear gear-small gear-hero-right" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
+        <button type="button" className="background-gear gear-medium gear-hero-bottom" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
 
         <div className="container hero-container">
           <div className="row align-items-center g-5">
@@ -388,6 +378,8 @@ function Landing({ onLogin, onSignUp }) {
 
       {/* ABOUT US */}
       <section id="about" className="about-section landing-section">
+        <button type="button" className="background-gear gear-medium gear-about-left" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
+        <button type="button" className="background-gear gear-small gear-about-right" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
         <div className="container">
           <div className="row align-items-center g-5">
 
@@ -471,6 +463,8 @@ function Landing({ onLogin, onSignUp }) {
 
       {/* FEATURES */}
       <section id="features" className="features-section landing-section">
+        <button type="button" className="background-gear gear-small gear-features-left" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
+        <button type="button" className="background-gear gear-large gear-features-right" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
         <div className="container">
 
           <div className="section-heading text-center">
@@ -521,6 +515,8 @@ function Landing({ onLogin, onSignUp }) {
 
       {/* INVENTORY MANAGEMENT */}
       <section id="inventory" className="inventory-section landing-section">
+        <button type="button" className="background-gear gear-large gear-inventory-left" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
+        <button type="button" className="background-gear gear-small gear-inventory-right" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
         <div className="container">
           <div className="row g-5 align-items-center">
 
@@ -611,6 +607,8 @@ function Landing({ onLogin, onSignUp }) {
 
       {/* INSTALL + CONTACT */}
       <section id="contact" className="cta-section landing-section">
+        <button type="button" className="background-gear gear-small gear-contact-left" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
+        <button type="button" className="background-gear gear-medium gear-contact-right" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
         <div className="container text-center">
           <div className="cta-logo"><span className="brand-icon"><i className="bi bi-gear-fill" /></span></div>
           <span className="section-kicker light">GET STARTED</span>
