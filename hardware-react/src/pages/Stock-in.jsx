@@ -1,3 +1,4 @@
+import SuccessModal from '../components/SuccessModal'
 
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -34,6 +35,8 @@ export default function StockIn() {
   // CONFIRMATION MODAL
   const [confirmation, setConfirmation] = useState(null)
   const [isConfirming, setIsConfirming] = useState(false)
+
+  const [success, setSuccess] = useState(null)
 
   const api_url = API_URL('/api/stock-in')
   const productsApiUrl = API_URL('/api/product')
@@ -173,6 +176,14 @@ export default function StockIn() {
       setDate('')
       setNote('')
       setShowAddStock(false)
+      setSuccess({
+        title: 'Stock Recorded Successfully!',
+        details: [
+          { label: 'Product', value: product },
+          { label: 'Quantity Added', value: quantity },
+          { label: 'Date', value: date }
+        ]
+      })
     } catch (error) {
       console.error('Add stock error:', error)
       alert(error.message || 'Failed to add stock-in record')
@@ -951,5 +962,14 @@ export default function StockIn() {
         </div>
       </div>
     </div>
+          {success && (
+            <SuccessModal
+              title={success.title}
+              details={success.details}
+              message="The record has been successfully saved."
+              onClose={() => setSuccess(null)}
+            />
+          )}
+
   )
 }
