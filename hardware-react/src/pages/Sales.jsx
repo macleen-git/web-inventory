@@ -400,6 +400,7 @@ export default function Sales() {
   }
 
   return (
+    <>
     <div className="app-layout">
       <Sidebar active="/sales" />
 
@@ -1012,5 +1013,6 @@ export default function Sales() {
             />
           )}
 
+    </>
   )
 }
