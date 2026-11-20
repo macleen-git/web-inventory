@@ -1,3 +1,4 @@
+import SuccessModal from '../components/SuccessModal'
 import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
 import { API_URL, apiFetch } from '../config/api'
@@ -75,6 +76,8 @@ export default function Inventory() {
   // CONFIRMATION MODAL STATES
   const [confirmation, setConfirmation] = useState(null)
   const [isConfirming, setIsConfirming] = useState(false)
+
+  const [success, setSuccess] = useState(null)
 
   // SEARCH AND FILTER STATES
   const [searchTerm, setSearchTerm] = useState('')
@@ -207,6 +210,14 @@ export default function Inventory() {
       setStock('')
 
       setShowAddProduct(false)
+      setSuccess({
+        title: 'Product Added Successfully!',
+        details: [
+          { label: 'Product', value: product },
+          { label: 'Category', value: category },
+          { label: 'Starting Stock', value: stock }
+        ]
+      })
     } catch (err) {
       console.log('Add product error:', err)
       alert(err.message || 'Failed to add product')
@@ -948,5 +959,14 @@ export default function Inventory() {
         </div>
       </div>
     </div>
+          {success && (
+            <SuccessModal
+              title={success.title}
+              details={success.details}
+              message="The record has been successfully saved."
+              onClose={() => setSuccess(null)}
+            />
+          )}
+
   )
 }
