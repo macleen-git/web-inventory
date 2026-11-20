@@ -163,88 +163,130 @@ function Settings() {
     <div className="app-layout">
       <Sidebar active="/settings" />
       <div className="app-main bg-dark-subtle min-vh-100">
-        <div className="p-4" id="mainContent">
-          <h1><b>Settings</b></h1>
-          <p>Manage store information and account security.</p>
-          <div className="row g-3">
-            <div className="col-12">
-              <div className="bg-white p-4 rounded shadow-sm">
-                <h5 className="mb-3"><b>Store Information</b></h5>
-                <form onSubmit={saveSettings}>
-                  <div className="row g-3">
-                    <div className="col-12 col-md-6">
-                      <label className="form-label"><b>Store Name</b></label>
-                      <input className="form-control" value={storeName} onChange={event => setStoreName(event.target.value)} maxLength={150} required />
-                    </div>
-                    <div className="col-12 col-md-6">
-                      <label className="form-label"><b>Owner Name</b></label>
-                      <input className="form-control" value={ownerName} onChange={event => setOwnerName(event.target.value)} maxLength={150} required />
-                    </div>
-                    <div className="col-12 col-md-6">
-                      <label className="form-label"><b>Currency Symbol</b></label>
-                      <input className="form-control" value={currency} onChange={event => setCurrency(event.target.value)} maxLength={3} required />
-                    </div>
-                  </div>
-                  <button className="btn btn-warning mt-4" type="submit" disabled={saving || loading}><b>{saving ? 'Saving...' : 'Save Settings'}</b></button>
-                  {message(storeMessage)}
-                  {loading && <p className="small text-muted mt-2 mb-0">Loading saved settings...</p>}
-                </form>
+        <main className="settings-page p-4" id="mainContent">
+          <header className="settings-page-heading mb-4">
+            <div className="settings-eyebrow">PREFERENCES & ACCOUNT</div>
+            <h1 className="mb-1"><b>Settings</b></h1>
+            <p className="mb-0">Manage your store details, sign-in information, and inventory data.</p>
+          </header>
+
+          <section className="settings-card mb-4">
+            <div className="settings-card-heading">
+              <div>
+                <span className="settings-card-kicker">STORE PROFILE</span>
+                <h2>Store Information</h2>
+                <p>Update the details displayed for your hardware store.</p>
               </div>
+              <span className="settings-card-symbol" aria-hidden="true">⌂</span>
             </div>
-            <div className="col-12">
-              <div className="bg-white border border-danger p-4 rounded shadow-sm">
-                <h5 className="mb-2 text-danger"><b>Reset Inventory Data</b></h5>
-                <p className="text-muted mb-2">Permanently remove your own Products, Stock In, Sales, and Damaged Items records. Your login account and Store Information will remain unchanged. Other users' inventory will not be affected.</p>
-                <button type="button" className="btn btn-outline-danger mt-2" onClick={() => { setResetConfirmation(''); setShowResetModal(true) }} disabled={resetting}>Reset My Inventory</button>
-                {message(resetMessage)}
+            <form className="settings-card-body" onSubmit={saveSettings}>
+              <div className="row g-3">
+                <div className="col-12 col-md-6">
+                  <label className="form-label" htmlFor="settings-store-name">Store Name</label>
+                  <input id="settings-store-name" className="form-control" value={storeName} onChange={event => setStoreName(event.target.value)} maxLength={150} required />
+                </div>
+                <div className="col-12 col-md-6">
+                  <label className="form-label" htmlFor="settings-owner-name">Owner Name</label>
+                  <input id="settings-owner-name" className="form-control" value={ownerName} onChange={event => setOwnerName(event.target.value)} maxLength={150} required />
+                </div>
+                <div className="col-12 col-md-6">
+                  <label className="form-label" htmlFor="settings-currency">Currency Symbol</label>
+                  <input id="settings-currency" className="form-control" value={currency} onChange={event => setCurrency(event.target.value)} maxLength={3} required />
+                  <div className="settings-field-hint">Used when displaying prices and totals.</div>
+                </div>
               </div>
-            </div>
-            <div className="col-12 col-lg-6">
-              <div className="bg-white p-4 rounded shadow-sm h-100">
-                <h5 className="mb-2"><b>Change Email</b></h5>
-                <p className="small text-muted">Firebase Authentication manages your login email. Verification is required before the new email takes effect.</p>
-                <form onSubmit={changeEmail}>
+              <div className="settings-card-actions">
+                <button className="btn btn-warning px-4" type="submit" disabled={saving || loading}><b>{saving ? 'Saving...' : 'Save Changes'}</b></button>
+                {loading && <span className="small text-muted">Loading saved settings...</span>}
+              </div>
+              {message(storeMessage)}
+            </form>
+          </section>
+
+          <div className="row g-4 mb-4">
+            <div className="col-12 col-xl-6">
+              <section className="settings-card h-100">
+                <div className="settings-card-heading">
+                  <div>
+                    <span className="settings-card-kicker">LOGIN DETAILS</span>
+                    <h2>Change Email</h2>
+                    <p>Verify your new email before it becomes your login address.</p>
+                  </div>
+                  <span className="settings-card-symbol" aria-hidden="true">@</span>
+                </div>
+                <form className="settings-card-body" onSubmit={changeEmail}>
                   <div className="mb-3">
-                    <label className="form-label"><b>Current Email</b></label>
-                    <input type="email" className="form-control" value={currentEmail} onChange={event => setCurrentEmail(event.target.value)} required />
+                    <label className="form-label" htmlFor="settings-current-email">Current Email</label>
+                    <input id="settings-current-email" type="email" className="form-control" value={currentEmail} onChange={event => setCurrentEmail(event.target.value)} required />
                   </div>
                   <div className="mb-3">
-                    <label className="form-label"><b>New Email</b></label>
-                    <input type="email" className="form-control" value={newEmail} onChange={event => setNewEmail(event.target.value)} required />
+                    <label className="form-label" htmlFor="settings-new-email">New Email</label>
+                    <input id="settings-new-email" type="email" className="form-control" value={newEmail} onChange={event => setNewEmail(event.target.value)} required />
                   </div>
                   {usesPassword && <div className="mb-3">
-                    <label className="form-label"><b>Current Password</b></label>
-                    <input type="password" className="form-control" value={emailPassword} onChange={event => setEmailPassword(event.target.value)} autoComplete="current-password" required />
+                    <label className="form-label" htmlFor="settings-email-password">Current Password</label>
+                    <input id="settings-email-password" type="password" className="form-control" value={emailPassword} onChange={event => setEmailPassword(event.target.value)} autoComplete="current-password" required />
                   </div>}
-                  <button type="submit" className="btn btn-outline-warning" disabled={changingEmail}><b>{changingEmail ? 'Sending...' : 'Update Email'}</b></button>
+                  <div className="settings-card-actions">
+                    <button type="submit" className="btn btn-outline-warning px-4" disabled={changingEmail}><b>{changingEmail ? 'Sending...' : 'Update Email'}</b></button>
+                  </div>
                   {message(emailMessage)}
                 </form>
-              </div>
+              </section>
             </div>
-            <div className="col-12 col-lg-6">
-              <div className="bg-white p-4 rounded shadow-sm h-100">
-                <h5 className="mb-2"><b>Change Password</b></h5>
-                <p className="small text-muted">Confirm your current password before choosing a new one.</p>
-                {usesPassword ? <form onSubmit={changePassword}>
-                  <div className="mb-3">
-                    <label className="form-label"><b>Current Password</b></label>
-                    <input type="password" className="form-control" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} autoComplete="current-password" required />
+
+            <div className="col-12 col-xl-6">
+              <section className="settings-card h-100">
+                <div className="settings-card-heading">
+                  <div>
+                    <span className="settings-card-kicker">ACCOUNT SECURITY</span>
+                    <h2>Change Password</h2>
+                    <p>Keep your account secure with an updated password.</p>
                   </div>
-                  <div className="mb-3">
-                    <label className="form-label"><b>New Password</b></label>
-                    <input type="password" className="form-control" value={newPassword} onChange={event => setNewPassword(event.target.value)} autoComplete="new-password" minLength={6} required />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label"><b>Confirm New Password</b></label>
-                    <input type="password" className="form-control" value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} autoComplete="new-password" minLength={6} required />
-                  </div>
-                  <button type="submit" className="btn btn-outline-secondary" disabled={changingPassword}><b>{changingPassword ? 'Updating...' : 'Change Password'}</b></button>
-                </form> : <div className="alert alert-info mb-0">This account uses Google sign-in. Manage its password through your Google Account.</div>}
-                {message(passwordMessage)}
-              </div>
+                  <span className="settings-card-symbol" aria-hidden="true">⌑</span>
+                </div>
+                <div className="settings-card-body">
+                  {usesPassword ? <form onSubmit={changePassword}>
+                    <div className="mb-3">
+                      <label className="form-label" htmlFor="settings-current-password">Current Password</label>
+                      <input id="settings-current-password" type="password" className="form-control" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} autoComplete="current-password" required />
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label" htmlFor="settings-new-password">New Password</label>
+                      <input id="settings-new-password" type="password" className="form-control" value={newPassword} onChange={event => setNewPassword(event.target.value)} autoComplete="new-password" minLength={6} required />
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label" htmlFor="settings-confirm-password">Confirm New Password</label>
+                      <input id="settings-confirm-password" type="password" className="form-control" value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} autoComplete="new-password" minLength={6} required />
+                    </div>
+                    <div className="settings-card-actions">
+                      <button type="submit" className="btn btn-outline-warning px-4" disabled={changingPassword}><b>{changingPassword ? 'Updating...' : 'Change Password'}</b></button>
+                    </div>
+                  </form> : <div className="settings-info-note"><b>Google account</b><span>This account uses Google sign-in. Manage its password through your Google Account.</span></div>}
+                  {message(passwordMessage)}
+                </div>
+              </section>
             </div>
           </div>
-        </div>
+
+          <section className="settings-card settings-danger-card">
+            <div className="settings-card-heading">
+              <div>
+                <span className="settings-card-kicker">DANGER ZONE</span>
+                <h2>Reset Inventory Data</h2>
+                <p>Remove your inventory records while keeping your login account and store information.</p>
+              </div>
+              <span className="settings-card-symbol settings-danger-symbol" aria-hidden="true">!</span>
+            </div>
+            <div className="settings-card-body">
+              <div className="settings-warning-note">This permanently removes your Products, Stock In, Sales, and Damaged Items records. Other users' inventory will not be affected.</div>
+              <div className="settings-card-actions">
+                <button type="button" className="btn btn-outline-danger" onClick={() => { setResetConfirmation(''); setShowResetModal(true) }} disabled={resetting}>Reset My Inventory</button>
+              </div>
+              {message(resetMessage)}
+            </div>
+          </section>
+        </main>
         {showResetModal && <div className="modal d-block" tabIndex="-1" role="dialog" aria-modal="true" style={{ backgroundColor: 'rgba(0,0,0,.55)' }}>
           <div className="modal-dialog modal-dialog-centered">
             <div className="modal-content">
@@ -269,6 +311,7 @@ function Settings() {
       </div>
     </div>
   )
+}
 }
 
 export default Settings
