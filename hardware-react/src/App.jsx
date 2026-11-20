@@ -28,6 +28,7 @@ import Damaged from './pages/Damaged'
 import Reports from './pages/Reports'
 import Transactions from './pages/Transaction'
 import Settings from './pages/Settings'
+import RecentlyDeleted from './pages/RecentlyDeleted'
 import Admin from './pages/Admin'
 import FloatingCalculator from './components/FloatingCalculator'
 import { API_URL } from './config/api'
@@ -318,6 +319,18 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         }
       />
 
+      {/* RECENTLY DELETED */}
+      <Route
+        path="/recently-deleted"
+        element={
+          user && role === 'user'
+            ? <RecentlyDeleted />
+            : user && isAdminRole(role)
+              ? <Navigate to="/admin" replace />
+              : <Navigate to="/login" replace />
+        }
+      />
+
       {/* SETTINGS */}
       <Route
         path="/settings"
@@ -359,7 +372,7 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         }
       />
     </Routes>
-    {user && role === 'user' && ['/dashboard','/inventory','/stock-in','/sales','/damaged-items','/reports','/transactions','/settings'].includes(location.pathname) && <FloatingCalculator />}
+    {user && role === 'user' && ['/dashboard','/inventory','/stock-in','/sales','/damaged-items','/reports','/transactions','/recently-deleted','/settings'].includes(location.pathname) && <FloatingCalculator />}
     </>
   )
 }
