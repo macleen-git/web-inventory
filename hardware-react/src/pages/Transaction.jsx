@@ -70,11 +70,14 @@ function Transactions() {
     <div className="app-layout">
       <Sidebar active="/transactions" />
       <main className="app-main min-vh-100">
-        <div id="mainContent">
-          <div className="analytics-page-header">
-            <div><span className="analytics-kicker">RECORDS / ACTIVITY LOG</span><h1>Transactions</h1><p>Combined history of sales, stock-in, and damaged-item records.</p></div>
+        <div className="p-4" id="mainContent">
+          <h1>
+            <b>Transactions</b>
+          </h1>
 
-          </div>
+          <p>
+            Combined history of sales, stock-in, and damaged-item records.
+          </p>
 
           {error && <div className="alert alert-danger" role="alert">{error}</div>}
           <section className="analytics-panel">
