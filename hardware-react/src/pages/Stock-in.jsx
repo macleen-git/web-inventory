@@ -13,6 +13,7 @@ export default function StockIn() {
 
   // ADD STOCK FORM
   const [product, setProduct] = useState('')
+  const [showProductSuggestions, setShowProductSuggestions] = useState(false)
   const [quantity, setQuantity] = useState('')
   const [date, setDate] = useState('')
   const [note, setNote] = useState('')
@@ -75,6 +76,55 @@ export default function StockIn() {
         console.error('Inventory products fetch error:', error)
       })
   }, [])
+
+  // ADD STOCK PRODUCT AUTOCOMPLETE (same matching behavior as Add Sale)
+  function editDistance(a, b) {
+    const left = a.toLowerCase()
+    const right = b.toLowerCase()
+    const row = Array.from({ length: right.length + 1 }, (_, index) => index)
+
+    for (let i = 1; i <= left.length; i++) {
+      let diagonal = row[0]
+      row[0] = i
+      for (let j = 1; j <= right.length; j++) {
+        const above = row[j]
+        row[j] = Math.min(
+          row[j] + 1,
+          row[j - 1] + 1,
+          diagonal + (left[i - 1] === right[j - 1] ? 0 : 1)
+        )
+        diagonal = above
+      }
+    }
+    return row[right.length]
+  }
+
+  const matchingStockProducts = product.trim()
+    ? products
+        .map((item) => {
+          const name = String(item.product || '')
+          const normalized = name.toLowerCase()
+          const query = product.trim().toLowerCase()
+          const distance = editDistance(query, normalized)
+          const score = normalized.startsWith(query)
+            ? 0
+            : normalized.includes(query)
+              ? 1
+              : distance <= Math.max(1, Math.floor(query.length / 3))
+                ? 2
+                : 3
+          return { item, score, distance }
+        })
+        .filter((entry) => entry.score < 3)
+        .sort((a, b) => a.score - b.score || a.distance - b.distance)
+        .slice(0, 6)
+        .map((entry) => entry.item)
+    : products.slice(0, 6)
+
+  function selectStockProduct(item) {
+    setProduct(item.product)
+    setShowProductSuggestions(false)
+  }
 
   // =========================
   // SEARCH AND FILTER
@@ -172,6 +222,7 @@ export default function StockIn() {
       setStockIns((previous) => [...previous, data])
 
       setProduct('')
+      setShowProductSuggestions(false)
       setQuantity('')
       setDate('')
       setNote('')
@@ -222,6 +273,7 @@ export default function StockIn() {
   function closeAddModal() {
     setShowAddStock(false)
     setProduct('')
+    setShowProductSuggestions(false)
     setQuantity('')
     setDate('')
     setNote('')
@@ -686,15 +738,55 @@ export default function StockIn() {
                       <label htmlFor="product" className="form-label">
                         Product
                       </label>
-                      <input
-                        id="product"
-                        type="text"
-                        className="form-control"
-                        placeholder="Enter product name"
-                        value={product}
-                        onChange={(event) => setProduct(event.target.value)}
-                        required
-                      />
+                      <div className="position-relative">
+                        <input
+                          id="product"
+                          type="text"
+                          className="form-control"
+                          placeholder="Search product"
+                          autoComplete="off"
+                          value={product}
+                          onFocus={() => setShowProductSuggestions(true)}
+                          onChange={(event) => {
+                            setProduct(event.target.value)
+                            setShowProductSuggestions(true)
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Escape') setShowProductSuggestions(false)
+                            if (event.key === 'Enter' && matchingStockProducts.length) {
+                              event.preventDefault()
+                              selectStockProduct(matchingStockProducts[0])
+                            }
+                          }}
+                          required
+                        />
+                        {showProductSuggestions && (
+                          <div
+                            className="position-absolute w-100 product-suggestion-list border rounded shadow"
+                            style={{ zIndex: 1100, top: 'calc(100% + 5px)', maxHeight: '250px', overflowY: 'auto' }}
+                          >
+                            {matchingStockProducts.length ? (
+                              matchingStockProducts.map((item) => (
+                                <button
+                                  type="button"
+                                  key={item.id}
+                                  className="w-100 text-start border-0 border-bottom product-suggestion-item px-3 py-2"
+                                  onMouseDown={(event) => event.preventDefault()}
+                                  onClick={() => selectStockProduct(item)}
+                                >
+                                  <strong>{item.product}</strong>
+                                  <small className="d-flex justify-content-between product-suggestion-meta mt-1">
+                                    <span>Buy price: ₱{Number(item.buy || 0).toFixed(2)}</span>
+                                    <span>Stock: {Number(item.stock) || 0}</span>
+                                  </small>
+                                </button>
+                              ))
+                            ) : (
+                              <div className="p-3 text-muted small">No close product matches found.</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div className="mb-3">
