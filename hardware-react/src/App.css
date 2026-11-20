@@ -2353,3 +2353,47 @@ button { cursor: pointer; }
     font-size: 15px;
   }
 }
+
+/* Final desktop sidebar spacing and selected-state readability refinement. */
+@media (min-width: 768px) {
+  .app-sidebar-desktop .app-sidebar-links {
+    gap: 5px;
+    padding-top: 8px;
+    padding-bottom: 10px;
+  }
+
+  .app-sidebar-desktop .app-nav-link {
+    min-height: 42px;
+    gap: 10px;
+    padding: 8px 11px;
+    font-size: 13px;
+    line-height: 1.2;
+    border-radius: 9px;
+  }
+
+  .app-sidebar-desktop .app-nav-link .nav-icon {
+    flex-basis: 20px;
+    width: 20px;
+    font-size: 17px;
+  }
+
+  /* Use a calm navy highlight with a gold accent instead of yellow text
+     on a bright yellow fill, keeping selected labels readable. */
+  .app-sidebar-desktop .app-nav-link.active,
+  .app-sidebar-desktop .app-nav-link.active:hover,
+  .app-sidebar-desktop .app-nav-link.active:focus-visible {
+    color: #fff !important;
+    background: rgba(255, 255, 255, .12) !important;
+    box-shadow: inset 3px 0 0 #ffc400, inset 0 0 0 1px rgba(255, 196, 0, .28) !important;
+  }
+
+  .app-sidebar-desktop .app-nav-link.active .nav-icon,
+  .app-sidebar-desktop .app-nav-link.active:hover .nav-icon,
+  .app-sidebar-desktop .app-nav-link.active:focus-visible .nav-icon,
+  .app-sidebar-desktop .app-nav-link.active b,
+  .app-sidebar-desktop .app-nav-link.active:hover b,
+  .app-sidebar-desktop .app-nav-link.active:focus-visible b {
+    color: #fff !important;
+    filter: none;
+  }
+}
