@@ -2263,3 +2263,93 @@ button { cursor: pointer; }
 .app-sidebar .app-nav-link:focus-visible b {
   color: #ffc400 !important;
 }
+
+
+/* Compact desktop sidebar: keep every navigation item visible while retaining
+   the existing navy/yellow styling, hover glow, and active-state treatment. */
+@media (min-width: 768px) {
+  .app-sidebar-desktop .app-sidebar-brand {
+    min-height: 66px;
+    padding: 10px 12px;
+    gap: 6px;
+  }
+
+  .app-sidebar-desktop .app-sidebar-brand .brand-icon {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    font-size: 19px;
+  }
+
+  .app-sidebar-desktop .app-sidebar-brand .app-brand-copy strong {
+    font-size: 11px;
+    letter-spacing: .35px;
+  }
+
+  .app-sidebar-desktop .app-sidebar-brand .app-brand-copy small {
+    margin-top: 3px;
+    font-size: 8px;
+    letter-spacing: 1.2px;
+  }
+
+  .app-sidebar-desktop .app-sidebar-links {
+    gap: 2px;
+    padding: 6px 9px;
+  }
+
+  .app-sidebar-desktop .app-nav-link {
+    min-height: 37px;
+    gap: 9px;
+    padding: 7px 10px;
+    margin: 0;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.15;
+  }
+
+  .app-sidebar-desktop .app-nav-link .nav-icon {
+    flex-basis: 19px;
+    width: 19px;
+    font-size: 16px;
+  }
+
+  .app-sidebar-desktop .app-sidebar-footer {
+    padding: 8px 9px;
+  }
+
+  .app-sidebar-desktop .app-user-row {
+    gap: 7px;
+  }
+
+  .app-sidebar-desktop .app-user-avatar {
+    flex-basis: 30px;
+    width: 30px;
+    height: 30px;
+    font-size: 15px;
+  }
+
+  .app-sidebar-desktop .app-user-copy strong {
+    font-size: 11px;
+  }
+
+  .app-sidebar-desktop .app-user-copy small {
+    font-size: 9px;
+  }
+
+  .app-sidebar-desktop .app-sidebar-actions {
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .app-sidebar-desktop .app-sidebar-actions .app-theme-toggle,
+  .app-sidebar-desktop .app-sidebar-actions .app-nav-logout {
+    min-height: 33px;
+    padding: 6px 10px;
+    font-size: 11px;
+    border-radius: 8px;
+  }
+
+  .app-sidebar-desktop .app-sidebar-actions .nav-icon {
+    font-size: 15px;
+  }
+}
