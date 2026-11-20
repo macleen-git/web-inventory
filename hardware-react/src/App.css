@@ -2169,3 +2169,67 @@ button { cursor: pointer; }
   .transaction-table thead th { padding:11px 9px; font-size:.7rem; }
   .transaction-table tbody td { padding:12px 9px; font-size:.86rem; }
 }
+
+
+/* Settings page — restrained cards, consistent with the inventory workspace. */
+.settings-page { max-width: 1180px; margin: 0 auto; color: var(--hw-text, #263746); }
+.settings-page-heading { padding: 4px 2px 8px; }
+.settings-page-heading h1 { color: var(--hw-text, #263746); font-size: clamp(1.6rem, 2.2vw, 2rem); }
+.settings-page-heading p { color: var(--hw-muted-text, #6c7a86); }
+.settings-eyebrow, .settings-card-kicker {
+  color: #b58a00; font-size: .69rem; font-weight: 800; letter-spacing: .12em;
+}
+.settings-card {
+  min-width: 0; overflow: hidden; background: var(--hw-card, #fff);
+  color: var(--hw-text, #263746); border: 1px solid var(--hw-border, #dce3e9);
+  border-radius: 14px; box-shadow: var(--hw-shadow, 0 5px 18px rgba(25,45,60,.06));
+}
+.settings-card-heading {
+  display:flex; align-items:center; justify-content:space-between; gap:18px;
+  padding:20px 22px 16px; border-bottom:1px solid var(--hw-border, #e3e8ed);
+}
+.settings-card-heading h2 { margin:5px 0 4px; color:var(--hw-text, #263746); font-size:1.08rem; font-weight:750; }
+.settings-card-heading p { margin:0; color:var(--hw-muted-text, #71808c); font-size:.84rem; }
+.settings-card-symbol {
+  flex:0 0 42px; width:42px; height:42px; display:grid; place-items:center;
+  border-radius:11px; background:rgba(255,196,0,.16); color:#987300; font-size:1.25rem; font-weight:800;
+}
+.settings-card-body { padding:20px 22px 22px; }
+.settings-card-body .form-label { color:var(--hw-text, #34495a); font-size:.84rem; font-weight:650; }
+.settings-card-body .form-control { min-height:42px; border-radius:8px; }
+.settings-field-hint { margin-top:6px; color:var(--hw-muted-text, #71808c); font-size:.76rem; }
+.settings-card-actions { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-top:20px; }
+.settings-info-note, .settings-warning-note {
+  display:flex; flex-direction:column; gap:5px; padding:13px 15px; border-radius:9px;
+  background:rgba(13,110,253,.06); border:1px solid rgba(13,110,253,.16);
+  color:var(--hw-text, #34495a); font-size:.84rem;
+}
+.settings-warning-note { background:rgba(220,53,69,.055); border-color:rgba(220,53,69,.2); }
+.settings-danger-card { border-color:rgba(220,53,69,.32); }
+.settings-danger-card .settings-card-heading { border-bottom-color:rgba(220,53,69,.18); }
+.settings-danger-symbol { color:#b42332; background:rgba(220,53,69,.1); }
+:root[data-theme="dark"] .settings-page,
+:root[data-theme="dark"] .settings-page-heading h1,
+:root[data-theme="dark"] .settings-card,
+:root[data-theme="dark"] .settings-card-heading h2,
+:root[data-theme="dark"] .settings-card-body .form-label,
+:root[data-theme="dark"] .settings-info-note,
+:root[data-theme="dark"] .settings-warning-note { color:#e4ebf2; }
+:root[data-theme="dark"] .settings-page-heading p,
+:root[data-theme="dark"] .settings-card-heading p,
+:root[data-theme="dark"] .settings-field-hint { color:#a9b7c5; }
+:root[data-theme="dark"] .settings-card { background:#1c2a38; border-color:#354657; }
+:root[data-theme="dark"] .settings-card-heading { border-color:#354657; }
+:root[data-theme="dark"] .settings-card-symbol { background:rgba(255,196,0,.13); color:#f0c64b; }
+:root[data-theme="dark"] .settings-card-body .form-control {
+  background:#243443; border-color:#405264; color:#e4ebf2;
+}
+:root[data-theme="dark"] .settings-card-body .form-control::placeholder { color:#9aabba; }
+:root[data-theme="dark"] .settings-info-note { background:rgba(74,144,226,.1); border-color:#405264; }
+:root[data-theme="dark"] .settings-warning-note { background:rgba(220,53,69,.09); border-color:rgba(248,113,113,.28); }
+@media(max-width:767.98px) {
+  .settings-page { padding:0; }
+  .settings-card-heading { padding:16px; }
+  .settings-card-body { padding:16px; }
+  .settings-card-symbol { flex-basis:36px; width:36px; height:36px; }
+}
