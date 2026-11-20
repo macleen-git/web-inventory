@@ -87,7 +87,7 @@ function Settings() {
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.message || 'Unable to reset inventory.')
-      setResetMessage({ type: 'success', text: 'Your inventory records were reset. Your account and Store Information were preserved.' })
+      setResetMessage({ type: 'success', text: 'Your inventory records were moved to Recently Deleted. You can restore them within 30 days. Your account and Store Information were preserved.' })
       setResetConfirmation('')
       setShowResetModal(false)
     } catch (error) {
@@ -274,12 +274,12 @@ function Settings() {
               <div>
                 <span className="settings-card-kicker">DANGER ZONE</span>
                 <h2>Reset Inventory Data</h2>
-                <p>Remove your inventory records while keeping your login account and store information.</p>
+                <p>Move your inventory records to Recently Deleted while keeping your login account and store information.</p>
               </div>
               <span className="settings-card-symbol settings-danger-symbol" aria-hidden="true">!</span>
             </div>
             <div className="settings-card-body">
-              <div className="settings-warning-note">This permanently removes your Products, Stock In, Sales, and Damaged Items records. Other users' inventory will not be affected.</div>
+              <div className="settings-warning-note">Your Products, Stock In, Sales, and Damaged Items records will be moved to Recently Deleted for 30 days. Other users' inventory will not be affected.</div>
               <div className="settings-card-actions">
                 <button type="button" className="btn btn-outline-danger" onClick={() => { setResetConfirmation(''); setShowResetModal(true) }} disabled={resetting}>Reset My Inventory</button>
               </div>
@@ -296,13 +296,13 @@ function Settings() {
                   <button type="button" className="btn-close" onClick={() => setShowResetModal(false)} disabled={resetting} aria-label="Close"></button>
                 </div>
                 <div className="modal-body">
-                  <p>This action permanently deletes your Products, Stock In, Sales, and Damaged Items records. Your account and Store Information will be kept.</p>
+                  <p>This moves your Products, Stock In, Sales, and Damaged Items records to Recently Deleted. You can restore them within 30 days. Your account and Store Information will be kept.</p>
                   <p className="mb-2">To continue, type <b>RESET INVENTORY</b> exactly as shown.</p>
                   <input className="form-control" value={resetConfirmation} onChange={event => setResetConfirmation(event.target.value)} placeholder="RESET INVENTORY" autoComplete="off" required />
                 </div>
                 <div className="modal-footer">
                   <button type="button" className="btn btn-secondary" onClick={() => setShowResetModal(false)} disabled={resetting}>Cancel</button>
-                  <button type="submit" className="btn btn-danger" disabled={resetting || resetConfirmation !== 'RESET INVENTORY'}>{resetting ? 'Resetting...' : 'Permanently Reset Inventory'}</button>
+                  <button type="submit" className="btn btn-danger" disabled={resetting || resetConfirmation !== 'RESET INVENTORY'}>{resetting ? 'Resetting...' : 'Move Inventory to Recently Deleted'}</button>
                 </div>
               </form>
             </div>
