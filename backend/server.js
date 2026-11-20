@@ -236,6 +236,23 @@ app.post("/api/recently-deleted/:type/:id/restore", requireFirebaseUser, require
   const entry=trash[0],data=parseTrashData(entry.record_data);
   if(type==="products"){
    if(String(data.user_uid)!==uid)throw Object.assign(new Error("This product does not belong to your account."),{status:403});
+   if(entry.delete_batch_id){
+    const [batchRows]=await c.execute("SELECT * FROM deleted_records WHERE user_uid=? AND source_database=? AND delete_batch_id=? AND expires_at>NOW() FOR UPDATE",[uid,SOURCE_DATABASE,entry.delete_batch_id]);
+    const batch=batchRows.map(row=>({entry:row,data:parseTrashData(row.record_data)}));
+    const productEntry=batch.find(item=>item.entry.record_type==="products"&&Number(item.entry.original_record_id)===id);
+    if(!productEntry)throw Object.assign(new Error("The original product is missing from its recovery batch."),{status:409});
+    for(const item of batch){
+     if(item.entry.record_type!=="products"&&!["stock_in","sales","damaged_items"].includes(item.entry.record_type))throw Object.assign(new Error("The recovery batch contains an unsupported record."),{status:400});
+     if(item.entry.record_type==="products"&&String(item.data.user_uid)!==uid)throw Object.assign(new Error("The recovery batch contains a product from another account."),{status:403});
+    }
+    await insertDeletedSourceRow(c,"products",productEntry.data);
+    for(const item of batch){
+     if(item.entry.record_type!=="products")await insertDeletedSourceRow(c,item.entry.record_type,item.data);
+    }
+    await c.execute("DELETE FROM deleted_records WHERE user_uid=? AND source_database=? AND delete_batch_id=?",[uid,SOURCE_DATABASE,entry.delete_batch_id]);
+    await c.commit();
+    return res.json({message:"Product and all related records restored successfully."});
+   }
   }else{
    const [products]=await c.execute("SELECT id,stock FROM products WHERE id=? AND user_uid=? FOR UPDATE",[Number(data.product_id),uid]);
    if(!products.length)throw Object.assign(new Error("Restore the related product first."),{status:409});
