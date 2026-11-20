@@ -1,3 +1,4 @@
+import SuccessModal from '../components/SuccessModal'
 
 import { useEffect, useState } from 'react'
 import Sidebar from '../components/Sidebar'
@@ -31,6 +32,8 @@ export default function Sales() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [confirmation, setConfirmation] = useState(null)
   const [isConfirming, setIsConfirming] = useState(false)
+
+  const [success, setSuccess] = useState(null)
 
   // SEARCH
   const [search, setSearch] = useState('')
@@ -196,6 +199,14 @@ export default function Sales() {
       }
 
       closeAddModal()
+      setSuccess({
+        title: 'Sale Recorded Successfully!',
+        details: [
+          { label: 'Product', value: product },
+          { label: 'Quantity Sold', value: quantity },
+          { label: 'Total Amount', value: `₱${Number(calculatedAmount).toFixed(2)}` }
+        ]
+      })
     } catch (error) {
       console.error('Add sale error:', error)
       alert(error.message || 'Failed to record sale')
@@ -992,5 +1003,14 @@ export default function Sales() {
       )}
 
     </div>
+          {success && (
+            <SuccessModal
+              title={success.title}
+              details={success.details}
+              message="The record has been successfully saved."
+              onClose={() => setSuccess(null)}
+            />
+          )}
+
   )
 }
