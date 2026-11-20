@@ -116,6 +116,13 @@ function Damaged() {
     setShowProductSuggestions(false)
   }
 
+  // Calculate total damage loss using the selected product's buying price.
+  const selectedDamagedProduct = products.find(
+    (item) => String(item.product).toLowerCase() === product.trim().toLowerCase()
+  )
+  const buyingPrice = Number(selectedDamagedProduct?.buy) || 0
+  const calculatedLoss = buyingPrice * (Number(quantity) || 0)
+
   // =========================
   // RESET ADD FORM
   // =========================
@@ -167,7 +174,7 @@ function Damaged() {
           product,
           quantity,
           date,
-          loss,
+          loss: calculatedLoss.toFixed(2),
           reason
         })
       })
@@ -599,17 +606,20 @@ function Damaged() {
                 </div>
 
                 <div className="my-3">
-                  <label className="form-label fw-bold">Loss (₱)</label>
+                  <label className="form-label fw-bold">Total Loss (₱)</label>
                   <input
                     type="number"
                     className="form-control"
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                    value={loss}
-                    onChange={(event) => setLoss(event.target.value)}
-                    required
+                    placeholder="Automatically calculated from buying price × quantity"
+                    value={product && quantity ? calculatedLoss.toFixed(2) : ''}
+                    readOnly
+                    aria-readonly="true"
                   />
+                  <small className="text-muted">
+                    {selectedDamagedProduct
+                      ? `Buying price: ₱${buyingPrice.toFixed(2)} per unit × ${Number(quantity) || 0} = ₱${calculatedLoss.toFixed(2)} total loss`
+                      : 'Select an inventory product to load its buying price automatically.'}
+                  </small>
                 </div>
 
                 <div className="mb-2">
