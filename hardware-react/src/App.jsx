@@ -446,8 +446,11 @@ function App() {
       const currentUser = auth.currentUser
       if (currentUser) {
         const data = await syncAccountWithBackend(currentUser, true)
+        if (!['user', 'admin', 'superadmin'].includes(data.role) || data.status === 'inactive') {
+          throw new Error('Your account is inactive or has an unsupported role. Contact the administrator.')
+        }
         setUser(currentUser)
-        setRole(['user', 'admin', 'superadmin'].includes(data.role) ? data.role : 'user')
+        setRole(data.role)
       }
       setAuthError('')
     } catch (error) {
