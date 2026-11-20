@@ -11,6 +11,7 @@ const USER_NAV_ITEMS = [
   { href: '/damaged-items', label: 'Damaged Items', icon: 'bi-exclamation-triangle' },
   { href: '/reports', label: 'Reports', icon: 'bi-bar-chart-line' },
   { href: '/transactions', label: 'Transactions', icon: 'bi-arrow-left-right' },
+  { href: '/recently-deleted', label: 'Recently Deleted', icon: 'bi-trash3' },
   { href: '/settings', label: 'Settings', icon: 'bi-gear' },
 ]
 
