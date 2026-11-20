@@ -85,7 +85,7 @@ function Transactions() {
             </div>
 
             {loading ? <div className="analytics-loading"><span className="spinner-border spinner-border-sm me-2" />Loading transaction records…</div> : (
-              <div className="table-responsive"><table className="table analytics-table align-middle mb-0"><thead><tr><th>Record ID</th><th>Date</th><th>Type</th><th>Product</th><th className="text-end">Quantity</th><th className="text-end">Amount</th><th>Note / Reason</th></tr></thead><tbody>
+              <div className="table-responsive"><table className="table table-hover analytics-table transaction-table align-middle mb-0"><thead><tr><th>Record ID</th><th>Date</th><th>Type</th><th>Product</th><th className="text-end">Quantity</th><th className="text-end">Amount</th><th>Note / Reason</th></tr></thead><tbody>
                 {filteredTransactions.length ? filteredTransactions.map((item, index) => <tr key={`${item.type}-${item.id || index}`}><td>#{item.id ?? '—'}</td><td>{item.date ? new Date(item.date).toLocaleDateString('en-PH') : '—'}</td><td><span className={`analytics-type-badge type-${item.type.toLowerCase().replace(/\s/g, '-')}`}>{item.type}</span></td><td>{item.product || '—'}</td><td className="text-end">{Number(item.quantityValue) || 0}</td><td className={`text-end fw-semibold ${item.type === 'Damaged' ? 'text-danger' : ''}`}>{formatAmount(item)}</td><td>{item.noteValue || '—'}</td></tr>) : <tr><td colSpan="7" className="text-center py-5 analytics-muted">{records.length ? 'No transactions match your filters.' : 'No transaction records returned by the API.'}</td></tr>}
               </tbody></table></div>
             )}
