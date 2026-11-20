@@ -18,7 +18,26 @@ app.use((req, res, next) => {
  next();
 });
 
-app.use(cors({ origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",").map(x => x.trim()) : true }));
+// Allow only the production frontend and explicit local development origins.
+// Set CORS_ORIGIN as a comma-separated allowlist in Render/local .env to override defaults.
+const configuredCorsOrigins = String(process.env.CORS_ORIGIN || "")
+ .split(",").map(origin => origin.trim()).filter(Boolean);
+const allowedCorsOrigins = new Set(configuredCorsOrigins.length ? configuredCorsOrigins : [
+ "https://hardware-inventory-webapp.netlify.app",
+ "http://localhost:5173",
+ "http://127.0.0.1:5173"
+]);
+app.use(cors({
+ origin(origin, callback) {
+  // Requests without an Origin header (health checks, server-to-server, CLI) are not browser CORS requests.
+  if (!origin || allowedCorsOrigins.has(origin)) return callback(null, true);
+  console.warn("[CORS] Blocked browser origin:", origin);
+  return callback(null, false);
+ },
+ methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+ allowedHeaders: ["Content-Type", "Authorization"],
+ optionsSuccessStatus: 204
+}));
 app.use(express.json({ limit: "1mb" }));
 const sslEnabled = String(process.env.DB_SSL || "").toLowerCase() === "true" || Boolean(process.env.DB_SSL_CA);
 let databaseSsl;
