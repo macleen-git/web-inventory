@@ -2241,3 +2241,25 @@ button { cursor: pointer; }
 .app-sidebar-desktop.is-collapsed .app-sidebar-links > .app-nav-link {
   transform: translateX(7px);
 }
+
+
+/* Sidebar icon hover glow — consistent in light and dark themes. */
+.app-sidebar .app-nav-link {
+  transition: color .18s ease, background-color .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+.app-sidebar .app-nav-link:hover,
+.app-sidebar .app-nav-link:focus-visible {
+  color: #ffc400 !important;
+  background: rgba(255, 196, 0, .16) !important;
+  box-shadow: 0 0 12px rgba(255, 196, 0, .28), inset 0 0 0 1px rgba(255, 196, 0, .24) !important;
+  outline: none;
+}
+.app-sidebar .app-nav-link:hover .nav-icon,
+.app-sidebar .app-nav-link:focus-visible .nav-icon {
+  color: #ffc400 !important;
+  filter: drop-shadow(0 0 5px rgba(255, 196, 0, .85));
+}
+.app-sidebar .app-nav-link:hover b,
+.app-sidebar .app-nav-link:focus-visible b {
+  color: #ffc400 !important;
+}
