@@ -623,12 +623,6 @@ export default function Sales() {
                       </div>
                     )}
                   </div>
-                  {selectedProduct && (
-                    <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 p-2 rounded bg-light">
-                      <div><strong>{selectedProduct.product}</strong><div className="small text-muted">Selling price: ₱{unitSellingPrice.toFixed(2)} · Cost: ₱{unitCost.toFixed(2)}</div></div>
-                      <div className="text-end"><span className={`badge ${getStockStatus(availableStock).className}`}>{getStockStatus(availableStock).label}</span><div className="small fw-semibold mt-1">{availableStock} available</div></div>
-                    </div>
-                  )}
                   {products.length === 0 && <small className="text-danger">No inventory products were loaded. Check the product API connection.</small>}
                 </div>
 
