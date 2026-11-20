@@ -1931,3 +1931,32 @@ button { cursor: pointer; }
   pointer-events: none;
   z-index: 1;
 }
+
+
+/* Keep modal heading text readable in LIGHT and DARK themes.
+   All modal headers use the same navy surface and white title text. */
+:root .modal .modal-header,
+:root [role="dialog"] > .w-100 > .modal-header,
+:root [role="alertdialog"] > .w-100 > .modal-header,
+:root [role="dialog"] > .w-100 > .d-flex.justify-content-between.align-items-center,
+:root [role="alertdialog"] > .w-100 > .d-flex.justify-content-between.align-items-center {
+  color: #f8fafc !important;
+  background: #0b3048 !important;
+}
+
+:root .modal .modal-header *,
+:root [role="dialog"] > .w-100 > .modal-header *,
+:root [role="alertdialog"] > .w-100 > .modal-header *,
+:root [role="dialog"] > .w-100 > .d-flex.justify-content-between.align-items-center *,
+:root [role="alertdialog"] > .w-100 > .d-flex.justify-content-between.align-items-center * {
+  color: #f8fafc !important;
+}
+
+:root .modal .modal-header .btn-close,
+:root [role="dialog"] > .w-100 > .modal-header .btn-close,
+:root [role="alertdialog"] > .w-100 > .modal-header .btn-close,
+:root [role="dialog"] > .w-100 > .d-flex.justify-content-between.align-items-center .btn-close,
+:root [role="alertdialog"] > .w-100 > .d-flex.justify-content-between.align-items-center .btn-close {
+  filter: invert(1) grayscale(1) brightness(1.8) !important;
+  opacity: .95;
+}
