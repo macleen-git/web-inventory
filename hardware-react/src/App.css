@@ -2377,14 +2377,19 @@ button { cursor: pointer; }
     font-size: 17px;
   }
 
-  /* Use a calm navy highlight with a gold accent instead of yellow text
-     on a bright yellow fill, keeping selected labels readable. */
+  /* Keep the familiar yellow selected tab with white text and icon.
+     Hovering the selected tab adds a soft yellow glow without changing its fill. */
   .app-sidebar-desktop .app-nav-link.active,
-  .app-sidebar-desktop .app-nav-link.active:hover,
   .app-sidebar-desktop .app-nav-link.active:focus-visible {
     color: #fff !important;
-    background: rgba(255, 255, 255, .12) !important;
-    box-shadow: inset 3px 0 0 #ffc400, inset 0 0 0 1px rgba(255, 196, 0, .28) !important;
+    background: #ffc400 !important;
+    box-shadow: 0 4px 12px rgba(255, 196, 0, .24), inset 0 0 0 1px rgba(255,255,255,.16) !important;
+  }
+
+  .app-sidebar-desktop .app-nav-link.active:hover {
+    color: #fff !important;
+    background: #ffcf24 !important;
+    box-shadow: 0 0 15px rgba(255, 196, 0, .48), 0 4px 12px rgba(255, 196, 0, .24) !important;
   }
 
   .app-sidebar-desktop .app-nav-link.active .nav-icon,
