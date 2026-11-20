@@ -2123,3 +2123,49 @@ button { cursor: pointer; }
     animation: none !important;
   }
 }
+
+
+/* Transactions table — match Inventory readability and row spacing. */
+.transaction-table { min-width:760px !important; }
+.transaction-table thead th {
+  padding:13px 11px;
+  font-size:.74rem;
+  font-weight:800;
+  letter-spacing:.055em;
+  line-height:1.35;
+  vertical-align:middle;
+}
+.transaction-table tbody td {
+  padding:14px 11px;
+  font-size:.9rem;
+  font-weight:500;
+  line-height:1.45;
+  vertical-align:middle;
+}
+.transaction-table tbody td:first-child,
+.transaction-table tbody td:nth-child(2),
+.transaction-table tbody td:nth-child(3),
+.transaction-table tbody td:nth-child(5),
+.transaction-table tbody td:nth-child(6) {
+  white-space:nowrap;
+}
+.transaction-table tbody td:nth-child(4) {
+  min-width:150px;
+  font-weight:600;
+}
+.transaction-table tbody td:last-child {
+  min-width:150px;
+  overflow-wrap:anywhere;
+}
+:root[data-theme="dark"] .transaction-table tbody tr:hover > * {
+  --bs-table-bg-state:#263849;
+  color:#f1f6fb;
+}
+:root:not([data-theme="dark"]) .transaction-table tbody tr:hover > * {
+  --bs-table-bg-state:#f4f7fa;
+  color:#243746;
+}
+@media(max-width:575.98px) {
+  .transaction-table thead th { padding:11px 9px; font-size:.7rem; }
+  .transaction-table tbody td { padding:12px 9px; font-size:.86rem; }
+}
