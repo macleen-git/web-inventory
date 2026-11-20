@@ -115,10 +115,10 @@ app.post("/api/settings/reset-inventory", requireFirebaseUser, requireActiveUser
  const uid=req.firebaseUser.uid, connection=await pool.getConnection();
  try {
   await connection.beginTransaction();
-  const [stockIn]=await connection.execute("UPDATE stock_in s INNER JOIN products p ON p.id=s.product_id SET s.deleted_at=COALESCE(s.deleted_at,NOW()),s.deleted_by=COALESCE(s.deleted_by,?) WHERE p.user_uid=?",[uid,uid]);
-  const [sales]=await connection.execute("UPDATE sales s INNER JOIN products p ON p.id=s.product_id SET s.deleted_at=COALESCE(s.deleted_at,NOW()),s.deleted_by=COALESCE(s.deleted_by,?) WHERE p.user_uid=?",[uid,uid]);
-  const [damaged]=await connection.execute("UPDATE damaged_items d INNER JOIN products p ON p.id=d.product_id SET d.deleted_at=COALESCE(d.deleted_at,NOW()),d.deleted_by=COALESCE(d.deleted_by,?) WHERE p.user_uid=?",[uid,uid]);
-  const [products]=await connection.execute("UPDATE products SET deleted_at=COALESCE(deleted_at,NOW()),deleted_by=COALESCE(deleted_by,?) WHERE user_uid=?",[uid,uid]);
+  const [stockIn]=await connection.execute("UPDATE stock_in s INNER JOIN products p ON p.id=s.product_id SET s.deleted_at=COALESCE(s.deleted_at,NOW()),s.deleted_by=COALESCE(s.deleted_by,CONCAT("reset:",?)) WHERE p.user_uid=?",[uid,uid]);
+  const [sales]=await connection.execute("UPDATE sales s INNER JOIN products p ON p.id=s.product_id SET s.deleted_at=COALESCE(s.deleted_at,NOW()),s.deleted_by=COALESCE(s.deleted_by,CONCAT("reset:",?)) WHERE p.user_uid=?",[uid,uid]);
+  const [damaged]=await connection.execute("UPDATE damaged_items d INNER JOIN products p ON p.id=d.product_id SET d.deleted_at=COALESCE(d.deleted_at,NOW()),d.deleted_by=COALESCE(d.deleted_by,CONCAT("reset:",?)) WHERE p.user_uid=?",[uid,uid]);
+  const [products]=await connection.execute("UPDATE products SET deleted_at=COALESCE(deleted_at,NOW()),deleted_by=COALESCE(deleted_by,CONCAT("reset:",?)) WHERE user_uid=?",[uid,uid]);
   await connection.commit();
   res.json({message:"Inventory moved to Recently Deleted. Restore it within 30 days.",deleted:{products:products.affectedRows,stockIn:stockIn.affectedRows,sales:sales.affectedRows,damaged:damaged.affectedRows}});
  } catch(error) { await connection.rollback(); throw error; } finally { connection.release(); }
@@ -152,12 +152,14 @@ app.post("/api/recently-deleted/:type/:id/restore", requireFirebaseUser, require
    if(!rows.length)throw Object.assign(new Error("Deleted product not found."),{status:404});
    await c.execute("UPDATE products SET deleted_at=NULL,deleted_by=NULL WHERE id=? AND user_uid=?",[id,uid]);
   }else{
-   const [rows]=await c.execute("SELECT t.product_id,t.quantity FROM "+type+" t JOIN products p ON p.id=t.product_id WHERE t.id=? AND p.user_uid=? AND t.deleted_at IS NOT NULL AND p.deleted_at IS NULL FOR UPDATE",[id,uid]);
+   const [rows]=await c.execute("SELECT t.product_id,t.quantity,t.deleted_by FROM "+type+" t JOIN products p ON p.id=t.product_id WHERE t.id=? AND p.user_uid=? AND t.deleted_at IS NOT NULL AND p.deleted_at IS NULL FOR UPDATE",[id,uid]);
    if(!rows.length)throw Object.assign(new Error("Deleted record not found. Restore its product first, if deleted."),{status:404});
    const pid=rows[0].product_id,q=Number(rows[0].quantity);
    const [p]=await c.execute("SELECT stock FROM products WHERE id=? AND user_uid=? AND deleted_at IS NULL FOR UPDATE",[pid,uid]);
-   if(type==="stock_in")await c.execute("UPDATE products SET stock=stock+? WHERE id=?",[q,pid]);
-   else {if(!p.length||Number(p[0].stock)<q)throw Object.assign(new Error("Not enough stock to restore this record safely."),{status:409});await c.execute("UPDATE products SET stock=stock-? WHERE id=?",[q,pid]);}
+   if(!String(rows[0].deleted_by||"").startsWith("reset:")){
+    if(type==="stock_in")await c.execute("UPDATE products SET stock=stock+? WHERE id=?",[q,pid]);
+    else {if(!p.length||Number(p[0].stock)<q)throw Object.assign(new Error("Not enough stock to restore this record safely."),{status:409});await c.execute("UPDATE products SET stock=stock-? WHERE id=?",[q,pid]);}
+   }
    await c.execute("UPDATE "+type+" SET deleted_at=NULL,deleted_by=NULL WHERE id=?",[id]);
   }
   await c.commit();res.json({message:"Record restored successfully."});
