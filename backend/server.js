@@ -80,19 +80,19 @@ async function saveDeletedRecord(connection, uid, type, row, batchId = null) {
  );
 }
 async function insertDeletedSourceRow(connection, type, row) {
- const allowed = {
-  products: ["id","user_uid","product","category","buy","sell","stock"],
-  stock_in: ["id","product_id","quantity","unit_cost","total_cost","date","note"],
-  sales: ["id","product_id","quantity","date","amount","unit_cost","profit","note"],
-  damaged_items: ["id","product_id","quantity","date","unit_cost","total_loss","reason"]
- };
- const columns = allowed[type];
- if (!columns || !row || !Number.isInteger(Number(row.id))) throw Object.assign(new Error("Deleted record data is invalid."),{status:400});
- const present = columns.filter(key => Object.prototype.hasOwnProperty.call(row,key));
- if (!present.includes("id")) throw Object.assign(new Error("Original record ID is missing."),{status:400});
- const names = present.map(key => "`"+key+"`").join(",");
- const marks = present.map(() => "?").join(",");
- await connection.execute("INSERT INTO `"+type+"` ("+names+") VALUES ("+marks+")",present.map(key => row[key]));
+ const allowedTypes = new Set(["products","stock_in","sales","damaged_items"]);
+ if (!allowedTypes.has(type) || !row || !Number.isInteger(Number(row.id))) {
+  throw Object.assign(new Error("Deleted record data is invalid."),{status:400});
+ }
+ // The JSON snapshot came from SELECT * on this exact source table.
+ // Restore every original column, including future schema additions.
+ const columns = Object.keys(row);
+ if (!columns.includes("id") || columns.some(key => !/^[A-Za-z0-9_]+$/.test(key))) {
+  throw Object.assign(new Error("Deleted record contains invalid column data."),{status:400});
+ }
+ const names = columns.map(key => "`"+key+"`").join(",");
+ const marks = columns.map(() => "?").join(",");
+ await connection.execute("INSERT INTO `"+type+"` ("+names+") VALUES ("+marks+")",columns.map(key => row[key]));
 }
 async function archiveProductTree(connection, uid, productId) {
  const [products] = await connection.execute("SELECT * FROM products WHERE id=? AND user_uid=? FOR UPDATE",[productId,uid]);
