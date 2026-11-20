@@ -1,5 +1,7 @@
+import SuccessModal from '../components/SuccessModal'
 import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
+import { API_URL, apiFetch } from '../config/api'
 
 // =========================
 // SMART SEARCH FUNCTION
@@ -75,17 +77,19 @@ export default function Inventory() {
   const [confirmation, setConfirmation] = useState(null)
   const [isConfirming, setIsConfirming] = useState(false)
 
+  const [success, setSuccess] = useState(null)
+
   // SEARCH AND FILTER STATES
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('All Status')
 
-  const api_url = 'https://web-inventory-rfai.onrender.com/api/product'
+  const api_url = API_URL('/api/product')
 
   // =========================
   // GET PRODUCTS
   // =========================
   useEffect(() => {
-    fetch(api_url)
+    apiFetch(api_url)
       .then((response) => {
         if (!response.ok) {
           throw new Error('Failed to fetch products')
@@ -174,7 +178,7 @@ export default function Inventory() {
     event.preventDefault()
 
     try {
-      const response = await fetch(api_url, {
+      const response = await apiFetch(api_url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -206,6 +210,14 @@ export default function Inventory() {
       setStock('')
 
       setShowAddProduct(false)
+      setSuccess({
+        title: 'Product Added Successfully!',
+        details: [
+          { label: 'Product', value: product },
+          { label: 'Category', value: category },
+          { label: 'Starting Stock', value: stock }
+        ]
+      })
     } catch (err) {
       console.log('Add product error:', err)
       alert(err.message || 'Failed to add product')
@@ -242,7 +254,7 @@ export default function Inventory() {
       throw new Error('No product selected')
     }
 
-    const response = await fetch(`${api_url}/${editID}`, {
+    const response = await apiFetch(`${api_url}/${editID}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
@@ -296,7 +308,7 @@ export default function Inventory() {
 
   // Perform the actual deletion after confirmation.
   async function performDelete(id) {
-    const response = await fetch(`${api_url}/${id}`, {
+    const response = await apiFetch(`${api_url}/${id}`, {
       method: 'DELETE'
     })
 
@@ -373,6 +385,7 @@ export default function Inventory() {
   }
 
   return (
+    <>
     <div className="app-layout">
       <Sidebar active="/inventory" />
 
@@ -947,5 +960,14 @@ export default function Inventory() {
         </div>
       </div>
     </div>
+          {success && (
+            <SuccessModal
+              title={success.title}
+              details={success.details}
+              message="The record has been successfully saved."
+              onClose={() => setSuccess(null)}
+            />
+          )}
+    </>
   )
 }

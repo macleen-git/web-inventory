@@ -1,9 +1,11 @@
+import SuccessModal from '../components/SuccessModal'
 
 import { useEffect, useState } from 'react'
 import Sidebar from '../components/Sidebar'
+import { API_URL, apiFetch } from '../config/api'
 
 export default function Sales() {
-  const api_url = 'https://web-inventory-rfai.onrender.com/api/sales'
+  const api_url = API_URL('/api/sales')
 
   const [sales, setSales] = useState([])
   const [products, setProducts] = useState([])
@@ -31,17 +33,10 @@ export default function Sales() {
   const [confirmation, setConfirmation] = useState(null)
   const [isConfirming, setIsConfirming] = useState(false)
 
+  const [success, setSuccess] = useState(null)
+
   // SEARCH
   const [search, setSearch] = useState('')
-
-  // CALCULATOR
-  const [showCalculator, setShowCalculator] = useState(false)
-  const [showHistory, setShowHistory] = useState(false)
-  const [display, setDisplay] = useState('0')
-  const [firstNumber, setFirstNumber] = useState(null)
-  const [operator, setOperator] = useState(null)
-  const [waitingForNumber, setWaitingForNumber] = useState(false)
-  const [history, setHistory] = useState([])
 
   // =========================
   // GET SALES
@@ -49,7 +44,7 @@ export default function Sales() {
   useEffect(() => {
     async function loadSales() {
       try {
-        const response = await fetch(api_url)
+        const response = await apiFetch(api_url)
 
         if (!response.ok) {
           throw new Error('Failed to fetch sales')
@@ -64,7 +59,7 @@ export default function Sales() {
 
     async function loadProducts() {
       try {
-        const response = await fetch('https://web-inventory-rfai.onrender.com/api/product')
+        const response = await apiFetch(API_URL('/api/product'))
         if (!response.ok) throw new Error('Failed to fetch products')
         const data = await response.json()
         setProducts(Array.isArray(data) ? data : [])
@@ -163,7 +158,7 @@ export default function Sales() {
     if (estimatedLoss > 0) return alert(`LOSS PREVENTED: This sale would lose ₱${estimatedLoss.toFixed(2)}.`)
 
     try {
-      const response = await fetch(api_url, {
+      const response = await apiFetch(api_url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -196,7 +191,7 @@ export default function Sales() {
       if (data.id !== undefined) {
         setSales((previous) => [...previous, data])
       } else {
-        const refreshResponse = await fetch(api_url)
+        const refreshResponse = await apiFetch(api_url)
 
         if (refreshResponse.ok) {
           setSales(await refreshResponse.json())
@@ -204,6 +199,14 @@ export default function Sales() {
       }
 
       closeAddModal()
+      setSuccess({
+        title: 'Sale Recorded Successfully!',
+        details: [
+          { label: 'Product', value: product },
+          { label: 'Quantity Sold', value: quantity },
+          { label: 'Total Amount', value: `₱${Number(calculatedAmount).toFixed(2)}` }
+        ]
+      })
     } catch (error) {
       console.error('Add sale error:', error)
       alert(error.message || 'Failed to record sale')
@@ -248,7 +251,7 @@ export default function Sales() {
   // UPDATE - PUT
   // =========================
   async function performUpdate() {
-    const response = await fetch(`${api_url}/${editID}`, {
+    const response = await apiFetch(`${api_url}/${editID}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
@@ -284,7 +287,7 @@ export default function Sales() {
         )
       )
     } else {
-      const refreshResponse = await fetch(api_url)
+      const refreshResponse = await apiFetch(api_url)
 
       if (refreshResponse.ok) {
         setSales(await refreshResponse.json())
@@ -317,7 +320,7 @@ export default function Sales() {
   // DELETE - DELETE REQUEST
   // =========================
   async function performDelete(id) {
-    const response = await fetch(`${api_url}/${id}`, {
+    const response = await apiFetch(`${api_url}/${id}`, {
       method: 'DELETE'
     })
 
@@ -396,189 +399,8 @@ export default function Sales() {
     setEditNote('')
   }
 
-  // =========================
-  // CALCULATOR
-  // =========================
-  function formatNumber(number) {
-    if (!Number.isFinite(number)) return 'Error'
-
-    return Number(number.toPrecision(12)).toString()
-  }
-
-  function calculateResult(first, second, op) {
-    if (op === '+') return first + second
-    if (op === '-') return first - second
-    if (op === '×') return first * second
-
-    if (op === '÷') {
-      if (second === 0) return null
-      return first / second
-    }
-
-    return second
-  }
-
-  function calculatorInput(value) {
-    if (value === 'C') {
-      setDisplay('0')
-      setFirstNumber(null)
-      setOperator(null)
-      setWaitingForNumber(false)
-      return
-    }
-
-    if (value === '⌫') {
-      if (waitingForNumber || display === 'Error') {
-        setDisplay('0')
-        setWaitingForNumber(false)
-        return
-      }
-
-      setDisplay(
-        display.length > 1 ? display.slice(0, -1) : '0'
-      )
-      return
-    }
-
-    if (value === '.') {
-      if (waitingForNumber || display === 'Error') {
-        setDisplay('0.')
-        setWaitingForNumber(false)
-      } else if (!display.includes('.')) {
-        setDisplay(display + '.')
-      }
-
-      return
-    }
-
-    if (['+', '-', '×', '÷'].includes(value)) {
-      const currentNumber = Number(display)
-
-      if (!Number.isFinite(currentNumber)) return
-
-      if (
-        operator !== null &&
-        !waitingForNumber &&
-        firstNumber !== null
-      ) {
-        const result = calculateResult(
-          firstNumber,
-          currentNumber,
-          operator
-        )
-
-        if (result === null) {
-          setDisplay('Error')
-          setFirstNumber(null)
-          setOperator(null)
-          setWaitingForNumber(true)
-          return
-        }
-
-        setDisplay(formatNumber(result))
-        setFirstNumber(result)
-      } else {
-        setFirstNumber(currentNumber)
-      }
-
-      setOperator(value)
-      setWaitingForNumber(true)
-      return
-    }
-
-    if (value === '=') {
-      if (
-        operator === null ||
-        firstNumber === null ||
-        waitingForNumber
-      ) {
-        return
-      }
-
-      const secondNumber = Number(display)
-
-      const result = calculateResult(
-        firstNumber,
-        secondNumber,
-        operator
-      )
-
-      if (result === null) {
-        setDisplay('Error')
-        setFirstNumber(null)
-        setOperator(null)
-        setWaitingForNumber(true)
-        return
-      }
-
-      const answer = formatNumber(result)
-
-      setHistory((previous) => [
-        {
-          id: Date.now() + Math.random(),
-          expression:
-            `${formatNumber(firstNumber)} ${operator} ${formatNumber(secondNumber)}`,
-          result: answer
-        },
-        ...previous
-      ])
-
-      setDisplay(answer)
-      setFirstNumber(null)
-      setOperator(null)
-      setWaitingForNumber(true)
-      return
-    }
-
-    if (/^\d$/.test(value)) {
-      if (waitingForNumber || display === 'Error') {
-        setDisplay(value)
-        setWaitingForNumber(false)
-      } else {
-        setDisplay(display === '0' ? value : display + value)
-      }
-    }
-  }
-
-  function handleCalculatorKey(event) {
-    if (event.key === 'Escape') {
-      closeCalculator()
-      return
-    }
-
-    if (showHistory) return
-
-    if (/^\d$/.test(event.key)) {
-      calculatorInput(event.key)
-    }
-
-    if (event.key === '.') calculatorInput('.')
-    if (event.key === '+') calculatorInput('+')
-    if (event.key === '-') calculatorInput('-')
-    if (event.key === '*') calculatorInput('×')
-
-    if (event.key === '/') {
-      event.preventDefault()
-      calculatorInput('÷')
-    }
-
-    if (event.key === 'Enter' || event.key === '=') {
-      event.preventDefault()
-      calculatorInput('=')
-    }
-
-    if (event.key === 'Backspace') {
-      event.preventDefault()
-      calculatorInput('⌫')
-    }
-  }
-
-  function closeCalculator() {
-    setShowCalculator(false)
-    setShowHistory(false)
-  }
-
   return (
+    <>
     <div className="app-layout">
       <Sidebar active="/sales" />
 
@@ -595,22 +417,6 @@ export default function Sales() {
             </div>
 
             <div className="d-flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="btn btn-outline-dark d-flex align-items-center gap-2"
-                onClick={() => {
-                  setShowCalculator(true)
-                  setShowHistory(false)
-                }}
-                style={{
-                  minHeight: '42px',
-                  borderRadius: '10px'
-                }}
-              >
-                <span style={{ fontSize: '20px' }}>🖩</span>
-                <b>Calculator</b>
-              </button>
-
               <button
                 type="button"
                 className="btn btn-warning fw-bold"
@@ -742,7 +548,9 @@ export default function Sales() {
               maxWidth: '500px',
               borderRadius: '16px',
               overflow: 'hidden',
-              background: '#fff',
+              background: 'var(--hw-card)',
+              color: 'var(--hw-text)',
+              border: '1px solid var(--hw-border)',
               boxShadow: '0 20px 60px rgba(0,0,0,.3)'
             }}
           >
@@ -796,16 +604,16 @@ export default function Sales() {
                       required
                     />
                     {showProductSuggestions && (
-                      <div className="position-absolute w-100 bg-white border rounded shadow" style={{ zIndex: 1100, top: 'calc(100% + 5px)', maxHeight: '250px', overflowY: 'auto' }}>
+                      <div className="position-absolute w-100 product-suggestion-list border rounded shadow" style={{ zIndex: 1100, top: 'calc(100% + 5px)', maxHeight: '250px', overflowY: 'auto' }}>
                         {matchingProducts.length ? matchingProducts.map((item) => {
                           const status = getStockStatus(item.stock)
                           return (
-                            <button type="button" key={item.id} className="w-100 text-start border-0 border-bottom bg-white px-3 py-2" onMouseDown={(event) => event.preventDefault()} onClick={() => selectProduct(item)}>
+                            <button type="button" key={item.id} className="w-100 text-start border-0 border-bottom product-suggestion-item px-3 py-2" onMouseDown={(event) => event.preventDefault()} onClick={() => selectProduct(item)}>
                               <span className="d-flex justify-content-between align-items-center gap-2">
                                 <strong>{item.product}</strong>
                                 <span className={`badge ${status.className}`}>{status.label}</span>
                               </span>
-                              <small className="d-flex justify-content-between text-muted mt-1">
+                              <small className="d-flex justify-content-between product-suggestion-meta mt-1">
                                 <span>₱{Number(item.sell || 0).toFixed(2)} each</span>
                                 <span>Stock: {Number(item.stock) || 0}</span>
                               </small>
@@ -815,12 +623,6 @@ export default function Sales() {
                       </div>
                     )}
                   </div>
-                  {selectedProduct && (
-                    <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 p-2 rounded bg-light">
-                      <div><strong>{selectedProduct.product}</strong><div className="small text-muted">Selling price: ₱{unitSellingPrice.toFixed(2)} · Cost: ₱{unitCost.toFixed(2)}</div></div>
-                      <div className="text-end"><span className={`badge ${getStockStatus(availableStock).className}`}>{getStockStatus(availableStock).label}</span><div className="small fw-semibold mt-1">{availableStock} available</div></div>
-                    </div>
-                  )}
                   {products.length === 0 && <small className="text-danger">No inventory products were loaded. Check the product API connection.</small>}
                 </div>
 
@@ -946,7 +748,9 @@ export default function Sales() {
               maxWidth: '500px',
               borderRadius: '16px',
               overflow: 'hidden',
-              background: '#fff',
+              background: 'var(--hw-card)',
+              color: 'var(--hw-text)',
+              border: '1px solid var(--hw-border)',
               boxShadow: '0 20px 60px rgba(0,0,0,.3)'
             }}
           >
@@ -1193,255 +997,16 @@ export default function Sales() {
         </div>
       )}
 
-      {/* =========================
-          CALCULATOR MODAL
-      ========================= */}
-      {showCalculator && (
-        <div
-          className="d-flex align-items-center justify-content-center p-3"
-          role="dialog"
-          aria-modal="true"
-          aria-label={showHistory ? 'Calculation History' : 'Calculator'}
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) {
-              closeCalculator()
-            }
-          }}
-          onKeyDown={handleCalculatorKey}
-          tabIndex={-1}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 2000,
-            background: 'rgba(0, 0, 0, 0.72)',
-            overflowY: 'auto'
-          }}
-        >
-          <div
-            className="w-100"
-            style={{
-              maxWidth: '360px',
-              margin: 'auto',
-              background: '#17212b',
-              color: '#fff',
-              borderRadius: '22px',
-              border: '1px solid #344454',
-              overflow: 'hidden',
-              boxShadow: '0 24px 70px rgba(0,0,0,.4)'
-            }}
-          >
-            <div
-              className="d-flex justify-content-between align-items-center"
-              style={{ padding: '18px 20px 8px' }}
-            >
-              <h5 className="fw-bold mb-0">
-                {showHistory ? 'Calculation History' : 'Calculator'}
-              </h5>
-
-              <div className="d-flex gap-2">
-                <button
-                  type="button"
-                  className="btn"
-                  title="Calculation History"
-                  aria-label="Toggle calculation history"
-                  onClick={() => setShowHistory((value) => !value)}
-                  style={{
-                    color: '#ffc107',
-                    fontSize: '23px',
-                    border: 'none'
-                  }}
-                >
-                  ◷
-                </button>
-
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-light"
-                  aria-label="Close calculator"
-                  onClick={closeCalculator}
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            <div className="p-3">
-              {showHistory ? (
-                <div>
-                  <div className="d-flex justify-content-between align-items-center gap-2 mb-3">
-                    <span style={{ color: '#aab8c5' }}>
-                      Previous calculations
-                    </span>
-
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-warning"
-                      onClick={() => setHistory([])}
-                      disabled={history.length === 0}
-                    >
-                      Clear History
-                    </button>
-                  </div>
-
-                  <div style={{ maxHeight: '390px', overflowY: 'auto' }}>
-                    {history.length > 0 ? (
-                      history.map((item) => (
-                        <button
-                          type="button"
-                          key={item.id}
-                          className="w-100 text-start mb-2 p-3"
-                          onClick={() => {
-                            setDisplay(item.result)
-                            setFirstNumber(null)
-                            setOperator(null)
-                            setWaitingForNumber(true)
-                            setShowHistory(false)
-                          }}
-                          style={{
-                            background: '#24313e',
-                            color: '#fff',
-                            border: '1px solid #344454',
-                            borderRadius: '12px'
-                          }}
-                        >
-                          <div style={{ color: '#aab8c5', fontSize: '14px' }}>
-                            {item.expression}
-                          </div>
-
-                          <div
-                            className="text-end mt-1"
-                            style={{
-                              color: '#ffc107',
-                              fontSize: '21px',
-                              fontWeight: 'bold'
-                            }}
-                          >
-                            = {item.result}
-                          </div>
-                        </button>
-                      ))
-                    ) : (
-                      <div
-                        className="text-center py-5"
-                        style={{ color: '#aab8c5' }}
-                      >
-                        <div style={{ fontSize: '35px' }}>◷</div>
-                        <p className="mb-0">
-                          No calculation history yet.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    className="btn btn-outline-light w-100 mt-3"
-                    onClick={() => setShowHistory(false)}
-                  >
-                    Back to Calculator
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div
-                    className="text-end mb-3 p-3"
-                    style={{
-                      background: '#24313e',
-                      borderRadius: '14px',
-                      minHeight: '105px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'end',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    {operator && firstNumber !== null && (
-                      <div
-                        style={{
-                          color: '#aab8c5',
-                          fontSize: '15px',
-                          marginBottom: '5px'
-                        }}
-                      >
-                        {formatNumber(firstNumber)} {operator}
-                      </div>
-                    )}
-
-                    <div
-                      style={{
-                        fontSize: 'clamp(24px, 8vw, 36px)',
-                        fontWeight: 'bold',
-                        overflowWrap: 'anywhere',
-                        lineHeight: 1.2
-                      }}
-                    >
-                      {display}
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-                      gap: '9px'
-                    }}
-                  >
-                    {[
-                      'C', '⌫', '÷', '×',
-                      '7', '8', '9', '−',
-                      '4', '5', '6', '+',
-                      '1', '2', '3', '=',
-                      '0', '.'
-                    ].map((key) => {
-                      const isOperator = [
-                        'C', '⌫', '÷', '×', '−', '+'
-                      ].includes(key)
-
-                      return (
-                        <button
-                          type="button"
-                          key={key}
-                          onClick={() =>
-                            calculatorInput(key === '−' ? '-' : key)
-                          }
-                          style={{
-                            gridColumn: key === '0' ? 'span 2' : 'span 1',
-                            height: 'clamp(44px, 12vw, 58px)',
-                            borderRadius: '14px',
-                            border: '1px solid #344454',
-                            background: key === '='
-                              ? '#ffc107'
-                              : isOperator
-                                ? '#37485a'
-                                : '#24313e',
-                            color: key === '='
-                              ? '#17212b'
-                              : isOperator
-                                ? '#ffc107'
-                                : '#fff',
-                            fontSize: '21px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          {key}
-                        </button>
-                      )
-                    })}
-                  </div>
-
-                  <div
-                    className="text-center mt-3"
-                    style={{ color: '#aab8c5', fontSize: '12px' }}
-                  >
-                    Click outside to close
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
+          {success && (
+            <SuccessModal
+              title={success.title}
+              details={success.details}
+              message="The record has been successfully saved."
+              onClose={() => setSuccess(null)}
+            />
+          )}
+
+    </>
   )
 }

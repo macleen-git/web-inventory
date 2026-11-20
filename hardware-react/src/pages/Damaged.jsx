@@ -1,13 +1,17 @@
 
 import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
+import { API_URL, apiFetch } from '../config/api'
 
 function Damaged() {
-  const api_url = 'https://web-inventory-rfai.onrender.com/api/damaged'
+  const api_url = API_URL('/api/damaged')
+  const productsApiUrl = API_URL('/api/product')
 
   const [damagedItems, setDamagedItems] = useState([])
+  const [products, setProducts] = useState([])
 
   const [product, setProduct] = useState('')
+  const [showProductSuggestions, setShowProductSuggestions] = useState(false)
   const [quantity, setQuantity] = useState('')
   const [date, setDate] = useState('')
   const [loss, setLoss] = useState('')
@@ -32,7 +36,7 @@ function Damaged() {
   // =========================
   async function loadDamagedItems() {
     try {
-      const response = await fetch(api_url)
+      const response = await apiFetch(api_url)
 
       if (!response.ok) {
         throw new Error('Failed to load damaged items.')
@@ -47,13 +51,84 @@ function Damaged() {
 
   useEffect(() => {
     loadDamagedItems()
+
+    apiFetch(productsApiUrl)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Failed to fetch inventory products.')
+        }
+        return response.json()
+      })
+      .then((data) => {
+        setProducts(Array.isArray(data) ? data : [])
+      })
+      .catch((error) => {
+        console.error('Inventory products fetch error:', error)
+      })
   }, [])
+
+  // ADD DAMAGED PRODUCT AUTOCOMPLETE (matching Add Sale and Add Stock)
+  function editDistance(a, b) {
+    const left = a.toLowerCase()
+    const right = b.toLowerCase()
+    const row = Array.from({ length: right.length + 1 }, (_, index) => index)
+
+    for (let i = 1; i <= left.length; i++) {
+      let diagonal = row[0]
+      row[0] = i
+      for (let j = 1; j <= right.length; j++) {
+        const above = row[j]
+        row[j] = Math.min(
+          row[j] + 1,
+          row[j - 1] + 1,
+          diagonal + (left[i - 1] === right[j - 1] ? 0 : 1)
+        )
+        diagonal = above
+      }
+    }
+    return row[right.length]
+  }
+
+  const matchingDamagedProducts = product.trim()
+    ? products
+        .map((item) => {
+          const name = String(item.product || '')
+          const normalized = name.toLowerCase()
+          const query = product.trim().toLowerCase()
+          const distance = editDistance(query, normalized)
+          const score = normalized.startsWith(query)
+            ? 0
+            : normalized.includes(query)
+              ? 1
+              : distance <= Math.max(1, Math.floor(query.length / 3))
+                ? 2
+                : 3
+          return { item, score, distance }
+        })
+        .filter((entry) => entry.score < 3)
+        .sort((a, b) => a.score - b.score || a.distance - b.distance)
+        .slice(0, 6)
+        .map((entry) => entry.item)
+    : products.slice(0, 6)
+
+  function selectDamagedProduct(item) {
+    setProduct(item.product)
+    setShowProductSuggestions(false)
+  }
+
+  // Calculate total damage loss using the selected product's buying price.
+  const selectedDamagedProduct = products.find(
+    (item) => String(item.product).toLowerCase() === product.trim().toLowerCase()
+  )
+  const buyingPrice = Number(selectedDamagedProduct?.buy) || 0
+  const calculatedLoss = buyingPrice * (Number(quantity) || 0)
 
   // =========================
   // RESET ADD FORM
   // =========================
   function resetAddForm() {
     setProduct('')
+    setShowProductSuggestions(false)
     setQuantity('')
     setDate('')
     setLoss('')
@@ -90,7 +165,7 @@ function Damaged() {
     event.preventDefault()
 
     try {
-      const response = await fetch(api_url, {
+      const response = await apiFetch(api_url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -99,7 +174,7 @@ function Damaged() {
           product,
           quantity,
           date,
-          loss,
+          loss: calculatedLoss.toFixed(2),
           reason
         })
       })
@@ -173,7 +248,7 @@ function Damaged() {
   // EXECUTE UPDATE - PUT
   // =========================
   async function performUpdate() {
-    const response = await fetch(`${api_url}/${editID}`, {
+    const response = await apiFetch(`${api_url}/${editID}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
@@ -246,7 +321,7 @@ function Damaged() {
   // EXECUTE DELETE - DELETE
   // =========================
   async function performDelete(id) {
-    const response = await fetch(`${api_url}/${id}`, {
+    const response = await apiFetch(`${api_url}/${id}`, {
       method: 'DELETE'
     })
 
@@ -423,7 +498,9 @@ function Damaged() {
               maxWidth: '500px',
               borderRadius: '16px',
               overflow: 'hidden',
-              background: '#fff',
+              background: 'var(--hw-card)',
+              color: 'var(--hw-text)',
+              border: '1px solid var(--hw-border)',
               boxShadow: '0 20px 60px rgba(0,0,0,.3)'
             }}
           >
@@ -451,14 +528,54 @@ function Damaged() {
               <div className="p-3 p-md-4">
                 <div className="mb-3">
                   <label className="form-label fw-bold">Product</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Enter product name"
-                    value={product}
-                    onChange={(event) => setProduct(event.target.value)}
-                    required
-                  />
+                  <div className="position-relative">
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Search product"
+                      autoComplete="off"
+                      value={product}
+                      onFocus={() => setShowProductSuggestions(true)}
+                      onChange={(event) => {
+                        setProduct(event.target.value)
+                        setShowProductSuggestions(true)
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Escape') setShowProductSuggestions(false)
+                        if (event.key === 'Enter' && matchingDamagedProducts.length) {
+                          event.preventDefault()
+                          selectDamagedProduct(matchingDamagedProducts[0])
+                        }
+                      }}
+                      required
+                    />
+                    {showProductSuggestions && (
+                      <div
+                        className="position-absolute w-100 product-suggestion-list border rounded shadow"
+                        style={{ zIndex: 1100, top: 'calc(100% + 5px)', maxHeight: '250px', overflowY: 'auto' }}
+                      >
+                        {matchingDamagedProducts.length ? (
+                          matchingDamagedProducts.map((item) => (
+                            <button
+                              type="button"
+                              key={item.id}
+                              className="w-100 text-start border-0 border-bottom product-suggestion-item px-3 py-2"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => selectDamagedProduct(item)}
+                            >
+                              <strong>{item.product}</strong>
+                              <small className="d-flex justify-content-between product-suggestion-meta mt-1">
+                                <span>Buy price: ₱{Number(item.buy || 0).toFixed(2)}</span>
+                                <span>Stock: {Number(item.stock) || 0}</span>
+                              </small>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="p-3 text-muted small">No close product matches found.</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="row g-3">
@@ -489,17 +606,20 @@ function Damaged() {
                 </div>
 
                 <div className="my-3">
-                  <label className="form-label fw-bold">Loss (₱)</label>
+                  <label className="form-label fw-bold">Total Loss (₱)</label>
                   <input
                     type="number"
                     className="form-control"
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                    value={loss}
-                    onChange={(event) => setLoss(event.target.value)}
-                    required
+                    placeholder="Automatically calculated from buying price × quantity"
+                    value={product && quantity ? calculatedLoss.toFixed(2) : ''}
+                    readOnly
+                    aria-readonly="true"
                   />
+                  <small className="text-muted">
+                    {selectedDamagedProduct
+                      ? `Buying price: ₱${buyingPrice.toFixed(2)} per unit × ${Number(quantity) || 0} = ₱${calculatedLoss.toFixed(2)} total loss`
+                      : 'Select an inventory product to load its buying price automatically.'}
+                  </small>
                 </div>
 
                 <div className="mb-2">
@@ -565,7 +685,9 @@ function Damaged() {
               maxWidth: '500px',
               borderRadius: '16px',
               overflow: 'hidden',
-              background: '#fff',
+              background: 'var(--hw-card)',
+              color: 'var(--hw-text)',
+              border: '1px solid var(--hw-border)',
               boxShadow: '0 20px 60px rgba(0,0,0,.3)'
             }}
           >

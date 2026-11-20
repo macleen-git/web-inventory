@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Sidebar from '../components/Sidebar'
+import { API_URL, apiFetch } from '../config/api'
 
-const API = 'https://web-inventory-rfai.onrender.com/api'
+const API = API_URL('/api')
 const ENDPOINTS = ['product', 'sales', 'stock-in', 'damaged']
 
 function asNumber(value) {
@@ -26,26 +27,22 @@ function dateKey(date) {
   return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-')
 }
 
-function inSelectedPeriod(value, period) {
+function inSelectedPeriod(value, selectedDate) {
   const date = parseDate(value)
-  if (!date) return false
-  if (period === 'All time') return true
-  const now = new Date()
-  const start = new Date(now)
-  if (period === 'Last 7 days') start.setDate(now.getDate() - 6)
-  else if (period === 'Last 30 days') start.setDate(now.getDate() - 29)
-  else start.setMonth(now.getMonth() - 11, 1)
-  start.setHours(0, 0, 0, 0)
-  return date >= start && date <= now
+  if (!date || !selectedDate) return false
+  return dateKey(date) === selectedDate
 }
 
+function todayKey() {
+  return dateKey(new Date())
+}
 function MetricCard({ label, value, note, icon, accent }) {
   return (
     <article className="analytics-metric-card">
       <div className="d-flex align-items-start justify-content-between gap-3">
         <div>
           <p className="analytics-eyebrow mb-2">{label}</p>
-          <div className="analytics-metric-value">{value}</div>
+          <div className="analytics-metric-value" title={String(value)}>{value}</div>
           <small className="analytics-muted">{note}</small>
         </div>
         <span className={`analytics-metric-icon ${accent || ''}`} aria-hidden="true">
@@ -56,36 +53,46 @@ function MetricCard({ label, value, note, icon, accent }) {
   )
 }
 
-function BarChart({ title, subtitle, items, format = value => value }) {
-  const maximum = Math.max(1, ...items.map(item => item.value))
+function BarChart({ title, subtitle, items, format = value => value, refreshing = false, animationKey = 0, animate = false }) {
+  const width = 720
+  const height = 230
+  const left = 62
+  const right = 14
+  const top = 18
+  const bottom = 34
+  const maxValue = Math.max(1, ...items.map(item => item.value))
+  const points = items.map((item, index) => ({
+    ...item,
+    x: items.length <= 1 ? (left + width - right) / 2 : left + index * (width - left - right) / (items.length - 1),
+    y: top + (1 - item.value / maxValue) * (height - top - bottom),
+  }))
+  const line = points.map(point => `${point.x},${point.y}`).join(' ')
   return (
-    <section className="analytics-panel h-100">
-      <div className="analytics-panel-heading">
-        <div>
-          <h2>{title}</h2>
-          <p>{subtitle}</p>
-        </div>
-      </div>
+    <section className={`analytics-panel h-100 ${refreshing ? 'analytics-chart-refreshing' : ''}`}>
+      <div className="analytics-panel-heading"><div><h2>{title}</h2><p>{subtitle}</p></div></div>
       {items.length ? (
-        <div className="analytics-bars" role="img" aria-label={title}>
-          {items.map(item => (
-            <div className="analytics-bar-column" key={item.label} title={`${item.label}: ${format(item.value)}`}>
-              <strong>{format(item.value)}</strong>
-              <div className="analytics-bar-track">
-                <span style={{ height: `${Math.max(item.value > 0 ? 5 : 0, item.value / maximum * 100)}%` }} />
-              </div>
-              <small>{item.label}</small>
-            </div>
-          ))}
+        <div className="sales-trend-chart analytics-sales-trend">
+          <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={title} preserveAspectRatio="none">
+            {[0,1,2,3,4].map(tick => {
+              const y = top + tick * (height - top - bottom) / 4
+              const value = maxValue * (1 - tick / 4)
+              return <g key={tick}><line x1={left} y1={y} x2={width-right} y2={y} className="sales-chart-grid" /><text x={left-9} y={y+4} textAnchor="end" className="sales-chart-axis">{format(value)}</text></g>
+            })}
+            {points.length > 1 && <polyline key={`${animationKey}-${items.map(item => item.value).join("-")}`} points={line} pathLength="1" className={`sales-chart-line ${animate ? "sales-chart-line-draw" : ""}`} />}
+            {points.map(point => <g key={point.key || point.label}><circle cx={point.x} cy={point.y} r="4.5" className="sales-chart-dot"><title>{point.label}: {format(point.value)}</title></circle><text x={point.x} y={height-8} textAnchor="middle" className="sales-chart-axis">{point.label}</text></g>)}
+          </svg>
         </div>
-      ) : <div className="analytics-empty">No records for this period.</div>}
+      ) : <div className="analytics-empty">No sales records available for this period.</div>}
     </section>
   )
 }
 
 function Dashboard() {
   const [data, setData] = useState({ products: [], sales: [], stockIns: [], damaged: [] })
-  const [period, setPeriod] = useState('Last 7 days')
+  const [selectedDate, setSelectedDate] = useState(todayKey)
+  const [trendPeriod, setTrendPeriod] = useState('Today')
+  const [trendAnimationKey, setTrendAnimationKey] = useState(0)
+  const [animateTrend, setAnimateTrend] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [updatedAt, setUpdatedAt] = useState(null)
@@ -94,7 +101,7 @@ function Dashboard() {
     setLoading(true)
     setError('')
     try {
-      const responses = await Promise.all(ENDPOINTS.map(endpoint => fetch(`${API}/${endpoint}`)))
+      const responses = await Promise.all(ENDPOINTS.map(endpoint => apiFetch(`${API}/${endpoint}`)))
       const failed = responses.find(response => !response.ok)
       if (failed) throw new Error(`Unable to load dashboard data (HTTP ${failed.status}).`)
       const [products, sales, stockIns, damaged] = await Promise.all(responses.map(response => response.json()))
@@ -113,10 +120,9 @@ function Dashboard() {
   }, [])
 
   useEffect(() => { loadData() }, [loadData])
-
-  const filteredSales = useMemo(() => data.sales.filter(item => inSelectedPeriod(item.date, period)), [data.sales, period])
-  const filteredStockIns = useMemo(() => data.stockIns.filter(item => inSelectedPeriod(item.date, period)), [data.stockIns, period])
-  const filteredDamaged = useMemo(() => data.damaged.filter(item => inSelectedPeriod(item.date, period)), [data.damaged, period])
+  const filteredSales = useMemo(() => data.sales.filter(item => inSelectedPeriod(item.date, selectedDate)), [data.sales, selectedDate])
+  const filteredStockIns = useMemo(() => data.stockIns.filter(item => inSelectedPeriod(item.date, selectedDate)), [data.stockIns, selectedDate])
+  const filteredDamaged = useMemo(() => data.damaged.filter(item => inSelectedPeriod(item.date, selectedDate)), [data.damaged, selectedDate])
 
   const totalStock = data.products.reduce((sum, item) => sum + asNumber(item.stock), 0)
   const lowStock = data.products.filter(item => asNumber(item.stock) > 0 && asNumber(item.stock) <= 5)
@@ -125,20 +131,60 @@ function Dashboard() {
   const unitsSold = filteredSales.reduce((sum, item) => sum + asNumber(item.quantity), 0)
 
   const salesTrend = useMemo(() => {
-    const groups = new Map()
-    filteredSales.forEach(item => {
-      const date = parseDate(item.date)
-      if (!date) return
-      const label = period === 'Last 7 days' || period === 'Last 30 days'
-        ? date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
-        : date.toLocaleDateString('en-PH', { month: 'short', year: '2-digit' })
-      const key = period === 'Last 7 days' || period === 'Last 30 days'
-        ? dateKey(date)
-        : `${date.getFullYear()}-${date.getMonth()}`
-      groups.set(key, { label, value: (groups.get(key)?.value || 0) + asNumber(item.amount) })
+    const now = new Date()
+    const records = data.sales.map(item => ({ date: parseDate(item.date), amount: asNumber(item.amount) })).filter(item => item.date)
+    const makeKey = date => dateKey(date)
+
+    if (trendPeriod === 'Today') {
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const hourly = Array.from({ length: 24 }, (_, hour) => ({ key: String(hour), label: hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`, value: 0 }))
+      records.filter(item => makeKey(item.date) === makeKey(today)).forEach(item => {
+        const bucket = hourly[item.date.getHours()]
+        bucket.value += item.amount
+      })
+      return hourly.filter((item, index) => index % 2 === 0)
+    }
+
+    if (trendPeriod === '7 Days' || trendPeriod === '30 Days') {
+      const days = trendPeriod === '7 Days' ? 7 : 30
+      const buckets = Array.from({ length: days }, (_, index) => {
+        const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1 - index))
+        return { key: makeKey(date), label: date.toLocaleDateString('en-PH', { month: 'numeric', day: 'numeric' }), value: 0 }
+      })
+      const lookup = new Map(buckets.map(bucket => [bucket.key, bucket]))
+      records.forEach(item => {
+        const bucket = lookup.get(makeKey(item.date))
+        if (bucket) bucket.value += item.amount
+      })
+      return buckets
+    }
+
+    if (trendPeriod === '90 Days') {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 89)
+      const buckets = Array.from({ length: 13 }, (_, index) => {
+        const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + index * 7)
+        return { key: makeKey(date), label: date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }), value: 0 }
+      })
+      records.forEach(item => {
+        const day = Math.floor((new Date(item.date.getFullYear(), item.date.getMonth(), item.date.getDate()) - start) / 86400000)
+        if (day >= 0 && day < 90) buckets[Math.min(12, Math.floor(day / 7))].value += item.amount
+      })
+      return buckets
+    }
+
+    if (!records.length) return []
+    const earliest = records.reduce((min, item) => item.date < min ? item.date : min, records[0].date)
+    const monthCount = Math.max(1, (now.getFullYear() - earliest.getFullYear()) * 12 + now.getMonth() - earliest.getMonth() + 1)
+    const buckets = Array.from({ length: monthCount }, (_, index) => {
+      const date = new Date(earliest.getFullYear(), earliest.getMonth() + index, 1)
+      return { key: `${date.getFullYear()}-${date.getMonth()}`, label: date.toLocaleDateString('en-PH', { month: 'short', year: '2-digit' }), value: 0 }
     })
-    return [...groups.values()].slice(-12)
-  }, [filteredSales, period])
+    records.forEach(item => {
+      const index = (item.date.getFullYear() - earliest.getFullYear()) * 12 + item.date.getMonth() - earliest.getMonth()
+      if (buckets[index]) buckets[index].value += item.amount
+    })
+    return buckets
+  }, [data.sales, trendPeriod])
 
   const movement = [
     { label: 'Stock In', value: filteredStockIns.reduce((sum, item) => sum + asNumber(item.quantity), 0) },
@@ -179,15 +225,15 @@ function Dashboard() {
               <p>Monitor inventory health, sales performance, and recent activity.</p>
             </div>
             <div className="d-flex flex-wrap align-items-center gap-2">
-              <select className="form-select analytics-period-select" value={period} onChange={event => setPeriod(event.target.value)} aria-label="Dashboard date range">
-                <option>Last 7 days</option>
-                <option>Last 30 days</option>
-                <option>Last 12 months</option>
-                <option>All time</option>
-              </select>
-              <button type="button" className="btn analytics-refresh-btn" onClick={loadData} disabled={loading}>
-                <i className="bi bi-arrow-clockwise me-2" />{loading ? 'Refreshing…' : 'Refresh'}
-              </button>
+<input
+                type="date"
+                className="form-control analytics-period-select"
+                value={selectedDate}
+                max={todayKey()}
+                onChange={event => setSelectedDate(event.target.value || todayKey())}
+                aria-label="Select dashboard date"
+                title="Choose a date to view that day's sales and stock movement"
+              />
             </div>
           </div>
 
@@ -197,15 +243,24 @@ function Dashboard() {
           <div className="row g-3 mb-4">
             <div className="col-12 col-sm-6 col-xl-3"><MetricCard label="Products" value={data.products.length.toLocaleString()} note="Registered inventory items" icon="bi-box-seam" /></div>
             <div className="col-12 col-sm-6 col-xl-3"><MetricCard label="Units on hand" value={totalStock.toLocaleString()} note={`${lowStock.length} low · ${outOfStock.length} out of stock`} icon="bi-stack" accent="is-yellow" /></div>
-            <div className="col-12 col-sm-6 col-xl-3"><MetricCard label="Sales revenue" value={money(totalRevenue)} note={`${unitsSold.toLocaleString()} units sold in selected period`} icon="bi-graph-up-arrow" /></div>
+            <div className="col-12 col-sm-6 col-xl-3"><MetricCard label="Sales revenue" value={money(totalRevenue)} note={`${unitsSold.toLocaleString()} units sold on selected date`} icon="bi-graph-up-arrow" /></div>
             <div className="col-12 col-sm-6 col-xl-3"><MetricCard label="Stock alerts" value={(lowStock.length + outOfStock.length).toLocaleString()} note="Low and out-of-stock products" icon="bi-exclamation-triangle" accent="is-alert" /></div>
           </div>
 
-          <div className="row g-3 mb-4">
-            <div className="col-12 col-xl-8"><BarChart title="Sales trend" subtitle={`Revenue · ${period.toLowerCase()}`} items={salesTrend} format={money} /></div>
+          <div className="row g-3 analytics-trend-row">
+            <div className="col-12 col-xl-8">
+              <div className="analytics-trend-toolbar">
+                <div className="analytics-trend-periods" role="group" aria-label="Sales trend period">
+                  {['Today', '7 Days', '30 Days', '90 Days', 'All Time'].map(period => (
+                    <button key={period} type="button" className={`btn btn-sm ${trendPeriod === period ? 'is-active' : ''}`} onClick={() => { setTrendPeriod(period); setTrendAnimationKey(key => key + 1); setAnimateTrend(true) }}>{period}</button>
+                  ))}
+                </div>
+              </div>
+              <BarChart title="Sales trend" subtitle={`Revenue · ${trendPeriod === 'Today' ? 'Hourly' : trendPeriod === 'All Time' ? 'Monthly' : trendPeriod === '90 Days' ? 'Weekly' : 'Daily'} view`} items={salesTrend} format={money} refreshing={loading && Boolean(updatedAt)} animationKey={trendAnimationKey} animate={animateTrend} />
+            </div>
             <div className="col-12 col-xl-4">
               <section className="analytics-panel h-100">
-                <div className="analytics-panel-heading"><div><h2>Inventory movement</h2><p>Recorded units in selected period</p></div></div>
+                <div className="analytics-panel-heading"><div><h2>Inventory movement</h2><p>Recorded units on selected date</p></div></div>
                 <div className="analytics-movement-list">
                   {movement.map(item => <div className="analytics-movement-row" key={item.label}><span>{item.label}</span><strong>{item.value.toLocaleString()}</strong></div>)}
                 </div>
@@ -214,11 +269,11 @@ function Dashboard() {
             </div>
           </div>
 
-          <div className="row g-3 mb-4">
+          <div className="row g-3 mb-4 analytics-lower-row">
             <div className="col-12 col-xl-6">
               <section className="analytics-panel h-100">
                 <div className="analytics-panel-heading"><div><h2>Top-selling products</h2><p>Ranked by recorded quantity sold</p></div></div>
-                {topProducts.length ? topProducts.map((item, index) => <div className="analytics-rank-row" key={item.name}><span className="analytics-rank-number">{index + 1}</span><span className="flex-grow-1">{item.name}</span><strong>{item.quantity.toLocaleString()} sold</strong></div>) : <div className="analytics-empty">No sales records found for this period.</div>}
+                {topProducts.length ? topProducts.map((item, index) => <div className="analytics-rank-row" key={item.name}><span className="analytics-rank-number">{index + 1}</span><span className="flex-grow-1">{item.name}</span><strong>{item.quantity.toLocaleString()} sold</strong></div>) : <div className="analytics-empty">No sales records found for this date.</div>}
               </section>
             </div>
             <div className="col-12 col-xl-6">
@@ -239,9 +294,33 @@ function Dashboard() {
             <div className="col-12 col-xl-7">
               <section className="analytics-panel h-100">
                 <div className="analytics-panel-heading"><div><h2>Recent activity</h2><p>Latest stock and sales records</p></div></div>
-                <div className="table-responsive"><table className="table analytics-table align-middle mb-0"><thead><tr><th>Date</th><th>Type</th><th>Product</th><th className="text-end">Qty</th></tr></thead><tbody>
-                  {recentActivity.length ? recentActivity.map((item, index) => <tr key={`${item.type}-${item.id || index}`}><td>{item.dateValue ? item.dateValue.toLocaleDateString('en-PH') : '—'}</td><td><span className={`analytics-type-badge type-${item.type.toLowerCase().replace(/\s/g, '-')}`}>{item.type}</span></td><td>{item.product || '—'}</td><td className="text-end">{asNumber(item.quantityValue).toLocaleString()}</td></tr>) : <tr><td colSpan="4" className="text-center py-4 analytics-muted">No activity records available.</td></tr>}
-                </tbody></table></div>
+                <div className="analytics-recent-scroll">
+                  <div className="table-responsive">
+                    <table className="table analytics-table analytics-recent-table align-middle mb-0">
+                      <colgroup>
+                        <col className="recent-col-date" />
+                        <col className="recent-col-type" />
+                        <col className="recent-col-product" />
+                        <col className="recent-col-qty" />
+                      </colgroup>
+                      <thead>
+                        <tr><th>Date</th><th>Type</th><th>Product</th><th className="text-end">Qty</th></tr>
+                      </thead>
+                      <tbody>
+                        {recentActivity.length ? recentActivity.map((item, index) => (
+                          <tr key={`${item.type}-${item.id || index}`}>
+                            <td className="recent-date-cell">{item.dateValue ? item.dateValue.toLocaleDateString('en-PH') : '—'}</td>
+                            <td><span className={`analytics-type-badge type-${item.type.toLowerCase().replace(/\s/g, '-')}`}>{item.type}</span></td>
+                            <td className="recent-product-cell" title={item.product || '—'}>{item.product || '—'}</td>
+                            <td className="text-end recent-qty-cell">{asNumber(item.quantityValue).toLocaleString()}</td>
+                          </tr>
+                        )) : (
+                          <tr><td colSpan="4" className="text-center py-4 analytics-muted">No activity records available.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </section>
             </div>
           </div>

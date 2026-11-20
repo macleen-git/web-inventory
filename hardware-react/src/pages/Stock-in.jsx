@@ -1,12 +1,19 @@
+import SuccessModal from '../components/SuccessModal'
 
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
+import { API_URL, apiFetch } from '../config/api'
 
 export default function StockIn() {
+  const navigate = useNavigate()
   const [stockIns, setStockIns] = useState([])
+  const [products, setProducts] = useState([])
+  const [showProductNotFound, setShowProductNotFound] = useState(false)
 
   // ADD STOCK FORM
   const [product, setProduct] = useState('')
+  const [showProductSuggestions, setShowProductSuggestions] = useState(false)
   const [quantity, setQuantity] = useState('')
   const [date, setDate] = useState('')
   const [note, setNote] = useState('')
@@ -30,13 +37,16 @@ export default function StockIn() {
   const [confirmation, setConfirmation] = useState(null)
   const [isConfirming, setIsConfirming] = useState(false)
 
-  const api_url = 'https://web-inventory-rfai.onrender.com/api/stock-in'
+  const [success, setSuccess] = useState(null)
+
+  const api_url = API_URL('/api/stock-in')
+  const productsApiUrl = API_URL('/api/product')
 
   // =========================
   // GET STOCK-IN RECORDS
   // =========================
   async function loadStockIns() {
-    const response = await fetch(api_url)
+    const response = await apiFetch(api_url)
 
     if (!response.ok) {
       throw new Error('Failed to fetch stock-in records')
@@ -50,7 +60,71 @@ export default function StockIn() {
     loadStockIns().catch((error) => {
       console.error('Fetch error:', error)
     })
+
+    apiFetch(productsApiUrl)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Failed to fetch inventory products')
+        }
+
+        return response.json()
+      })
+      .then((data) => {
+        setProducts(Array.isArray(data) ? data : [])
+      })
+      .catch((error) => {
+        console.error('Inventory products fetch error:', error)
+      })
   }, [])
+
+  // ADD STOCK PRODUCT AUTOCOMPLETE (same matching behavior as Add Sale)
+  function editDistance(a, b) {
+    const left = a.toLowerCase()
+    const right = b.toLowerCase()
+    const row = Array.from({ length: right.length + 1 }, (_, index) => index)
+
+    for (let i = 1; i <= left.length; i++) {
+      let diagonal = row[0]
+      row[0] = i
+      for (let j = 1; j <= right.length; j++) {
+        const above = row[j]
+        row[j] = Math.min(
+          row[j] + 1,
+          row[j - 1] + 1,
+          diagonal + (left[i - 1] === right[j - 1] ? 0 : 1)
+        )
+        diagonal = above
+      }
+    }
+    return row[right.length]
+  }
+
+  const matchingStockProducts = product.trim()
+    ? products
+        .map((item) => {
+          const name = String(item.product || '')
+          const normalized = name.toLowerCase()
+          const query = product.trim().toLowerCase()
+          const distance = editDistance(query, normalized)
+          const score = normalized.startsWith(query)
+            ? 0
+            : normalized.includes(query)
+              ? 1
+              : distance <= Math.max(1, Math.floor(query.length / 3))
+                ? 2
+                : 3
+          return { item, score, distance }
+        })
+        .filter((entry) => entry.score < 3)
+        .sort((a, b) => a.score - b.score || a.distance - b.distance)
+        .slice(0, 6)
+        .map((entry) => entry.item)
+    : products.slice(0, 6)
+
+  function selectStockProduct(item) {
+    setProduct(item.product)
+    setShowProductSuggestions(false)
+  }
 
   // =========================
   // SEARCH AND FILTER
@@ -115,8 +189,18 @@ export default function StockIn() {
   async function formAddStock(event) {
     event.preventDefault()
 
+    const enteredProduct = product.trim().toLowerCase()
+    const matchedProduct = products.find(
+      (item) => String(item.product || '').trim().toLowerCase() === enteredProduct
+    )
+
+    if (!matchedProduct) {
+      setShowProductNotFound(true)
+      return
+    }
+
     try {
-      const response = await fetch(api_url, {
+      const response = await apiFetch(api_url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -138,10 +222,19 @@ export default function StockIn() {
       setStockIns((previous) => [...previous, data])
 
       setProduct('')
+      setShowProductSuggestions(false)
       setQuantity('')
       setDate('')
       setNote('')
       setShowAddStock(false)
+      setSuccess({
+        title: 'Stock Recorded Successfully!',
+        details: [
+          { label: 'Product', value: product },
+          { label: 'Quantity Added', value: quantity },
+          { label: 'Date', value: date }
+        ]
+      })
     } catch (error) {
       console.error('Add stock error:', error)
       alert(error.message || 'Failed to add stock-in record')
@@ -180,6 +273,7 @@ export default function StockIn() {
   function closeAddModal() {
     setShowAddStock(false)
     setProduct('')
+    setShowProductSuggestions(false)
     setQuantity('')
     setDate('')
     setNote('')
@@ -210,7 +304,7 @@ export default function StockIn() {
   // UPDATE - PUT
   // =========================
   async function performUpdate() {
-    const response = await fetch(`${api_url}/${editID}`, {
+    const response = await apiFetch(`${api_url}/${editID}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
@@ -265,7 +359,7 @@ export default function StockIn() {
   // DELETE - DELETE REQUEST
   // =========================
   async function performDelete(id) {
-    const response = await fetch(`${api_url}/${id}`, {
+    const response = await apiFetch(`${api_url}/${id}`, {
       method: 'DELETE'
     })
 
@@ -315,6 +409,7 @@ export default function StockIn() {
   }
 
   return (
+    <>
     <div className="app-layout">
       <Sidebar active="/stock-in" />
 
@@ -461,7 +556,9 @@ export default function StockIn() {
                   maxWidth: '500px',
                   borderRadius: '16px',
                   overflow: 'hidden',
-                  background: '#fff',
+                  background: 'var(--hw-card)',
+                  color: 'var(--hw-text)',
+                  border: '1px solid var(--hw-border)',
                   boxShadow: '0 20px 60px rgba(0,0,0,.3)'
                 }}
               >
@@ -609,7 +706,9 @@ export default function StockIn() {
                   maxWidth: '500px',
                   borderRadius: '16px',
                   overflow: 'hidden',
-                  background: '#fff',
+                  background: 'var(--hw-card)',
+                  color: 'var(--hw-text)',
+                  border: '1px solid var(--hw-border)',
                   boxShadow: '0 20px 60px rgba(0,0,0,.3)'
                 }}
               >
@@ -639,15 +738,55 @@ export default function StockIn() {
                       <label htmlFor="product" className="form-label">
                         Product
                       </label>
-                      <input
-                        id="product"
-                        type="text"
-                        className="form-control"
-                        placeholder="Enter product name"
-                        value={product}
-                        onChange={(event) => setProduct(event.target.value)}
-                        required
-                      />
+                      <div className="position-relative">
+                        <input
+                          id="product"
+                          type="text"
+                          className="form-control"
+                          placeholder="Search product"
+                          autoComplete="off"
+                          value={product}
+                          onFocus={() => setShowProductSuggestions(true)}
+                          onChange={(event) => {
+                            setProduct(event.target.value)
+                            setShowProductSuggestions(true)
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Escape') setShowProductSuggestions(false)
+                            if (event.key === 'Enter' && matchingStockProducts.length) {
+                              event.preventDefault()
+                              selectStockProduct(matchingStockProducts[0])
+                            }
+                          }}
+                          required
+                        />
+                        {showProductSuggestions && (
+                          <div
+                            className="position-absolute w-100 product-suggestion-list border rounded shadow"
+                            style={{ zIndex: 1100, top: 'calc(100% + 5px)', maxHeight: '250px', overflowY: 'auto' }}
+                          >
+                            {matchingStockProducts.length ? (
+                              matchingStockProducts.map((item) => (
+                                <button
+                                  type="button"
+                                  key={item.id}
+                                  className="w-100 text-start border-0 border-bottom product-suggestion-item px-3 py-2"
+                                  onMouseDown={(event) => event.preventDefault()}
+                                  onClick={() => selectStockProduct(item)}
+                                >
+                                  <strong>{item.product}</strong>
+                                  <small className="d-flex justify-content-between product-suggestion-meta mt-1">
+                                    <span>Buy price: ₱{Number(item.buy || 0).toFixed(2)}</span>
+                                    <span>Stock: {Number(item.stock) || 0}</span>
+                                  </small>
+                                </button>
+                              ))
+                            ) : (
+                              <div className="p-3 text-muted small">No close product matches found.</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div className="mb-3">
@@ -713,6 +852,91 @@ export default function StockIn() {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          )}
+
+          {/* PRODUCT NOT FOUND MODAL */}
+          {showProductNotFound && (
+            <div
+              className="d-flex align-items-center justify-content-center p-3"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="product-not-found-title"
+              style={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 2100,
+                background: 'rgba(2, 15, 29, 0.78)',
+                backdropFilter: 'blur(6px)'
+              }}
+            >
+              <div
+                className="w-100 shadow-lg"
+                style={{
+                  maxWidth: '430px',
+                  borderRadius: '20px',
+                  overflow: 'hidden',
+                  color: '#f8fafc',
+                  background: 'linear-gradient(145deg, #102f46, #071d30)',
+                  border: '1px solid rgba(255, 193, 7, 0.35)',
+                  boxShadow: '0 24px 70px rgba(0,0,0,.45)'
+                }}
+              >
+                <div className="text-center px-4 pt-4 pb-3">
+                  <div
+                    className="d-inline-flex align-items-center justify-content-center mb-3"
+                    style={{
+                      width: '72px',
+                      height: '72px',
+                      borderRadius: '50%',
+                      background: 'rgba(255, 193, 7, 0.14)',
+                      border: '1px solid rgba(255, 193, 7, 0.55)',
+                      color: '#ffc107',
+                      fontSize: '34px',
+                      fontWeight: 800
+                    }}
+                    aria-hidden="true"
+                  >
+                    !
+                  </div>
+
+                  <h4 id="product-not-found-title" className="fw-bold mb-2">
+                    Product Not Found
+                  </h4>
+
+                  <p className="mb-2" style={{ color: '#d5e2ed', lineHeight: 1.6 }}>
+                    We couldn't find <strong style={{ color: '#fff' }}>{product.trim() || 'this product'}</strong> in your inventory.
+                  </p>
+
+                  <p className="mb-0" style={{ color: '#aebfce', lineHeight: 1.6 }}>
+                    Please add this product to your Inventory first before recording Stock In.
+                  </p>
+                </div>
+
+                <div className="d-flex flex-column flex-sm-row gap-2 p-3 p-sm-4 pt-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline-light flex-fill"
+                    onClick={() => setShowProductNotFound(false)}
+                    style={{ minHeight: '46px', borderRadius: '10px' }}
+                  >
+                    Close
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-warning fw-bold flex-fill"
+                    onClick={() => {
+                      setShowProductNotFound(false)
+                      setShowAddStock(false)
+                      navigate('/inventory')
+                    }}
+                    style={{ minHeight: '46px', borderRadius: '10px' }}
+                  >
+                    + Add Product
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -831,5 +1055,15 @@ export default function StockIn() {
         </div>
       </div>
     </div>
+          {success && (
+            <SuccessModal
+              title={success.title}
+              details={success.details}
+              message="The record has been successfully saved."
+              onClose={() => setSuccess(null)}
+            />
+          )}
+
+    </>
   )
 }

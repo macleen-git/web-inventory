@@ -15,14 +15,7 @@ import {
   signInWithPopup
 } from 'firebase/auth'
 
-import {
-  doc,
-  getDoc,
-  serverTimestamp,
-  setDoc
-} from 'firebase/firestore'
-
-import { auth, db, googleProvider } from './components/firebase'
+import { auth, googleProvider } from './components/firebase'
 
 import Landing from './pages/Landing'
 import Login from './pages/Login'
@@ -35,12 +28,117 @@ import Damaged from './pages/Damaged'
 import Reports from './pages/Reports'
 import Transactions from './pages/Transaction'
 import Settings from './pages/Settings'
+import RecentlyDeleted from './pages/RecentlyDeleted'
 import Admin from './pages/Admin'
+import FloatingCalculator from './components/FloatingCalculator'
+import { API_URL } from './config/api'
 
 import './App.css'
 
 
-function AppRoutes({ user, role, handleLogin }) {
+function isAdminRole(role) {
+  return role === 'admin' || role === 'superadmin'
+}
+
+// Wake the Render service with a health request and wait for every required dependency.
+async function waitForBackendReady(setMessage) {
+  const maxWaitMs = 5 * 60 * 1000
+  const startedAt = Date.now()
+  let attempt = 0
+  let lastError = 'The API is still starting.'
+
+  while (Date.now() - startedAt < maxWaitMs) {
+    attempt += 1
+    const remainingMs = maxWaitMs - (Date.now() - startedAt)
+    const controller = new AbortController()
+    const timeoutId = window.setTimeout(
+      () => controller.abort(),
+      Math.min(15000, remainingMs)
+    )
+
+    setMessage?.('Waking up the backend and checking its database...')
+
+    try {
+      const response = await fetch(API_URL('/api/health'), {
+        method: 'GET',
+        cache: 'no-store',
+        signal: controller.signal,
+      })
+      const data = await response.json().catch(() => ({}))
+
+      if (
+        response.ok &&
+        data.status === 'ok' &&
+        data.database === 'connected' &&
+        data.firebaseAdmin === 'configured'
+      ) {
+        setMessage?.('Backend is ready. Loading your account...')
+        return data
+      }
+
+      lastError = data.database === 'unavailable'
+        ? 'Waiting for the database to connect...'
+        : data.firebaseAdmin === 'not_configured'
+          ? 'Waiting for Firebase Admin configuration...'
+          : 'The backend is starting...'
+    } catch (error) {
+      lastError = error?.name === 'AbortError'
+        ? 'The backend is taking longer than expected to respond...'
+        : 'The backend is waking up. Retrying connection...'
+    } finally {
+      window.clearTimeout(timeoutId)
+    }
+
+    const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000)
+    setMessage?.(lastError + ' (Attempt ' + attempt + ', ' + elapsedSeconds + 's elapsed)')
+    const delay = Math.min(5000, Math.max(0, maxWaitMs - (Date.now() - startedAt)))
+    if (delay > 0) {
+      await new Promise(resolve => window.setTimeout(resolve, delay))
+    }
+  }
+
+  throw new Error('The backend did not become ready within 5 minutes. ' + lastError + ' Please try again.')
+}
+
+// Prevent account verification from leaving the app on an endless loading screen.
+async function syncAccountWithBackend(currentUser, forceRefresh = false) {
+  const controller = new AbortController()
+  const timeoutId = window.setTimeout(() => controller.abort(), 15000)
+
+  try {
+    const token = await currentUser.getIdToken(forceRefresh)
+    const response = await fetch(API_URL('/api/auth/sync'), {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      signal: controller.signal,
+    })
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(data.message || `Account verification failed (HTTP ${response.status}).`)
+    }
+
+    return data
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error('The backend did not respond within 15 seconds. Check that the API server and database are running.')
+    }
+
+    if (error instanceof TypeError) {
+      console.error('Account sync network error. API endpoint:', API_URL('/api/auth/sync'), error)
+      throw new Error(`Cannot reach the backend at ${API_URL('/api/auth/sync')}. Start the backend and check VITE_API_URL in hardware-react/.env.`)
+    }
+
+    throw error
+  } finally {
+    window.clearTimeout(timeoutId)
+  }
+}
+
+function AppRoutes({ user, role, handleLogin, handleLogout }) {
   const navigate = useNavigate()
   const location = useLocation()
   const [pageLoading, setPageLoading] = useState(false)
@@ -50,6 +148,26 @@ function AppRoutes({ user, role, handleLogin }) {
     const timer = window.setTimeout(() => setPageLoading(false), 360)
     return () => window.clearTimeout(timer)
   }, [location.pathname])
+
+  useEffect(() => {
+    if (!user) return undefined
+    let active = true
+    const sendHeartbeat = async () => {
+      try {
+        const token = await auth.currentUser?.getIdToken()
+        if (!token || !active) return
+        await fetch(API_URL('/api/activity/heartbeat'), {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      } catch (error) {
+        console.warn('User activity heartbeat unavailable:', error)
+      }
+    }
+    sendHeartbeat()
+    const interval = window.setInterval(sendHeartbeat, 60000)
+    return () => { active = false; window.clearInterval(interval) }
+  }, [user])
 
   const goToLogin = () => navigate('/login')
   const goToSignup = () => navigate('/signup')
@@ -73,7 +191,7 @@ function AppRoutes({ user, role, handleLogin }) {
         path="/"
         element={
           user ? (
-            role === 'admin'
+            isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/dashboard" replace />
           ) : (
@@ -90,7 +208,7 @@ function AppRoutes({ user, role, handleLogin }) {
         path="/login"
         element={
           user ? (
-            role === 'admin'
+            isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/dashboard" replace />
           ) : (
@@ -108,7 +226,7 @@ function AppRoutes({ user, role, handleLogin }) {
         path="/signup"
         element={
           user ? (
-            role === 'admin'
+            isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/dashboard" replace />
           ) : (
@@ -123,7 +241,7 @@ function AppRoutes({ user, role, handleLogin }) {
         element={
           user && role === 'user'
             ? <Dashboard />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -135,7 +253,7 @@ function AppRoutes({ user, role, handleLogin }) {
         element={
           user && role === 'user'
             ? <Inventory />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -147,7 +265,7 @@ function AppRoutes({ user, role, handleLogin }) {
         element={
           user && role === 'user'
             ? <StockIn />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -159,7 +277,7 @@ function AppRoutes({ user, role, handleLogin }) {
         element={
           user && role === 'user'
             ? <Sales />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -171,7 +289,7 @@ function AppRoutes({ user, role, handleLogin }) {
         element={
           user && role === 'user'
             ? <Damaged />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -183,7 +301,7 @@ function AppRoutes({ user, role, handleLogin }) {
         element={
           user && role === 'user'
             ? <Reports />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -195,7 +313,19 @@ function AppRoutes({ user, role, handleLogin }) {
         element={
           user && role === 'user'
             ? <Transactions />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
+              ? <Navigate to="/admin" replace />
+              : <Navigate to="/login" replace />
+        }
+      />
+
+      {/* RECENTLY DELETED */}
+      <Route
+        path="/recently-deleted"
+        element={
+          user && role === 'user'
+            ? <RecentlyDeleted />
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -207,7 +337,7 @@ function AppRoutes({ user, role, handleLogin }) {
         element={
           user && role === 'user'
             ? <Settings />
-            : user && role === 'admin'
+            : user && isAdminRole(role)
               ? <Navigate to="/admin" replace />
               : <Navigate to="/login" replace />
         }
@@ -217,8 +347,8 @@ function AppRoutes({ user, role, handleLogin }) {
       <Route
         path="/admin"
         element={
-          user && role === 'admin'
-            ? <Admin />
+          user && isAdminRole(role)
+            ? <Admin user={user} onLogout={handleLogout} />
             : user && role === 'user'
               ? <Navigate to="/dashboard" replace />
               : <Navigate to="/login" replace />
@@ -232,7 +362,7 @@ function AppRoutes({ user, role, handleLogin }) {
           <Navigate
             to={
               user
-                ? role === 'admin'
+                ? isAdminRole(role)
                   ? '/admin'
                   : '/dashboard'
                 : '/'
@@ -242,6 +372,7 @@ function AppRoutes({ user, role, handleLogin }) {
         }
       />
     </Routes>
+    {user && role === 'user' && ['/dashboard','/inventory','/stock-in','/sales','/damaged-items','/reports','/transactions','/recently-deleted','/settings'].includes(location.pathname) && <FloatingCalculator />}
     </>
   )
 }
@@ -250,48 +381,43 @@ function AppRoutes({ user, role, handleLogin }) {
 function App() {
   const [user, setUser] = useState(null)
   const [role, setRole] = useState(null)
+  const [authError, setAuthError] = useState('')
+  const [loadingMessage, setLoadingMessage] = useState('Connecting to the backend...')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(
       auth,
       async (currentUser) => {
+        setAuthError('')
+
+        // Public pages must remain available when the API is sleeping or offline.
+        // Only a signed-in account needs the backend for MySQL role/status verification.
+        if (!currentUser) {
+          setUser(null)
+          setRole(null)
+          setLoading(false)
+          return
+        }
+
+        setUser(currentUser)
+        setRole(null)
+        setLoadingMessage('Connecting to the backend...')
+
         try {
-          if (currentUser) {
-            setUser(currentUser)
+          await waitForBackendReady(setLoadingMessage)
 
-            const userRef = doc(db, 'users', currentUser.uid)
-            const userSnap = await getDoc(userRef)
-
-            if (userSnap.exists()) {
-              const userData = userSnap.data()
-              setRole(userData.role || 'user')
-            } else {
-              const defaultRole = 'user'
-
-              await setDoc(userRef, {
-                displayName: currentUser.displayName,
-                email: currentUser.email,
-                photoURL: currentUser.photoURL,
-                role: defaultRole,
-                createdAt: serverTimestamp()
-              })
-
-              setRole(defaultRole)
-            }
+          // MySQL remains the source of truth for roles and account status.
+          const syncData = await syncAccountWithBackend(currentUser)
+          if (['user', 'admin', 'superadmin'].includes(syncData.role) && syncData.status !== 'inactive') {
+            setRole(syncData.role)
           } else {
-            setUser(null)
-            setRole(null)
+            throw new Error('Your account is inactive or has an unsupported role. Contact the administrator.')
           }
         } catch (error) {
-          console.error(
-            'Unable to load application state:',
-            error
-          )
-
-          setRole((currentRole) =>
-            currentRole || (currentUser ? 'user' : null)
-          )
+          console.error('Unable to load application state:', error)
+          setRole(null)
+          setAuthError(error?.message || 'The backend is not ready. Please try again.')
         } finally {
           setLoading(false)
         }
@@ -325,6 +451,29 @@ function App() {
     }
   }
 
+  const retryAccountSync = async () => {
+    setLoading(true)
+    setAuthError('')
+    try {
+      await waitForBackendReady(setLoadingMessage)
+      const currentUser = auth.currentUser
+      if (currentUser) {
+        const data = await syncAccountWithBackend(currentUser, true)
+        if (!['user', 'admin', 'superadmin'].includes(data.role) || data.status === 'inactive') {
+          throw new Error('Your account is inactive or has an unsupported role. Contact the administrator.')
+        }
+        setUser(currentUser)
+        setRole(data.role)
+      }
+      setAuthError('')
+    } catch (error) {
+      setRole(null)
+      setAuthError(error?.message || 'Account verification failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <main
@@ -347,8 +496,36 @@ function App() {
           <h2>Please Wait</h2>
 
           <p className="app-loading-message">
-            Preparing your inventory workspace...
+            {loadingMessage}
           </p>
+        </div>
+      </main>
+    )
+  }
+
+  if (authError) {
+    return (
+      <main className="app-loading-screen" role="alert">
+        <div className="app-loading-content">
+          <div className="app-loading-logo" aria-hidden="true">
+            <i className="bi bi-exclamation-triangle-fill" />
+          </div>
+          <div className="app-loading-brand">
+            <h1>ACCOUNT VERIFICATION</h1>
+            <p>HARDWARE TOOLS INVENTORY</p>
+          </div>
+          <h2>We couldn't verify your account</h2>
+          <p className="app-loading-message">{authError}</p>
+          <div className="d-flex flex-column flex-sm-row justify-content-center gap-2 mt-3">
+            <button className="btn btn-primary" type="button" onClick={retryAccountSync}>
+              Try Again
+            </button>
+            {user && (
+              <button className="btn btn-outline-secondary" type="button" onClick={handleLogout}>
+                Sign Out
+              </button>
+            )}
+          </div>
         </div>
       </main>
     )
@@ -360,6 +537,7 @@ function App() {
         user={user}
         role={role}
         handleLogin={handleLogin}
+        handleLogout={handleLogout}
       />
     </BrowserRouter>
   )

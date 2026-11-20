@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import Sidebar from '../components/Sidebar'
+import { API_URL, apiFetch } from '../config/api'
 
-const API = 'https://web-inventory-rfai.onrender.com/api'
+const API = API_URL('/api')
 
 function Transactions() {
   const [records, setRecords] = useState([])
@@ -15,9 +16,9 @@ function Transactions() {
     setError('')
     try {
       const [salesResponse, stockResponse, damagedResponse] = await Promise.all([
-        fetch(`${API}/sales`),
-        fetch(`${API}/stock-in`),
-        fetch(`${API}/damaged`),
+        apiFetch(`${API}/sales`),
+        apiFetch(`${API}/stock-in`),
+        apiFetch(`${API}/damaged`),
       ])
       const failed = [salesResponse, stockResponse, damagedResponse].find(response => !response.ok)
       if (failed) throw new Error(`Unable to load transactions (HTTP ${failed.status}).`)
@@ -50,19 +51,33 @@ function Transactions() {
   }, [records, search, type])
 
   function formatAmount(item) {
-    if (item.amount !== undefined && item.amount !== '') return Number(item.amount) || 0
-    return 0
+    const rawAmount = item.type === 'Damaged'
+      ? item.loss
+      : item.amount
+    const amount = Number(rawAmount) || 0
+    const formatted = Math.abs(amount).toLocaleString('en-PH', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+
+    // Sales and stock-in are shown as positive amounts; damaged items are losses.
+    return item.type === 'Damaged'
+      ? `-₱${formatted}`
+      : `₱${formatted}`
   }
 
   return (
     <div className="app-layout">
       <Sidebar active="/transactions" />
       <main className="app-main min-vh-100">
-        <div id="mainContent">
-          <div className="analytics-page-header">
-            <div><span className="analytics-kicker">RECORDS / ACTIVITY LOG</span><h1>Transactions</h1><p>Combined history of sales, stock-in, and damaged-item records.</p></div>
-            <button type="button" className="btn analytics-refresh-btn" onClick={loadTransactions} disabled={loading}><i className="bi bi-arrow-clockwise me-2" />{loading ? 'Refreshing…' : 'Refresh records'}</button>
-          </div>
+        <div className="p-4" id="mainContent">
+          <h1>
+            <b>Transactions</b>
+          </h1>
+
+          <p>
+            Combined history of sales, stock-in, and damaged-item records.
+          </p>
 
           {error && <div className="alert alert-danger" role="alert">{error}</div>}
           <section className="analytics-panel">
@@ -73,8 +88,8 @@ function Transactions() {
             </div>
 
             {loading ? <div className="analytics-loading"><span className="spinner-border spinner-border-sm me-2" />Loading transaction records…</div> : (
-              <div className="table-responsive"><table className="table analytics-table align-middle mb-0"><thead><tr><th>Record ID</th><th>Date</th><th>Type</th><th>Product</th><th className="text-end">Quantity</th><th className="text-end">Amount</th><th>Note / Reason</th></tr></thead><tbody>
-                {filteredTransactions.length ? filteredTransactions.map((item, index) => <tr key={`${item.type}-${item.id || index}`}><td>#{item.id ?? '—'}</td><td>{item.date ? new Date(item.date).toLocaleDateString('en-PH') : '—'}</td><td><span className={`analytics-type-badge type-${item.type.toLowerCase().replace(/\s/g, '-')}`}>{item.type}</span></td><td>{item.product || '—'}</td><td className="text-end">{Number(item.quantityValue) || 0}</td><td className="text-end">{item.type === 'Sales' ? `₱${formatAmount(item).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}</td><td>{item.noteValue || '—'}</td></tr>) : <tr><td colSpan="7" className="text-center py-5 analytics-muted">{records.length ? 'No transactions match your filters.' : 'No transaction records returned by the API.'}</td></tr>}
+              <div className="table-responsive"><table className="table table-hover analytics-table transaction-table align-middle mb-0"><thead><tr><th>Record ID</th><th>Date</th><th>Type</th><th>Product</th><th className="text-end">Quantity</th><th className="text-end">Amount</th><th>Note / Reason</th></tr></thead><tbody>
+                {filteredTransactions.length ? filteredTransactions.map((item, index) => <tr key={`${item.type}-${item.id || index}`}><td>#{item.id ?? '—'}</td><td>{item.date ? new Date(item.date).toLocaleDateString('en-PH') : '—'}</td><td><span className={`analytics-type-badge type-${item.type.toLowerCase().replace(/\s/g, '-')}`}>{item.type}</span></td><td>{item.product || '—'}</td><td className="text-end">{Number(item.quantityValue) || 0}</td><td className={`text-end fw-semibold ${item.type === 'Damaged' ? 'text-danger' : ''}`}>{formatAmount(item)}</td><td>{item.noteValue || '—'}</td></tr>) : <tr><td colSpan="7" className="text-center py-5 analytics-muted">{records.length ? 'No transactions match your filters.' : 'No transaction records returned by the API.'}</td></tr>}
               </tbody></table></div>
             )}
           </section>
