@@ -2243,6 +2243,40 @@ button { cursor: pointer; }
 }
 
 
+/* Smooth, restrained zoom on desktop navigation hover (including active items). */
+@media (min-width: 769px) {
+  .app-sidebar-desktop .app-nav-link {
+    transform-origin: center left;
+    transition: transform .18s cubic-bezier(.2,.7,.2,1),
+      color .18s ease, background-color .18s ease,
+      box-shadow .18s ease, filter .18s ease;
+    will-change: transform;
+  }
+
+  .app-sidebar-desktop .app-nav-link:hover,
+  .app-sidebar-desktop .app-nav-link:focus-visible {
+    transform: scale(1.035);
+    z-index: 2;
+  }
+
+  .app-sidebar-desktop .app-nav-link.active:hover,
+  .app-sidebar-desktop .app-nav-link.active:focus-visible {
+    transform: scale(1.045);
+  }
+
+  .app-sidebar-desktop.is-collapsed .app-nav-link:hover,
+  .app-sidebar-desktop.is-collapsed .app-nav-link:focus-visible {
+    transform: translateX(7px) scale(1.06);
+    transform-origin: center center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-sidebar-desktop .app-nav-link {
+    transition: none !important;
+  }
+}
+
 /* Sidebar icon hover glow — consistent in light and dark themes. */
 .app-sidebar .app-nav-link {
   transition: color .18s ease, background-color .18s ease, box-shadow .18s ease, filter .18s ease;
