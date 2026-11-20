@@ -357,6 +357,7 @@ export default function StockIn() {
   }
 
   return (
+    <>
     <div className="app-layout">
       <Sidebar active="/stock-in" />
 
@@ -971,5 +972,6 @@ export default function StockIn() {
             />
           )}
 
+    </>
   )
 }
