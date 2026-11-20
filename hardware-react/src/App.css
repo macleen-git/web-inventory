@@ -2233,3 +2233,11 @@ button { cursor: pointer; }
   .settings-card-body { padding:16px; }
   .settings-card-symbol { flex-basis:36px; width:36px; height:36px; }
 }
+
+
+/* In the fully-collapsed sidebar, center navigation items against the full rail.
+   The vertical scrollbar takes space on the right, so offset the links slightly
+   to keep their visual center aligned with the logo and footer controls. */
+.app-sidebar-desktop.is-collapsed .app-sidebar-links > .app-nav-link {
+  transform: translateX(7px);
+}
