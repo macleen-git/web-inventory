@@ -376,28 +376,33 @@ function App() {
     const unsubscribe = onAuthStateChanged(
       auth,
       async (currentUser) => {
-        try {
-          setAuthError('')
-          setLoadingMessage('Connecting to the backend...')
-          await waitForBackendReady(setLoadingMessage)
-          if (currentUser) {
-            setUser(currentUser)
-            setRole(null)
+        setAuthError('')
 
-            // MySQL is the source of truth for roles. Firebase is used only for authentication.
-            const syncData = await syncAccountWithBackend(currentUser)
-            setRole(['user', 'admin', 'superadmin'].includes(syncData.role) ? syncData.role : 'user')
+        // Public pages must remain available when the API is sleeping or offline.
+        // Only a signed-in account needs the backend for MySQL role/status verification.
+        if (!currentUser) {
+          setUser(null)
+          setRole(null)
+          setLoading(false)
+          return
+        }
+
+        setUser(currentUser)
+        setRole(null)
+        setLoadingMessage('Connecting to the backend...')
+
+        try {
+          await waitForBackendReady(setLoadingMessage)
+
+          // MySQL remains the source of truth for roles and account status.
+          const syncData = await syncAccountWithBackend(currentUser)
+          if (['user', 'admin', 'superadmin'].includes(syncData.role) && syncData.status !== 'inactive') {
+            setRole(syncData.role)
           } else {
-            setUser(null)
-            setRole(null)
-            setAuthError('')
+            throw new Error('Your account is inactive or has an unsupported role. Contact the administrator.')
           }
         } catch (error) {
-          console.error(
-            'Unable to load application state:',
-            error
-          )
-
+          console.error('Unable to load application state:', error)
           setRole(null)
           setAuthError(error?.message || 'The backend is not ready. Please try again.')
         } finally {
