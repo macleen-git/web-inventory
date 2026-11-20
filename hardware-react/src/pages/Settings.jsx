@@ -162,7 +162,7 @@ function Settings() {
   return (
     <div className="app-layout">
       <Sidebar active="/settings" />
-      <div className="app-main bg-dark-subtle min-vh-100">
+      <div className="app-main min-vh-100">
         <main className="settings-page p-4" id="mainContent">
           <header className="settings-page-heading mb-4">
             <div className="settings-eyebrow">PREFERENCES & ACCOUNT</div>
