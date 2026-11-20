@@ -64,8 +64,87 @@ const pool = mysql.createPool({
 const route = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const positiveInt = v => Number.isInteger(Number(v)) && Number(v) > 0;
 const dateValue = v => v || new Date().toISOString().slice(0, 10);
+const crypto = require("crypto");
+const SOURCE_DATABASE = String(process.env.DB_NAME || "hardware_inventory_v2");
+
+function parseTrashData(value) {
+ if (value && typeof value === "object") return value;
+ try { return JSON.parse(String(value || "{}")); } catch { return {}; }
+}
+async function saveDeletedRecord(connection, uid, type, row, batchId = null) {
+ const originalId = Number(row.id);
+ const productId = type === "products" ? originalId : Number(row.product_id);
+ await connection.execute(
+  "INSERT INTO deleted_records (user_uid,source_database,record_type,original_record_id,original_product_id,delete_batch_id,record_data,deleted_by,deleted_at,expires_at) VALUES (?,?,?,?,?,?,?, ?,NOW(),DATE_ADD(NOW(),INTERVAL 30 DAY))",
+  [uid,SOURCE_DATABASE,type,originalId,Number.isInteger(productId) && productId > 0 ? productId : null,batchId,JSON.stringify(row),uid]
+ );
+}
+async function insertDeletedSourceRow(connection, type, row) {
+ const allowed = {
+  products: ["id","user_uid","product","category","buy","sell","stock"],
+  stock_in: ["id","product_id","quantity","unit_cost","total_cost","date","note"],
+  sales: ["id","product_id","quantity","date","amount","unit_cost","profit","note"],
+  damaged_items: ["id","product_id","quantity","date","unit_cost","total_loss","reason"]
+ };
+ const columns = allowed[type];
+ if (!columns || !row || !Number.isInteger(Number(row.id))) throw Object.assign(new Error("Deleted record data is invalid."),{status:400});
+ const present = columns.filter(key => Object.prototype.hasOwnProperty.call(row,key));
+ if (!present.includes("id")) throw Object.assign(new Error("Original record ID is missing."),{status:400});
+ const names = present.map(key => "`"+key+"`").join(",");
+ const marks = present.map(() => "?").join(",");
+ await connection.execute("INSERT INTO `"+type+"` ("+names+") VALUES ("+marks+")",present.map(key => row[key]));
+}
+async function archiveProductTree(connection, uid, productId) {
+ const [products] = await connection.execute("SELECT * FROM products WHERE id=? AND user_uid=? FOR UPDATE",[productId,uid]);
+ if (!products.length) throw Object.assign(new Error("Product not found."),{status:404});
+ const product = products[0], batchId = crypto.randomUUID();
+ const related = [
+  ["stock_in","stockIn"],
+  ["sales","sales"],
+  ["damaged_items","damaged"]
+ ];
+ const counts = {products:1,stockIn:0,sales:0,damaged:0};
+ for (const [table,key] of related) {
+  const [rows] = await connection.execute("SELECT * FROM `"+table+"` WHERE product_id=? FOR UPDATE",[productId]);
+  for (const row of rows) await saveDeletedRecord(connection,uid,table,row,batchId);
+  if (rows.length) await connection.execute("DELETE FROM `"+table+"` WHERE product_id=?",[productId]);
+  counts[key] = rows.length;
+ }
+ await saveDeletedRecord(connection,uid,"products",product,batchId);
+ await connection.execute("DELETE FROM products WHERE id=? AND user_uid=?",[productId,uid]);
+ return counts;
+}
+async function archiveTransaction(connection, uid, type, id) {
+ const table = type;
+ const [rows] = await connection.execute(
+  "SELECT t.* FROM `"+table+"` t INNER JOIN products p ON p.id=t.product_id WHERE t.id=? AND p.user_uid=? FOR UPDATE",
+  [id,uid]
+ );
+ if (!rows.length) throw Object.assign(new Error("Record not found."),{status:404});
+ const row = rows[0];
+ const [products] = await connection.execute("SELECT stock FROM products WHERE id=? AND user_uid=? FOR UPDATE",[row.product_id,uid]);
+ if (!products.length) throw Object.assign(new Error("Related product not found."),{status:404});
+ const quantity = Number(row.quantity);
+ if (type === "stock_in") {
+  if (Number(products[0].stock) < quantity) throw Object.assign(new Error("Cannot delete: some received units have already been used."),{status:409});
+  await connection.execute("UPDATE products SET stock=stock-? WHERE id=? AND user_uid=?",[quantity,row.product_id,uid]);
+ } else {
+  await connection.execute("UPDATE products SET stock=stock+? WHERE id=? AND user_uid=?",[quantity,row.product_id,uid]);
+ }
+ await saveDeletedRecord(connection,uid,type,row);
+ await connection.execute("DELETE FROM `"+table+"` WHERE id=?",[id]);
+ return row;
+}
+async function purgeExpiredTrash(uid) {
+ if (uid) {
+  await pool.execute("DELETE FROM deleted_records WHERE user_uid=? AND (expires_at<=NOW() OR source_database<>?)",[uid,SOURCE_DATABASE]);
+ } else {
+  await pool.execute("DELETE FROM deleted_records WHERE expires_at<=NOW() OR source_database<>?",[SOURCE_DATABASE]);
+ }
+}
+
 async function productBy(connection, value, lock = false, uid) {
- const sql = "SELECT * FROM products WHERE user_uid=? AND deleted_at IS NULL AND (id=? OR LOWER(product)=LOWER(?)) LIMIT 1" + (lock ? " FOR UPDATE" : "");
+ const sql = "SELECT * FROM products WHERE user_uid=? AND (id=? OR LOWER(product)=LOWER(?)) LIMIT 1" + (lock ? " FOR UPDATE" : "");
  const [rows] = await connection.execute(sql, [uid, Number(value) || -1, String(value || "")]); return rows[0] || null;
 }
 const productDto = r => ({ id:r.id, product:r.product, category:r.category, buy:String(r.buy), sell:String(r.sell), stock:String(r.stock) });
@@ -93,7 +172,7 @@ app.get("/api/health", route(async (req,res) => {
   firebaseAdmin: firebaseReady ? "configured" : "not_configured"
  });
 }));
-app.get("/api/product", requireFirebaseUser, requireActiveUser, route(async (req,res) => { const [rows]=await pool.execute("SELECT * FROM products WHERE user_uid=? AND deleted_at IS NULL ORDER BY id DESC",[req.firebaseUser.uid]); res.json(rows.map(productDto)); }));
+app.get("/api/product", requireFirebaseUser, requireActiveUser, route(async (req,res) => { const [rows]=await pool.execute("SELECT * FROM products WHERE user_uid=? ORDER BY id DESC",[req.firebaseUser.uid]); res.json(rows.map(productDto)); }));
 app.post("/api/product", requireFirebaseUser, requireActiveUser, route(async (req,res) => {
  const b=req.body;
  if(!String(b.product||"").trim()||!String(b.category||"").trim()||!Number.isFinite(Number(b.buy))||Number(b.buy)<0||!Number.isFinite(Number(b.sell))||Number(b.sell)<0||!Number.isInteger(Number(b.stock??0))||Number(b.stock??0)<0) return res.status(400).json({message:"Enter valid product details and non-negative whole-number stock."});
@@ -103,110 +182,110 @@ app.post("/api/product", requireFirebaseUser, requireActiveUser, route(async (re
   const initialStock=Number(b.stock??0);
   const [r]=await c.execute("INSERT INTO products(user_uid,product,category,buy,sell,stock) VALUES(?,?,?,?,?,?)",[req.firebaseUser.uid,b.product.trim(),b.category.trim(),Number(b.buy),Number(b.sell),initialStock]);
   if(initialStock>0) await c.execute("INSERT INTO stock_in(product_id,quantity,unit_cost,total_cost,date,note) VALUES(?,?,?,?,CURDATE(),?)",[r.insertId,initialStock,Number(b.buy),Number(b.buy)*initialStock,"Opening stock"]);
-  const [rows]=await c.execute("SELECT * FROM products WHERE id=? AND user_uid=? AND deleted_at IS NULL",[r.insertId,req.firebaseUser.uid]);
+  const [rows]=await c.execute("SELECT * FROM products WHERE id=? AND user_uid=?",[r.insertId,req.firebaseUser.uid]);
   await c.commit();
   res.status(201).json(productDto(rows[0]));
  } catch(error) { await c.rollback(); throw error; } finally { c.release(); }
 }));
-app.put("/api/product/:id", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{ const b=req.body,id=Number(req.params.id); if(!Number.isInteger(id)||id<1||!String(b.product||"").trim()||!String(b.category||"").trim()||!Number.isFinite(Number(b.buy))||Number(b.buy)<0||!Number.isFinite(Number(b.sell))||Number(b.sell)<0||!Number.isInteger(Number(b.stock))||Number(b.stock)<0) return res.status(400).json({message:"Invalid product details."}); const [r]=await pool.execute("UPDATE products SET product=?,category=?,buy=?,sell=?,stock=? WHERE id=? AND user_uid=? AND deleted_at IS NULL",[b.product.trim(),b.category.trim(),Number(b.buy),Number(b.sell),Number(b.stock),id,req.firebaseUser.uid]); if(!r.affectedRows)return res.status(404).json({message:"Product not found."}); const [rows]=await pool.execute("SELECT * FROM products WHERE id=? AND user_uid=?",[id,req.firebaseUser.uid]); res.json(productDto(rows[0])); }));
-app.delete("/api/product/:id", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{ const [r]=await pool.execute("UPDATE products SET deleted_at=NOW(),deleted_by=? WHERE id=? AND user_uid=? AND deleted_at IS NULL",[req.firebaseUser.uid,Number(req.params.id),req.firebaseUser.uid]); if(!r.affectedRows)return res.status(404).json({message:"Product not found."}); res.json({message:"Product moved to Recently Deleted."}); }));
-app.post("/api/settings/reset-inventory", requireFirebaseUser, requireActiveUser, route(async (req,res) => {
- if (req.body?.confirmation !== "RESET INVENTORY") return res.status(400).json({message:"Type RESET INVENTORY to confirm this action."});
- const uid=req.firebaseUser.uid, connection=await pool.getConnection();
- try {
-  await connection.beginTransaction();
-  const [stockIn]=await connection.execute("UPDATE stock_in s INNER JOIN products p ON p.id=s.product_id SET s.deleted_at=COALESCE(s.deleted_at,NOW()),s.deleted_by=COALESCE(s.deleted_by,CONCAT('reset:',?)) WHERE p.user_uid=?",[uid,uid]);
-  const [sales]=await connection.execute("UPDATE sales s INNER JOIN products p ON p.id=s.product_id SET s.deleted_at=COALESCE(s.deleted_at,NOW()),s.deleted_by=COALESCE(s.deleted_by,CONCAT('reset:',?)) WHERE p.user_uid=?",[uid,uid]);
-  const [damaged]=await connection.execute("UPDATE damaged_items d INNER JOIN products p ON p.id=d.product_id SET d.deleted_at=COALESCE(d.deleted_at,NOW()),d.deleted_by=COALESCE(d.deleted_by,CONCAT('reset:',?)) WHERE p.user_uid=?",[uid,uid]);
-  const [products]=await connection.execute("UPDATE products SET deleted_at=COALESCE(deleted_at,NOW()),deleted_by=COALESCE(deleted_by,CONCAT('reset:',?)) WHERE user_uid=?",[uid,uid]);
-  await connection.commit();
-  res.json({message:"Inventory moved to Recently Deleted. Restore it within 30 days.",deleted:{products:products.affectedRows,stockIn:stockIn.affectedRows,sales:sales.affectedRows,damaged:damaged.affectedRows}});
- } catch(error) { await connection.rollback(); throw error; } finally { connection.release(); }
-}));
-async function purgeExpiredTrash(uid){
- const c=await pool.getConnection();
+app.put("/api/product/:id", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{ const b=req.body,id=Number(req.params.id); if(!Number.isInteger(id)||id<1||!String(b.product||"").trim()||!String(b.category||"").trim()||!Number.isFinite(Number(b.buy))||Number(b.buy)<0||!Number.isFinite(Number(b.sell))||Number(b.sell)<0||!Number.isInteger(Number(b.stock))||Number(b.stock)<0) return res.status(400).json({message:"Invalid product details."}); const [r]=await pool.execute("UPDATE products SET product=?,category=?,buy=?,sell=?,stock=? WHERE id=? AND user_uid=?",[b.product.trim(),b.category.trim(),Number(b.buy),Number(b.sell),Number(b.stock),id,req.firebaseUser.uid]); if(!r.affectedRows)return res.status(404).json({message:"Product not found."}); const [rows]=await pool.execute("SELECT * FROM products WHERE id=? AND user_uid=?",[id,req.firebaseUser.uid]); res.json(productDto(rows[0])); }));
+app.delete("/api/product/:id", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{ const id=Number(req.params.id),uid=req.firebaseUser.uid,c=await pool.getConnection(); try{ if(!positiveInt(id))return res.status(400).json({message:"Invalid product ID."}); await c.beginTransaction(); const deleted=await archiveProductTree(c,uid,id); await c.commit(); res.json({message:"Product and its related records moved to Recently Deleted.",deleted}); }catch(e){await c.rollback();throw e;}finally{c.release();} }));
+
+app.post("/api/settings/reset-inventory", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{
+ if(req.body?.confirmation!=="RESET INVENTORY")return res.status(400).json({message:"Type RESET INVENTORY to confirm this action."});
+ const uid=req.firebaseUser.uid,c=await pool.getConnection();
  try{
   await c.beginTransaction();
-  await c.execute("DELETE s FROM stock_in s JOIN products p ON p.id=s.product_id WHERE p.user_uid=? AND (s.deleted_at < DATE_SUB(NOW(),INTERVAL 30 DAY) OR p.deleted_at < DATE_SUB(NOW(),INTERVAL 30 DAY))",[uid]);
-  await c.execute("DELETE s FROM sales s JOIN products p ON p.id=s.product_id WHERE p.user_uid=? AND (s.deleted_at < DATE_SUB(NOW(),INTERVAL 30 DAY) OR p.deleted_at < DATE_SUB(NOW(),INTERVAL 30 DAY))",[uid]);
-  await c.execute("DELETE d FROM damaged_items d JOIN products p ON p.id=d.product_id WHERE p.user_uid=? AND (d.deleted_at < DATE_SUB(NOW(),INTERVAL 30 DAY) OR p.deleted_at < DATE_SUB(NOW(),INTERVAL 30 DAY))",[uid]);
-  await c.execute("DELETE FROM products WHERE user_uid=? AND deleted_at < DATE_SUB(NOW(),INTERVAL 30 DAY)",[uid]);
+  const [products]=await c.execute("SELECT id FROM products WHERE user_uid=? ORDER BY id FOR UPDATE",[uid]);
+  const totals={products:0,stockIn:0,sales:0,damaged:0};
+  for(const product of products){
+   const counts=await archiveProductTree(c,uid,Number(product.id));
+   totals.products+=counts.products;totals.stockIn+=counts.stockIn;totals.sales+=counts.sales;totals.damaged+=counts.damaged;
+  }
   await c.commit();
+  res.json({message:"Inventory moved to Recently Deleted. Restore it within 30 days.",deleted:totals});
  }catch(e){await c.rollback();throw e;}finally{c.release();}
-}
-async function purgeExpiredTrashForAllUsers(){
- const [users]=await pool.query("SELECT DISTINCT user_uid FROM products WHERE user_uid IS NOT NULL");
- for(const user of users) await purgeExpiredTrash(user.user_uid);
-}
+}));
 app.get("/api/recently-deleted", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{
- const uid=req.firebaseUser.uid; await purgeExpiredTrash(uid);
- const [p]=await pool.execute("SELECT id,product AS label,'Products' AS module,deleted_at FROM products WHERE user_uid=? AND deleted_at IS NOT NULL",[uid]);
- const [s]=await pool.execute("SELECT s.id,CONCAT(p.product,' · Stock In #',s.id) AS label,'Stock In' AS module,s.deleted_at FROM stock_in s JOIN products p ON p.id=s.product_id WHERE p.user_uid=? AND s.deleted_at IS NOT NULL",[uid]);
- const [v]=await pool.execute("SELECT s.id,CONCAT(p.product,' · Sale #',s.id) AS label,'Sales' AS module,s.deleted_at FROM sales s JOIN products p ON p.id=s.product_id WHERE p.user_uid=? AND s.deleted_at IS NOT NULL",[uid]);
- const [d]=await pool.execute("SELECT d.id,CONCAT(p.product,' · Damaged #',d.id) AS label,'Damaged Items' AS module,d.deleted_at FROM damaged_items d JOIN products p ON p.id=d.product_id WHERE p.user_uid=? AND d.deleted_at IS NOT NULL",[uid]);
- res.json([...p.map(x=>({...x,type:"products"})),...s.map(x=>({...x,type:"stock_in"})),...v.map(x=>({...x,type:"sales"})),...d.map(x=>({...x,type:"damaged_items"}))].sort((x,y)=>String(y.deleted_at).localeCompare(String(x.deleted_at))));
+ const uid=req.firebaseUser.uid;
+ await purgeExpiredTrash(uid);
+ const [rows]=await pool.execute("SELECT id,record_type,original_record_id,original_product_id,delete_batch_id,record_data,deleted_at,expires_at FROM deleted_records WHERE user_uid=? AND source_database=? ORDER BY deleted_at DESC,id DESC",[uid,SOURCE_DATABASE]);
+ const productNames=new Map();
+ const [liveProducts]=await pool.execute("SELECT id,product FROM products WHERE user_uid=?",[uid]);
+ for(const p of liveProducts)productNames.set(Number(p.id),p.product);
+ for(const row of rows){
+  const data=parseTrashData(row.record_data);
+  if(row.record_type==="products")productNames.set(Number(row.original_record_id),data.product||("Product #"+row.original_record_id));
+ }
+ const moduleNames={products:"Products",stock_in:"Stock In",sales:"Sales",damaged_items:"Damaged Items"};
+ const items=rows.map(row=>{
+  const data=parseTrashData(row.record_data),type=row.record_type;
+  const productName=productNames.get(Number(row.original_product_id))||("Product #"+row.original_product_id);
+  const label=type==="products"?(data.product||("Product #"+row.original_record_id)):productName+" · "+(type==="stock_in"?"Stock In":type==="sales"?"Sale":"Damaged")+" #"+row.original_record_id;
+  return {id:Number(row.original_record_id),type,module:moduleNames[type]||type,label,deleted_at:row.deleted_at,expires_at:row.expires_at,delete_batch_id:row.delete_batch_id};
+ });
+ res.json(items);
 }));
 app.post("/api/recently-deleted/:type/:id/restore", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{
  const type=req.params.type,id=Number(req.params.id),uid=req.firebaseUser.uid;
  if(!positiveInt(id)||!["products","stock_in","sales","damaged_items"].includes(type))return res.status(400).json({message:"Invalid deleted record."});
  const c=await pool.getConnection();
- try{await c.beginTransaction();
+ try{
+  await c.beginTransaction();
+  const [trash]=await c.execute("SELECT * FROM deleted_records WHERE user_uid=? AND source_database=? AND record_type=? AND original_record_id=? AND expires_at>NOW() ORDER BY id DESC LIMIT 1 FOR UPDATE",[uid,SOURCE_DATABASE,type,id]);
+  if(!trash.length)throw Object.assign(new Error("Deleted record not found or its 30-day recovery period has expired."),{status:404});
+  const entry=trash[0],data=parseTrashData(entry.record_data);
   if(type==="products"){
-   const [rows]=await c.execute("SELECT id FROM products WHERE id=? AND user_uid=? AND deleted_at IS NOT NULL FOR UPDATE",[id,uid]);
-   if(!rows.length)throw Object.assign(new Error("Deleted product not found."),{status:404});
-   await c.execute("UPDATE products SET deleted_at=NULL,deleted_by=NULL WHERE id=? AND user_uid=?",[id,uid]);
+   if(String(data.user_uid)!==uid)throw Object.assign(new Error("This product does not belong to your account."),{status:403});
   }else{
-   const [rows]=await c.execute("SELECT t.product_id,t.quantity,t.deleted_by FROM "+type+" t JOIN products p ON p.id=t.product_id WHERE t.id=? AND p.user_uid=? AND t.deleted_at IS NOT NULL AND p.deleted_at IS NULL FOR UPDATE",[id,uid]);
-   if(!rows.length)throw Object.assign(new Error("Deleted record not found. Restore its product first, if deleted."),{status:404});
-   const pid=rows[0].product_id,q=Number(rows[0].quantity);
-   const [p]=await c.execute("SELECT stock FROM products WHERE id=? AND user_uid=? AND deleted_at IS NULL FOR UPDATE",[pid,uid]);
-   if(!String(rows[0].deleted_by||"").startsWith("reset:")){
-    if(type==="stock_in")await c.execute("UPDATE products SET stock=stock+? WHERE id=?",[q,pid]);
-    else {if(!p.length||Number(p[0].stock)<q)throw Object.assign(new Error("Not enough stock to restore this record safely."),{status:409});await c.execute("UPDATE products SET stock=stock-? WHERE id=?",[q,pid]);}
+   const [products]=await c.execute("SELECT id,stock FROM products WHERE id=? AND user_uid=? FOR UPDATE",[Number(data.product_id),uid]);
+   if(!products.length)throw Object.assign(new Error("Restore the related product first."),{status:409});
+   if(!entry.delete_batch_id){
+    const quantity=Number(data.quantity);
+    if(type==="stock_in")await c.execute("UPDATE products SET stock=stock+? WHERE id=? AND user_uid=?",[quantity,data.product_id,uid]);
+    else{
+     if(Number(products[0].stock)<quantity)throw Object.assign(new Error("Not enough stock to restore this record safely."),{status:409});
+     await c.execute("UPDATE products SET stock=stock-? WHERE id=? AND user_uid=?",[quantity,data.product_id,uid]);
+    }
    }
-   await c.execute("UPDATE "+type+" SET deleted_at=NULL,deleted_by=NULL WHERE id=?",[id]);
   }
-  await c.commit();res.json({message:"Record restored successfully."});
+  await insertDeletedSourceRow(c,type,data);
+  await c.execute("DELETE FROM deleted_records WHERE id=? AND user_uid=?",[entry.id,uid]);
+  await c.commit();
+  res.json({message:"Record restored successfully."});
  }catch(e){await c.rollback();throw e;}finally{c.release();}
 }));
 app.delete("/api/recently-deleted/:type/:id", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{
  const type=req.params.type,id=Number(req.params.id),uid=req.firebaseUser.uid;
  if(!positiveInt(id)||!["products","stock_in","sales","damaged_items"].includes(type))return res.status(400).json({message:"Invalid deleted record."});
- const c=await pool.getConnection();
- try{await c.beginTransaction();
-  if(type==="products"){
-   const [rows]=await c.execute("SELECT id FROM products WHERE id=? AND user_uid=? AND deleted_at IS NOT NULL FOR UPDATE",[id,uid]);if(!rows.length)throw Object.assign(new Error("Deleted product not found."),{status:404});
-   await c.execute("DELETE s FROM stock_in s JOIN products p ON p.id=s.product_id WHERE p.id=? AND p.user_uid=?",[id,uid]);
-   await c.execute("DELETE s FROM sales s JOIN products p ON p.id=s.product_id WHERE p.id=? AND p.user_uid=?",[id,uid]);
-   await c.execute("DELETE d FROM damaged_items d JOIN products p ON p.id=d.product_id WHERE p.id=? AND p.user_uid=?",[id,uid]);
-   await c.execute("DELETE FROM products WHERE id=? AND user_uid=?",[id,uid]);
-  }else{const [r]=await c.execute("DELETE t FROM "+type+" t JOIN products p ON p.id=t.product_id WHERE t.id=? AND p.user_uid=? AND t.deleted_at IS NOT NULL",[id,uid]);if(!r.affectedRows)throw Object.assign(new Error("Deleted record not found."),{status:404});}
-  await c.commit();res.json({message:"Record permanently deleted."});
- }catch(e){await c.rollback();throw e;}finally{c.release();}
+ const [entries]=await pool.execute("SELECT id,delete_batch_id FROM deleted_records WHERE user_uid=? AND source_database=? AND record_type=? AND original_record_id=? ORDER BY id DESC LIMIT 1",[uid,SOURCE_DATABASE,type,id]);
+ if(!entries.length)return res.status(404).json({message:"Deleted record not found."});
+ const entry=entries[0];
+ if(type==="products"&&entry.delete_batch_id){
+  await pool.execute("DELETE FROM deleted_records WHERE user_uid=? AND source_database=? AND delete_batch_id=?",[uid,SOURCE_DATABASE,entry.delete_batch_id]);
+ }else{
+  await pool.execute("DELETE FROM deleted_records WHERE id=? AND user_uid=?",[entry.id,uid]);
+ }
+ res.json({message:"Record permanently deleted."});
 }));
 app.delete("/api/recently-deleted", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{
- const uid=req.firebaseUser.uid,c=await pool.getConnection();
- try{await c.beginTransaction();
-  await c.execute("DELETE s FROM stock_in s JOIN products p ON p.id=s.product_id WHERE p.user_uid=? AND (s.deleted_at IS NOT NULL OR p.deleted_at IS NOT NULL)",[uid]);
-  await c.execute("DELETE s FROM sales s JOIN products p ON p.id=s.product_id WHERE p.user_uid=? AND (s.deleted_at IS NOT NULL OR p.deleted_at IS NOT NULL)",[uid]);
-  await c.execute("DELETE d FROM damaged_items d JOIN products p ON p.id=d.product_id WHERE p.user_uid=? AND (d.deleted_at IS NOT NULL OR p.deleted_at IS NOT NULL)",[uid]);
-  await c.execute("DELETE FROM products WHERE user_uid=? AND deleted_at IS NOT NULL",[uid]);
-  await c.commit();res.json({message:"Trash permanently emptied."});
- }catch(e){await c.rollback();throw e;}finally{c.release();}
+ const uid=req.firebaseUser.uid;
+ const [result]=await pool.execute("DELETE FROM deleted_records WHERE user_uid=? AND source_database=?",[uid,SOURCE_DATABASE]);
+ res.json({message:"Trash permanently emptied.",deleted:result.affectedRows});
 }));
-app.get("/api/stock-in", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{ const [rows]=await pool.execute("SELECT s.id,p.product,s.quantity,s.unit_cost,s.total_cost,s.date,s.note FROM stock_in s JOIN products p ON p.id=s.product_id WHERE p.user_uid=? AND p.deleted_at IS NULL AND s.deleted_at IS NULL ORDER BY s.date DESC,s.id DESC",[req.firebaseUser.uid]); res.json(rows.map(stockDto)); }));
+
+app.get("/api/stock-in", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{ const [rows]=await pool.execute("SELECT s.id,p.product,s.quantity,s.unit_cost,s.total_cost,s.date,s.note FROM stock_in s JOIN products p ON p.id=s.product_id WHERE p.user_uid=? ORDER BY s.date DESC,s.id DESC",[req.firebaseUser.uid]); res.json(rows.map(stockDto)); }));
 app.post("/api/stock-in", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{ const b=req.body;if(!positiveInt(b.quantity))return res.status(400).json({message:"Quantity must be a positive whole number."});const c=await pool.getConnection();try{await c.beginTransaction();const p=await productBy(c,b.product,true,req.firebaseUser.uid);if(!p)throw Object.assign(new Error("Product not found."),{status:404});await c.execute("UPDATE products SET stock=stock+? WHERE id=?",[Number(b.quantity),p.id]);const [r]=await c.execute("INSERT INTO stock_in(product_id,quantity,unit_cost,total_cost,date,note) VALUES(?,?,?,?,?,?)",[p.id,Number(b.quantity),Number(p.buy),Number(p.buy)*Number(b.quantity),dateValue(b.date),b.note||""]);await c.commit();res.status(201).json({id:r.insertId,product:p.product,quantity:String(b.quantity),date:dateValue(b.date),note:b.note||""});}catch(e){await c.rollback();throw e;}finally{c.release();} }));
-app.put("/api/stock-in/:id", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{const id=Number(req.params.id),b=req.body;if(!positiveInt(id)||!positiveInt(b.quantity))return res.status(400).json({message:"Invalid stock-in details."});const c=await pool.getConnection();try{await c.beginTransaction();const [oldRows]=await c.execute("SELECT s.* FROM stock_in s JOIN products p ON p.id=s.product_id WHERE s.id=? AND p.user_uid=? AND p.deleted_at IS NULL AND s.deleted_at IS NULL FOR UPDATE",[id,req.firebaseUser.uid]);if(!oldRows.length)throw Object.assign(new Error("Stock-in record not found."),{status:404});const old=oldRows[0],p=await productBy(c,b.product,true,req.firebaseUser.uid);if(!p)throw Object.assign(new Error("Product not found."),{status:404});const [oldProduct]=await c.execute("SELECT stock FROM products WHERE id=? FOR UPDATE",[old.product_id]);if(!oldProduct.length||Number(oldProduct[0].stock)<Number(old.quantity))throw Object.assign(new Error("Cannot revise this stock-in record because some units have already been used."),{status:409});await c.execute("UPDATE products SET stock=stock-? WHERE id=?",[old.quantity,old.product_id]);await c.execute("UPDATE products SET stock=stock+? WHERE id=?",[Number(b.quantity),p.id]);await c.execute("UPDATE stock_in SET product_id=?,quantity=?,unit_cost=?,total_cost=?,date=?,note=? WHERE id=?",[p.id,Number(b.quantity),Number(p.buy),Number(p.buy)*Number(b.quantity),dateValue(b.date),b.note||"",id]);await c.commit();res.json({id,product:p.product,quantity:String(b.quantity),date:dateValue(b.date),note:b.note||""});}catch(e){await c.rollback();throw e;}finally{c.release();}}));
-app.delete("/api/stock-in/:id", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{const c=await pool.getConnection();try{await c.beginTransaction();const [rows]=await c.execute("SELECT s.* FROM stock_in s JOIN products p ON p.id=s.product_id WHERE s.id=? AND p.user_uid=? AND p.deleted_at IS NULL AND s.deleted_at IS NULL FOR UPDATE",[Number(req.params.id),req.firebaseUser.uid]);if(!rows.length)throw Object.assign(new Error("Stock-in record not found."),{status:404});const x=rows[0],[p]=await c.execute("SELECT stock FROM products WHERE id=? FOR UPDATE",[x.product_id]);if(!p.length||Number(p[0].stock)<Number(x.quantity))throw Object.assign(new Error("Cannot delete: some received units have already been used."),{status:409});await c.execute("UPDATE products SET stock=stock-? WHERE id=?",[x.quantity,x.product_id]);await c.execute("UPDATE stock_in SET deleted_at=NOW(),deleted_by=? WHERE id=?",[req.firebaseUser.uid,x.id]);await c.commit();res.json({message:"Stock-in record deleted."});}catch(e){await c.rollback();throw e;}finally{c.release();}}));
-app.get("/api/sales", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{const [rows]=await pool.execute("SELECT s.id,p.product,s.quantity,s.date,s.amount,s.unit_cost,s.profit,s.note FROM sales s JOIN products p ON p.id=s.product_id WHERE p.user_uid=? AND p.deleted_at IS NULL AND s.deleted_at IS NULL ORDER BY s.date DESC,s.id DESC",[req.firebaseUser.uid]);res.json(rows.map(saleDto));}));
+app.put("/api/stock-in/:id", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{const id=Number(req.params.id),b=req.body;if(!positiveInt(id)||!positiveInt(b.quantity))return res.status(400).json({message:"Invalid stock-in details."});const c=await pool.getConnection();try{await c.beginTransaction();const [oldRows]=await c.execute("SELECT s.* FROM stock_in s JOIN products p ON p.id=s.product_id WHERE s.id=? AND p.user_uid=? FOR UPDATE",[id,req.firebaseUser.uid]);if(!oldRows.length)throw Object.assign(new Error("Stock-in record not found."),{status:404});const old=oldRows[0],p=await productBy(c,b.product,true,req.firebaseUser.uid);if(!p)throw Object.assign(new Error("Product not found."),{status:404});const [oldProduct]=await c.execute("SELECT stock FROM products WHERE id=? FOR UPDATE",[old.product_id]);if(!oldProduct.length||Number(oldProduct[0].stock)<Number(old.quantity))throw Object.assign(new Error("Cannot revise this stock-in record because some units have already been used."),{status:409});await c.execute("UPDATE products SET stock=stock-? WHERE id=?",[old.quantity,old.product_id]);await c.execute("UPDATE products SET stock=stock+? WHERE id=?",[Number(b.quantity),p.id]);await c.execute("UPDATE stock_in SET product_id=?,quantity=?,unit_cost=?,total_cost=?,date=?,note=? WHERE id=?",[p.id,Number(b.quantity),Number(p.buy),Number(p.buy)*Number(b.quantity),dateValue(b.date),b.note||"",id]);await c.commit();res.json({id,product:p.product,quantity:String(b.quantity),date:dateValue(b.date),note:b.note||""});}catch(e){await c.rollback();throw e;}finally{c.release();}}));
+app.delete("/api/stock-in/:id", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{const id=Number(req.params.id),uid=req.firebaseUser.uid,c=await pool.getConnection();try{if(!positiveInt(id))return res.status(400).json({message:"Invalid stock-in ID."});await c.beginTransaction();await archiveTransaction(c,uid,"stock_in",id);await c.commit();res.json({message:"Stock-in record moved to Recently Deleted."});}catch(e){await c.rollback();throw e;}finally{c.release();}}));
+app.get("/api/sales", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{const [rows]=await pool.execute("SELECT s.id,p.product,s.quantity,s.date,s.amount,s.unit_cost,s.profit,s.note FROM sales s JOIN products p ON p.id=s.product_id WHERE p.user_uid=? ORDER BY s.date DESC,s.id DESC",[req.firebaseUser.uid]);res.json(rows.map(saleDto));}));
 async function saveSale(c,b,old,uid){const p=await productBy(c,b.product,true,uid);if(!p)throw Object.assign(new Error("Product not found in inventory."),{status:404});const q=Number(b.quantity);if(!Number.isInteger(q)||q<=0)throw Object.assign(new Error("Quantity must be a positive whole number."),{status:400});const [locked]=await c.execute("SELECT stock FROM products WHERE id=? FOR UPDATE",[p.id]);const available=Number(locked[0].stock)+(old&&old.product_id===p.id?Number(old.quantity):0);if(q>available)throw Object.assign(new Error("INSUFFICIENT STOCK: Only "+available+" unit(s) are available."),{status:400});const cost=Number(p.buy),price=Number(p.sell);if(!Number.isFinite(cost)||cost<0||!Number.isFinite(price)||price<=0)throw Object.assign(new Error("Product cost or selling price is invalid."),{status:400});if(price<cost)throw Object.assign(new Error("LOSS PREVENTED: Selling price is below the product cost."),{status:400});const amount=price*q,profit=(price-cost)*q;if(old){await c.execute("UPDATE products SET stock=stock+? WHERE id=?",[old.quantity,old.product_id]);await c.execute("UPDATE products SET stock=stock-? WHERE id=?",[q,p.id]);await c.execute("UPDATE sales SET product_id=?,quantity=?,date=?,amount=?,unit_cost=?,profit=?,note=? WHERE id=?",[p.id,q,dateValue(b.date),amount,cost,profit,b.note||"",old.id]);return{id:old.id,product:p.product,quantity:String(q),date:dateValue(b.date),amount:String(amount),unitCost:cost,profit,note:b.note||""};}await c.execute("UPDATE products SET stock=stock-? WHERE id=?",[q,p.id]);const [r]=await c.execute("INSERT INTO sales(product_id,quantity,date,amount,unit_cost,profit,note) VALUES(?,?,?,?,?,?,?)",[p.id,q,dateValue(b.date),amount,cost,profit,b.note||""]);return{id:r.insertId,product:p.product,quantity:String(q),date:dateValue(b.date),amount:String(amount),unitCost:cost,profit,note:b.note||""};}
 app.post("/api/sales", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{const c=await pool.getConnection();try{await c.beginTransaction();const sale=await saveSale(c,req.body,null,req.firebaseUser.uid);await c.commit();res.status(201).json(sale);}catch(e){await c.rollback();throw e;}finally{c.release();}}));
-app.put("/api/sales/:id", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{const c=await pool.getConnection();try{await c.beginTransaction();const [rows]=await c.execute("SELECT s.* FROM sales s JOIN products p ON p.id=s.product_id WHERE s.id=? AND p.user_uid=? AND p.deleted_at IS NULL AND s.deleted_at IS NULL FOR UPDATE",[Number(req.params.id),req.firebaseUser.uid]);if(!rows.length)throw Object.assign(new Error("Sale not found."),{status:404});const sale=await saveSale(c,req.body,rows[0],req.firebaseUser.uid);await c.commit();res.json(sale);}catch(e){await c.rollback();throw e;}finally{c.release();}}));
-app.delete("/api/sales/:id", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{const c=await pool.getConnection();try{await c.beginTransaction();const [rows]=await c.execute("SELECT s.* FROM sales s JOIN products p ON p.id=s.product_id WHERE s.id=? AND p.user_uid=? AND p.deleted_at IS NULL AND s.deleted_at IS NULL FOR UPDATE",[Number(req.params.id),req.firebaseUser.uid]);if(!rows.length)throw Object.assign(new Error("Sale not found."),{status:404});const s=rows[0];await c.execute("UPDATE products SET stock=stock+? WHERE id=?",[s.quantity,s.product_id]);await c.execute("UPDATE sales SET deleted_at=NOW(),deleted_by=? WHERE id=?",[req.firebaseUser.uid,s.id]);await c.commit();res.json({message:"Sale deleted successfully."});}catch(e){await c.rollback();throw e;}finally{c.release();}}));
-app.get("/api/damaged", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{const [rows]=await pool.execute("SELECT d.id,p.product,d.quantity,d.date,d.unit_cost,d.total_loss,d.reason FROM damaged_items d JOIN products p ON p.id=d.product_id WHERE p.user_uid=? AND p.deleted_at IS NULL AND d.deleted_at IS NULL ORDER BY d.date DESC,d.id DESC",[req.firebaseUser.uid]);res.json(rows.map(damagedDto));}));
+app.put("/api/sales/:id", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{const c=await pool.getConnection();try{await c.beginTransaction();const [rows]=await c.execute("SELECT s.* FROM sales s JOIN products p ON p.id=s.product_id WHERE s.id=? AND p.user_uid=? FOR UPDATE",[Number(req.params.id),req.firebaseUser.uid]);if(!rows.length)throw Object.assign(new Error("Sale not found."),{status:404});const sale=await saveSale(c,req.body,rows[0],req.firebaseUser.uid);await c.commit();res.json(sale);}catch(e){await c.rollback();throw e;}finally{c.release();}}));
+app.delete("/api/sales/:id", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{const id=Number(req.params.id),uid=req.firebaseUser.uid,c=await pool.getConnection();try{if(!positiveInt(id))return res.status(400).json({message:"Invalid sale ID."});await c.beginTransaction();await archiveTransaction(c,uid,"sales",id);await c.commit();res.json({message:"Sale moved to Recently Deleted."});}catch(e){await c.rollback();throw e;}finally{c.release();}}));
+app.get("/api/damaged", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{const [rows]=await pool.execute("SELECT d.id,p.product,d.quantity,d.date,d.unit_cost,d.total_loss,d.reason FROM damaged_items d JOIN products p ON p.id=d.product_id WHERE p.user_uid=? ORDER BY d.date DESC,d.id DESC",[req.firebaseUser.uid]);res.json(rows.map(damagedDto));}));
 app.post("/api/damaged", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{const b=req.body;if(!positiveInt(b.quantity))return res.status(400).json({message:"Quantity must be a positive whole number."});const c=await pool.getConnection();try{await c.beginTransaction();const p=await productBy(c,b.product,true,req.firebaseUser.uid);if(!p)throw Object.assign(new Error("Product not found."),{status:404});if(Number(p.stock)<Number(b.quantity))throw Object.assign(new Error("Insufficient stock for damaged quantity."),{status:400});await c.execute("UPDATE products SET stock=stock-? WHERE id=?",[Number(b.quantity),p.id]);const unitCost=Number(p.buy),totalLoss=unitCost*Number(b.quantity);const [r]=await c.execute("INSERT INTO damaged_items(product_id,quantity,date,unit_cost,total_loss,reason) VALUES(?,?,?,?,?,?)",[p.id,Number(b.quantity),dateValue(b.date),unitCost,totalLoss,b.reason||""]);await c.commit();res.status(201).json({id:r.insertId,product:p.product,quantity:String(b.quantity),date:dateValue(b.date),unitCost:String(unitCost),loss:String(totalLoss),reason:b.reason||""});}catch(e){await c.rollback();throw e;}finally{c.release();}}));
-app.put("/api/damaged/:id", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{const id=Number(req.params.id),b=req.body;if(!positiveInt(id)||!positiveInt(b.quantity))return res.status(400).json({message:"Invalid damaged-item details."});const c=await pool.getConnection();try{await c.beginTransaction();const [rows]=await c.execute("SELECT d.* FROM damaged_items d JOIN products p ON p.id=d.product_id WHERE d.id=? AND p.user_uid=? AND p.deleted_at IS NULL AND d.deleted_at IS NULL FOR UPDATE",[id,req.firebaseUser.uid]);if(!rows.length)throw Object.assign(new Error("Damaged item not found."),{status:404});const old=rows[0],p=await productBy(c,b.product,true,req.firebaseUser.uid);if(!p)throw Object.assign(new Error("Product not found."),{status:404});await c.execute("UPDATE products SET stock=stock+? WHERE id=?",[old.quantity,old.product_id]);const [stockRows]=await c.execute("SELECT stock FROM products WHERE id=? FOR UPDATE",[p.id]);if(Number(stockRows[0].stock)<Number(b.quantity))throw Object.assign(new Error("Insufficient stock for this update."),{status:400});await c.execute("UPDATE products SET stock=stock-? WHERE id=?",[Number(b.quantity),p.id]);const unitCost=Number(p.buy),totalLoss=unitCost*Number(b.quantity);await c.execute("UPDATE damaged_items SET product_id=?,quantity=?,date=?,unit_cost=?,total_loss=?,reason=? WHERE id=?",[p.id,Number(b.quantity),dateValue(b.date),unitCost,totalLoss,b.reason||"",id]);await c.commit();res.json({id,product:p.product,quantity:String(b.quantity),date:dateValue(b.date),unitCost:String(unitCost),loss:String(totalLoss),reason:b.reason||""});}catch(e){await c.rollback();throw e;}finally{c.release();}}));
-app.delete("/api/damaged/:id", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{const c=await pool.getConnection();try{await c.beginTransaction();const [rows]=await c.execute("SELECT d.* FROM damaged_items d JOIN products p ON p.id=d.product_id WHERE d.id=? AND p.user_uid=? AND p.deleted_at IS NULL AND d.deleted_at IS NULL FOR UPDATE",[Number(req.params.id),req.firebaseUser.uid]);if(!rows.length)throw Object.assign(new Error("Damaged item not found."),{status:404});const d=rows[0];await c.execute("UPDATE products SET stock=stock+? WHERE id=?",[d.quantity,d.product_id]);await c.execute("UPDATE damaged_items SET deleted_at=NOW(),deleted_by=? WHERE id=?",[req.firebaseUser.uid,d.id]);await c.commit();res.json({message:"Damaged-item record deleted."});}catch(e){await c.rollback();throw e;}finally{c.release();}}));
+app.put("/api/damaged/:id", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{const id=Number(req.params.id),b=req.body;if(!positiveInt(id)||!positiveInt(b.quantity))return res.status(400).json({message:"Invalid damaged-item details."});const c=await pool.getConnection();try{await c.beginTransaction();const [rows]=await c.execute("SELECT d.* FROM damaged_items d JOIN products p ON p.id=d.product_id WHERE d.id=? AND p.user_uid=? FOR UPDATE",[id,req.firebaseUser.uid]);if(!rows.length)throw Object.assign(new Error("Damaged item not found."),{status:404});const old=rows[0],p=await productBy(c,b.product,true,req.firebaseUser.uid);if(!p)throw Object.assign(new Error("Product not found."),{status:404});await c.execute("UPDATE products SET stock=stock+? WHERE id=?",[old.quantity,old.product_id]);const [stockRows]=await c.execute("SELECT stock FROM products WHERE id=? FOR UPDATE",[p.id]);if(Number(stockRows[0].stock)<Number(b.quantity))throw Object.assign(new Error("Insufficient stock for this update."),{status:400});await c.execute("UPDATE products SET stock=stock-? WHERE id=?",[Number(b.quantity),p.id]);const unitCost=Number(p.buy),totalLoss=unitCost*Number(b.quantity);await c.execute("UPDATE damaged_items SET product_id=?,quantity=?,date=?,unit_cost=?,total_loss=?,reason=? WHERE id=?",[p.id,Number(b.quantity),dateValue(b.date),unitCost,totalLoss,b.reason||"",id]);await c.commit();res.json({id,product:p.product,quantity:String(b.quantity),date:dateValue(b.date),unitCost:String(unitCost),loss:String(totalLoss),reason:b.reason||""});}catch(e){await c.rollback();throw e;}finally{c.release();}}));
+app.delete("/api/damaged/:id", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{const id=Number(req.params.id),uid=req.firebaseUser.uid,c=await pool.getConnection();try{if(!positiveInt(id))return res.status(400).json({message:"Invalid damaged-item ID."});await c.beginTransaction();await archiveTransaction(c,uid,"damaged_items",id);await c.commit();res.json({message:"Damaged-item record moved to Recently Deleted."});}catch(e){await c.rollback();throw e;}finally{c.release();}}));
 app.get("/api/settings/:uid", requireFirebaseUser, requireActiveUser, route(async (req,res) => {
  const uid=req.firebaseUser.uid;
  if(!uid || uid.length>128) return res.status(400).json({message:"A valid account ID is required."});
@@ -357,10 +436,7 @@ async function checkDatabaseAtStartup() {
  }
 }
 checkDatabaseAtStartup();
-const trashCleanupTimer=setInterval(async()=>{
- try{await purgeExpiredTrashForAllUsers();console.log("[TRASH] Expired records cleanup completed.");}
- catch(error){console.warn("[TRASH] Scheduled cleanup skipped:",error.message);}
-},24*60*60*1000);
+const trashCleanupTimer=setInterval(async()=>{try{await purgeExpiredTrash();console.log("[TRASH] Expired records cleanup completed.");}catch(error){console.warn("[TRASH] Scheduled cleanup skipped:",error.message);}},24*60*60*1000);
 if(typeof trashCleanupTimer.unref==="function")trashCleanupTimer.unref();
 
 
