@@ -115,10 +115,10 @@ app.post("/api/settings/reset-inventory", requireFirebaseUser, requireActiveUser
  const uid=req.firebaseUser.uid, connection=await pool.getConnection();
  try {
   await connection.beginTransaction();
-  const [stockIn]=await connection.execute("UPDATE stock_in s INNER JOIN products p ON p.id=s.product_id SET s.deleted_at=COALESCE(s.deleted_at,NOW()),s.deleted_by=COALESCE(s.deleted_by,CONCAT("reset:",?)) WHERE p.user_uid=?",[uid,uid]);
-  const [sales]=await connection.execute("UPDATE sales s INNER JOIN products p ON p.id=s.product_id SET s.deleted_at=COALESCE(s.deleted_at,NOW()),s.deleted_by=COALESCE(s.deleted_by,CONCAT("reset:",?)) WHERE p.user_uid=?",[uid,uid]);
-  const [damaged]=await connection.execute("UPDATE damaged_items d INNER JOIN products p ON p.id=d.product_id SET d.deleted_at=COALESCE(d.deleted_at,NOW()),d.deleted_by=COALESCE(d.deleted_by,CONCAT("reset:",?)) WHERE p.user_uid=?",[uid,uid]);
-  const [products]=await connection.execute("UPDATE products SET deleted_at=COALESCE(deleted_at,NOW()),deleted_by=COALESCE(deleted_by,CONCAT("reset:",?)) WHERE user_uid=?",[uid,uid]);
+  const [stockIn]=await connection.execute("UPDATE stock_in s INNER JOIN products p ON p.id=s.product_id SET s.deleted_at=COALESCE(s.deleted_at,NOW()),s.deleted_by=COALESCE(s.deleted_by,CONCAT('reset:',?)) WHERE p.user_uid=?",[uid,uid]);
+  const [sales]=await connection.execute("UPDATE sales s INNER JOIN products p ON p.id=s.product_id SET s.deleted_at=COALESCE(s.deleted_at,NOW()),s.deleted_by=COALESCE(s.deleted_by,CONCAT('reset:',?)) WHERE p.user_uid=?",[uid,uid]);
+  const [damaged]=await connection.execute("UPDATE damaged_items d INNER JOIN products p ON p.id=d.product_id SET d.deleted_at=COALESCE(d.deleted_at,NOW()),d.deleted_by=COALESCE(d.deleted_by,CONCAT('reset:',?)) WHERE p.user_uid=?",[uid,uid]);
+  const [products]=await connection.execute("UPDATE products SET deleted_at=COALESCE(deleted_at,NOW()),deleted_by=COALESCE(deleted_by,CONCAT('reset:',?)) WHERE user_uid=?",[uid,uid]);
   await connection.commit();
   res.json({message:"Inventory moved to Recently Deleted. Restore it within 30 days.",deleted:{products:products.affectedRows,stockIn:stockIn.affectedRows,sales:sales.affectedRows,damaged:damaged.affectedRows}});
  } catch(error) { await connection.rollback(); throw error; } finally { connection.release(); }
