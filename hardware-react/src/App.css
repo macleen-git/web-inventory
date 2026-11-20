@@ -1960,3 +1960,166 @@ button { cursor: pointer; }
   filter: invert(1) grayscale(1) brightness(1.8) !important;
   opacity: .95;
 }
+
+
+/* Reusable animated success confirmation modal */
+.hw-success-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+  background: rgba(2, 15, 29, .76);
+  backdrop-filter: blur(6px);
+  animation: hw-success-backdrop-in .2s ease-out both;
+}
+.hw-success-modal {
+  width: min(100%, 560px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 196, 0, .48);
+  border-radius: 20px;
+  color: var(--hw-text, #203040);
+  background: var(--hw-card, #fff);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .38);
+  animation: hw-success-modal-in .32s cubic-bezier(.2,.8,.2,1) both;
+}
+.hw-success-header {
+  min-height: 66px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 22px;
+  color: #f8fafc;
+  background: #0b3048;
+  border-bottom: 4px solid #ffc400;
+}
+.hw-success-header h2 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1.12rem;
+  font-weight: 750;
+}
+.hw-success-close {
+  border: 0;
+  padding: 0 2px;
+  color: #fff;
+  background: transparent;
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+}
+.hw-success-content {
+  padding: 28px clamp(18px, 5vw, 36px) 30px;
+  text-align: center;
+}
+.hw-success-check-wrap {
+  width: 94px;
+  height: 94px;
+  margin: 0 auto 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, .12);
+  animation: hw-success-glow 1.5s ease-in-out infinite alternate;
+}
+.hw-success-check {
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: #22c55e;
+  box-shadow: 0 0 0 8px rgba(34, 197, 94, .13);
+  animation: hw-success-pop .48s cubic-bezier(.2,.8,.2,1) both;
+}
+.hw-success-check svg {
+  width: 42px;
+  height: 42px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.hw-success-title {
+  margin: 0 0 22px;
+  color: var(--hw-text, #203040);
+  font-size: clamp(1.25rem, 4vw, 1.65rem);
+  font-weight: 800;
+}
+.hw-success-details {
+  display: grid;
+  gap: 12px;
+  padding: 18px 20px;
+  border: 1px solid rgba(59, 130, 246, .22);
+  border-radius: 14px;
+  background: rgba(59, 130, 246, .055);
+  text-align: left;
+}
+.hw-success-detail {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+  color: var(--hw-text, #203040);
+}
+.hw-success-detail span {
+  color: var(--hw-muted, #647789);
+}
+.hw-success-detail strong {
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.hw-success-message {
+  margin: 20px 0 22px;
+  color: var(--hw-muted, #647789);
+}
+.hw-success-ok {
+  min-width: 150px;
+  min-height: 46px;
+  border-radius: 10px;
+}
+:root[data-theme="dark"] .hw-success-modal {
+  color: #e8eef5;
+  background: #1d2c3a;
+  border-color: #40566a;
+}
+:root[data-theme="dark"] .hw-success-title,
+:root[data-theme="dark"] .hw-success-detail {
+  color: #e8eef5;
+}
+:root[data-theme="dark"] .hw-success-detail span,
+:root[data-theme="dark"] .hw-success-message {
+  color: #b8c6d3;
+}
+:root[data-theme="dark"] .hw-success-details {
+  background: rgba(111, 168, 220, .09);
+  border-color: #40566a;
+}
+@keyframes hw-success-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes hw-success-modal-in {
+  from { opacity: 0; transform: translateY(14px) scale(.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes hw-success-pop {
+  0% { transform: scale(.55); opacity: .3; }
+  75% { transform: scale(1.12); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes hw-success-glow {
+  from { box-shadow: 0 0 0 0 rgba(34, 197, 94, .05); }
+  to { box-shadow: 0 0 0 12px rgba(34, 197, 94, .10); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hw-success-overlay, .hw-success-modal, .hw-success-check-wrap, .hw-success-check {
+    animation: none !important;
+  }
+}
