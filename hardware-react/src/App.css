@@ -1667,3 +1667,237 @@ button { cursor: pointer; }
 :root[data-theme="dark"] .modal svg {
   color:currentColor;
 }
+
+/* =========================================================
+   Unified modal theme
+   Applies to custom dialogs and Bootstrap modals across all pages.
+   ========================================================= */
+:root:not([data-theme="dark"]) [role="dialog"],
+:root:not([data-theme="dark"]) [role="alertdialog"] {
+  color-scheme: light;
+}
+:root:not([data-theme="dark"]) [role="dialog"],
+:root:not([data-theme="dark"]) [role="alertdialog"] {
+  background: rgba(7, 24, 38, .58) !important;
+}
+:root:not([data-theme="dark"]) [role="dialog"] > .w-100,
+:root:not([data-theme="dark"]) [role="alertdialog"] > .w-100,
+:root:not([data-theme="dark"]) [role="dialog"] > .modal-dialog > .modal-content,
+:root:not([data-theme="dark"]) [role="alertdialog"] > .modal-dialog > .modal-content,
+:root:not([data-theme="dark"]) .modal .modal-content,
+:root:not([data-theme="dark"]) .modal-content {
+  color: #203040 !important;
+  background: #ffffff !important;
+  border: 1px solid #d5dee7 !important;
+  border-radius: 16px;
+  box-shadow: 0 22px 60px rgba(4, 22, 36, .24);
+}
+:root:not([data-theme="dark"]) [role="dialog"] > .w-100 > .modal-header,
+:root:not([data-theme="dark"]) [role="alertdialog"] > .w-100 > .modal-header,
+:root:not([data-theme="dark"]) [role="dialog"] > .w-100 > .d-flex.justify-content-between.align-items-center,
+:root:not([data-theme="dark"]) [role="alertdialog"] > .w-100 > .d-flex.justify-content-between.align-items-center,
+:root:not([data-theme="dark"]) .modal .modal-header {
+  color: #f8fafc !important;
+  background: #0b3048 !important;
+  border-color: #ffc400 !important;
+  border-bottom: 3px solid #ffc400 !important;
+}
+:root:not([data-theme="dark"]) [role="dialog"] > .w-100 h1,
+:root:not([data-theme="dark"]) [role="dialog"] > .w-100 h2,
+:root:not([data-theme="dark"]) [role="dialog"] > .w-100 h3,
+:root:not([data-theme="dark"]) [role="dialog"] > .w-100 h4,
+:root:not([data-theme="dark"]) [role="dialog"] > .w-100 h5,
+:root:not([data-theme="dark"]) [role="dialog"] > .w-100 p,
+:root:not([data-theme="dark"]) [role="dialog"] > .w-100 label,
+:root:not([data-theme="dark"]) [role="dialog"] > .w-100 small,
+:root:not([data-theme="dark"]) [role="alertdialog"] > .w-100 h1,
+:root:not([data-theme="dark"]) [role="alertdialog"] > .w-100 h2,
+:root:not([data-theme="dark"]) [role="alertdialog"] > .w-100 h3,
+:root:not([data-theme="dark"]) [role="alertdialog"] > .w-100 h4,
+:root:not([data-theme="dark"]) [role="alertdialog"] > .w-100 h5,
+:root:not([data-theme="dark"]) [role="alertdialog"] > .w-100 p,
+:root:not([data-theme="dark"]) [role="alertdialog"] > .w-100 label,
+:root:not([data-theme="dark"]) [role="alertdialog"] > .w-100 small,
+:root:not([data-theme="dark"]) .modal .modal-title,
+:root:not([data-theme="dark"]) .modal .modal-body {
+  color: #203040;
+}
+:root:not([data-theme="dark"]) [role="dialog"] > .w-100 .form-control,
+:root:not([data-theme="dark"]) [role="dialog"] > .w-100 .form-select,
+:root:not([data-theme="dark"]) [role="dialog"] > .w-100 input:not([type="checkbox"]):not([type="radio"]),
+:root:not([data-theme="dark"]) [role="dialog"] > .w-100 textarea,
+:root:not([data-theme="dark"]) [role="alertdialog"] > .w-100 .form-control,
+:root:not([data-theme="dark"]) [role="alertdialog"] > .w-100 .form-select,
+:root:not([data-theme="dark"]) [role="alertdialog"] > .w-100 input:not([type="checkbox"]):not([type="radio"]),
+:root:not([data-theme="dark"]) [role="alertdialog"] > .w-100 textarea,
+:root:not([data-theme="dark"]) .modal .form-control,
+:root:not([data-theme="dark"]) .modal .form-select,
+:root:not([data-theme="dark"]) .modal input:not([type="checkbox"]):not([type="radio"]),
+:root:not([data-theme="dark"]) .modal textarea {
+  color: #243647 !important;
+  background: #f1f5f9 !important;
+  border-color: #cbd5df !important;
+}
+:root:not([data-theme="dark"]) [role="dialog"] input::placeholder,
+:root:not([data-theme="dark"]) [role="dialog"] textarea::placeholder,
+:root:not([data-theme="dark"]) [role="alertdialog"] input::placeholder,
+:root:not([data-theme="dark"]) [role="alertdialog"] textarea::placeholder,
+:root:not([data-theme="dark"]) .modal input::placeholder,
+:root:not([data-theme="dark"]) .modal textarea::placeholder {
+  color: #718096 !important;
+  opacity: 1;
+}
+:root:not([data-theme="dark"]) [role="dialog"] input:focus,
+:root:not([data-theme="dark"]) [role="dialog"] textarea:focus,
+:root:not([data-theme="dark"]) [role="dialog"] select:focus,
+:root:not([data-theme="dark"]) [role="alertdialog"] input:focus,
+:root:not([data-theme="dark"]) [role="alertdialog"] textarea:focus,
+:root:not([data-theme="dark"]) [role="alertdialog"] select:focus,
+:root:not([data-theme="dark"]) .modal .form-control:focus,
+:root:not([data-theme="dark"]) .modal .form-select:focus {
+  border-color: #d5a900 !important;
+  box-shadow: 0 0 0 .2rem rgba(255, 196, 0, .18) !important;
+}
+:root:not([data-theme="dark"]) [role="dialog"] .btn-close,
+:root:not([data-theme="dark"]) [role="alertdialog"] .btn-close,
+:root:not([data-theme="dark"]) .modal .btn-close {
+  filter: none;
+  opacity: .7;
+}
+:root:not([data-theme="dark"]) [role="dialog"] .btn-secondary,
+:root:not([data-theme="dark"]) [role="alertdialog"] .btn-secondary,
+:root:not([data-theme="dark"]) .modal .btn-secondary {
+  color: #34495a;
+  background: #e8edf2;
+  border-color: #c7d1db;
+}
+:root:not([data-theme="dark"]) [role="dialog"] .btn-outline-secondary,
+:root:not([data-theme="dark"]) [role="alertdialog"] .btn-outline-secondary,
+:root:not([data-theme="dark"]) .modal .btn-outline-secondary {
+  color: #34495a;
+  border-color: #aebbc7;
+}
+:root:not([data-theme="dark"]) [role="dialog"] .text-muted,
+:root:not([data-theme="dark"]) [role="alertdialog"] .text-muted,
+:root:not([data-theme="dark"]) .modal .text-muted,
+:root:not([data-theme="dark"]) .modal .form-text {
+  color: #647789 !important;
+}
+:root:not([data-theme="dark"]) .modal .modal-footer {
+  background: #f8fafc;
+  border-color: #d5dee7;
+}
+
+:root[data-theme="dark"] [role="dialog"],
+:root[data-theme="dark"] [role="alertdialog"] {
+  color-scheme: dark;
+  background: rgba(2, 12, 22, .78) !important;
+}
+:root[data-theme="dark"] [role="dialog"] > .w-100,
+:root[data-theme="dark"] [role="alertdialog"] > .w-100,
+:root[data-theme="dark"] [role="dialog"] > .modal-dialog > .modal-content,
+:root[data-theme="dark"] [role="alertdialog"] > .modal-dialog > .modal-content,
+:root[data-theme="dark"] .modal .modal-content,
+:root[data-theme="dark"] .modal-content {
+  color: #e8eef5 !important;
+  background: #1c2a38 !important;
+  border: 1px solid #40566a !important;
+  border-radius: 16px;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, .48);
+}
+:root[data-theme="dark"] [role="dialog"] > .w-100 > .modal-header,
+:root[data-theme="dark"] [role="alertdialog"] > .w-100 > .modal-header,
+:root[data-theme="dark"] [role="dialog"] > .w-100 > .d-flex.justify-content-between.align-items-center,
+:root[data-theme="dark"] [role="alertdialog"] > .w-100 > .d-flex.justify-content-between.align-items-center,
+:root[data-theme="dark"] .modal .modal-header {
+  color: #f8fafc !important;
+  background: #0b3048 !important;
+  border-color: #ffc400 !important;
+  border-bottom: 3px solid #ffc400 !important;
+}
+:root[data-theme="dark"] [role="dialog"] > .w-100 h1,
+:root[data-theme="dark"] [role="dialog"] > .w-100 h2,
+:root[data-theme="dark"] [role="dialog"] > .w-100 h3,
+:root[data-theme="dark"] [role="dialog"] > .w-100 h4,
+:root[data-theme="dark"] [role="dialog"] > .w-100 h5,
+:root[data-theme="dark"] [role="dialog"] > .w-100 p,
+:root[data-theme="dark"] [role="dialog"] > .w-100 label,
+:root[data-theme="dark"] [role="dialog"] > .w-100 small,
+:root[data-theme="dark"] [role="alertdialog"] > .w-100 h1,
+:root[data-theme="dark"] [role="alertdialog"] > .w-100 h2,
+:root[data-theme="dark"] [role="alertdialog"] > .w-100 h3,
+:root[data-theme="dark"] [role="alertdialog"] > .w-100 h4,
+:root[data-theme="dark"] [role="alertdialog"] > .w-100 h5,
+:root[data-theme="dark"] [role="alertdialog"] > .w-100 p,
+:root[data-theme="dark"] [role="alertdialog"] > .w-100 label,
+:root[data-theme="dark"] [role="alertdialog"] > .w-100 small,
+:root[data-theme="dark"] .modal .modal-title,
+:root[data-theme="dark"] .modal .modal-body {
+  color: #e8eef5 !important;
+}
+:root[data-theme="dark"] [role="dialog"] > .w-100 .form-control,
+:root[data-theme="dark"] [role="dialog"] > .w-100 .form-select,
+:root[data-theme="dark"] [role="dialog"] > .w-100 input:not([type="checkbox"]):not([type="radio"]),
+:root[data-theme="dark"] [role="dialog"] > .w-100 textarea,
+:root[data-theme="dark"] [role="alertdialog"] > .w-100 .form-control,
+:root[data-theme="dark"] [role="alertdialog"] > .w-100 .form-select,
+:root[data-theme="dark"] [role="alertdialog"] > .w-100 input:not([type="checkbox"]):not([type="radio"]),
+:root[data-theme="dark"] [role="alertdialog"] > .w-100 textarea,
+:root[data-theme="dark"] .modal .form-control,
+:root[data-theme="dark"] .modal .form-select,
+:root[data-theme="dark"] .modal input:not([type="checkbox"]):not([type="radio"]),
+:root[data-theme="dark"] .modal textarea {
+  color: #f4f7fb !important;
+  background: #243443 !important;
+  border-color: #52697d !important;
+}
+:root[data-theme="dark"] [role="dialog"] input::placeholder,
+:root[data-theme="dark"] [role="dialog"] textarea::placeholder,
+:root[data-theme="dark"] [role="alertdialog"] input::placeholder,
+:root[data-theme="dark"] [role="alertdialog"] textarea::placeholder,
+:root[data-theme="dark"] .modal input::placeholder,
+:root[data-theme="dark"] .modal textarea::placeholder {
+  color: #aebdca !important;
+  opacity: 1;
+}
+:root[data-theme="dark"] [role="dialog"] input:focus,
+:root[data-theme="dark"] [role="dialog"] textarea:focus,
+:root[data-theme="dark"] [role="dialog"] select:focus,
+:root[data-theme="dark"] [role="alertdialog"] input:focus,
+:root[data-theme="dark"] [role="alertdialog"] textarea:focus,
+:root[data-theme="dark"] [role="alertdialog"] select:focus,
+:root[data-theme="dark"] .modal .form-control:focus,
+:root[data-theme="dark"] .modal .form-select:focus {
+  border-color: #ffc400 !important;
+  box-shadow: 0 0 0 .2rem rgba(255, 196, 0, .16) !important;
+}
+:root[data-theme="dark"] [role="dialog"] .btn-close,
+:root[data-theme="dark"] [role="alertdialog"] .btn-close,
+:root[data-theme="dark"] .modal .btn-close {
+  filter: invert(1) grayscale(1) brightness(1.8);
+  opacity: .9;
+}
+:root[data-theme="dark"] [role="dialog"] .btn-secondary,
+:root[data-theme="dark"] [role="alertdialog"] .btn-secondary,
+:root[data-theme="dark"] .modal .btn-secondary {
+  color: #e1e9f0;
+  background: #304456;
+  border-color: #52697d;
+}
+:root[data-theme="dark"] [role="dialog"] .btn-outline-secondary,
+:root[data-theme="dark"] [role="alertdialog"] .btn-outline-secondary,
+:root[data-theme="dark"] .modal .btn-outline-secondary {
+  color: #e1e9f0;
+  border-color: #64798b;
+}
+:root[data-theme="dark"] [role="dialog"] .text-muted,
+:root[data-theme="dark"] [role="alertdialog"] .text-muted,
+:root[data-theme="dark"] .modal .text-muted,
+:root[data-theme="dark"] .modal .form-text {
+  color: #b8c6d3 !important;
+}
+:root[data-theme="dark"] .modal .modal-footer {
+  background: #243443;
+  border-color: #40566a;
+}
+
