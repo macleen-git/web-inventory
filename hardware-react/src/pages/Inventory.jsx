@@ -385,6 +385,7 @@ export default function Inventory() {
   }
 
   return (
+    <>
     <div className="app-layout">
       <Sidebar active="/inventory" />
 
@@ -967,6 +968,6 @@ export default function Inventory() {
               onClose={() => setSuccess(null)}
             />
           )}
-
+    </>
   )
 }
