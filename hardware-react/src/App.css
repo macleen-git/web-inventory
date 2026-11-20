@@ -510,8 +510,8 @@ button { cursor: pointer; }
   --hw-card: #ffffff;
   --hw-text: #172b4d;
   --hw-muted-text: #64748b;
-  --hw-border: #e5e7eb;
-  --hw-shadow: 0 8px 26px rgba(6, 36, 58, .055);
+  --hw-border: #d8e0e7;
+  --hw-shadow: 0 3px 12px rgba(6, 36, 58, .055), 0 1px 2px rgba(6, 36, 58, .035);
 }
 .app-main { background: var(--hw-page) !important; color: var(--hw-text); }
 .app-main #mainContent { padding: clamp(18px, 2.2vw, 32px) !important; }
@@ -2401,4 +2401,40 @@ button { cursor: pointer; }
     color: #fff !important;
     filter: none;
   }
+}
+
+
+/* Subtle shared surfaces: clearer separation on light backgrounds without heavy outlines. */
+.app-main .card,
+.app-main .bg-white:not(.input-group-text) {
+  border-color: var(--hw-border, #d8e0e7);
+  box-shadow: var(--hw-shadow, 0 3px 12px rgba(6, 36, 58, .055)) !important;
+}
+
+.app-main .table-responsive:not(.card .table-responsive) {
+  border: 1px solid var(--hw-border, #d8e0e7);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(6, 36, 58, .045);
+  background: var(--hw-card, #fff);
+}
+
+.app-main .card .table-responsive {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.app-main .dash-table-card,
+.app-main .analytics-panel,
+.app-main .analytics-metric-card,
+.app-main .settings-card,
+.app-main .stat-card {
+  border: 1px solid var(--hw-border, #d8e0e7);
+  box-shadow: var(--hw-shadow, 0 3px 12px rgba(6, 36, 58, .055));
+}
+
+:root[data-theme="dark"] .app-main .table-responsive:not(.card .table-responsive) {
+  border-color: var(--hw-border, #354657);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .12);
+  background: var(--hw-card, #1c2a38);
 }
