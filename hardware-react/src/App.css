@@ -2472,3 +2472,53 @@ button { cursor: pointer; }
   box-shadow: 0 2px 8px rgba(0, 0, 0, .12);
   background: var(--hw-card, #1c2a38);
 }
+
+/* Sidebar hover cleanup: preserve zoom, prevent icon/text glow blur, hide rail scrollbar. */
+@media (min-width: 769px) {
+  .app-sidebar-desktop .app-nav-link {
+    will-change: auto;
+    transition: transform .18s ease, color .18s ease,
+      background-color .18s ease, box-shadow .18s ease;
+  }
+
+  .app-sidebar-desktop .app-nav-link:hover,
+  .app-sidebar-desktop .app-nav-link:focus-visible {
+    transform: scale(1.025);
+  }
+
+  .app-sidebar-desktop .app-nav-link.active:hover,
+  .app-sidebar-desktop .app-nav-link.active:focus-visible {
+    transform: scale(1.03);
+  }
+
+  .app-sidebar-desktop.is-collapsed .app-nav-link:hover,
+  .app-sidebar-desktop.is-collapsed .app-nav-link:focus-visible {
+    transform: translateX(7px) scale(1.035);
+  }
+}
+
+.app-sidebar .app-nav-link,
+.app-sidebar .app-nav-link .nav-icon,
+.app-sidebar .app-nav-link b {
+  filter: none !important;
+  text-shadow: none !important;
+}
+
+.app-sidebar .app-nav-link:hover .nav-icon,
+.app-sidebar .app-nav-link:focus-visible .nav-icon {
+  filter: none !important;
+}
+
+.app-sidebar-desktop,
+.app-sidebar-desktop .app-sidebar-links {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.app-sidebar-desktop::-webkit-scrollbar,
+.app-sidebar-desktop .app-sidebar-links::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
