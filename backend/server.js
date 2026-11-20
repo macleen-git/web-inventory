@@ -134,6 +134,10 @@ async function purgeExpiredTrash(uid){
   await c.commit();
  }catch(e){await c.rollback();throw e;}finally{c.release();}
 }
+async function purgeExpiredTrashForAllUsers(){
+ const [users]=await pool.query("SELECT DISTINCT user_uid FROM products WHERE user_uid IS NOT NULL");
+ for(const user of users) await purgeExpiredTrash(user.user_uid);
+}
 app.get("/api/recently-deleted", requireFirebaseUser, requireActiveUser, route(async(req,res)=>{
  const uid=req.firebaseUser.uid; await purgeExpiredTrash(uid);
  const [p]=await pool.execute("SELECT id,product AS label,'Products' AS module,deleted_at FROM products WHERE user_uid=? AND deleted_at IS NOT NULL",[uid]);
@@ -353,6 +357,12 @@ async function checkDatabaseAtStartup() {
  }
 }
 checkDatabaseAtStartup();
+const trashCleanupTimer=setInterval(async()=>{
+ try{await purgeExpiredTrashForAllUsers();console.log("[TRASH] Expired records cleanup completed.");}
+ catch(error){console.warn("[TRASH] Scheduled cleanup skipped:",error.message);}
+},24*60*60*1000);
+if(typeof trashCleanupTimer.unref==="function")trashCleanupTimer.unref();
+
 
 process.on("SIGTERM", () => {
  console.log("[SHUTDOWN] SIGTERM received.");
