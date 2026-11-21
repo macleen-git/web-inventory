@@ -225,7 +225,7 @@ function Dashboard() {
               <p>Monitor inventory health, sales performance, and recent activity.</p>
             </div>
             <div className="d-flex flex-wrap align-items-center gap-2">
-<input
+              <input
                 type="date"
                 className="form-control analytics-period-select"
                 value={selectedDate}
