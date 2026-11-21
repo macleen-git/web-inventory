@@ -230,7 +230,6 @@ function Landing({ onLogin, onSignUp }) {
         <i className="bi bi-nut particle-one" /><i className="bi bi-gear-fill particle-two" /><i className="bi bi-hammer particle-three" /><i className="bi bi-wrench-adjustable particle-four" />
       </div>
 
-      {/* NAVBAR */}
       <nav className="navbar navbar-expand-lg landing-navbar sticky-top">
         <div className="container landing-nav-container">
 
@@ -294,7 +293,6 @@ function Landing({ onLogin, onSignUp }) {
         </div>
       </nav>
 
-      {/* HERO SECTION */}
       <header className="hero-section" id="home">
 
         <button type="button" className="background-gear gear-large gear-hero-left" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
@@ -376,7 +374,6 @@ function Landing({ onLogin, onSignUp }) {
         </div>
       </header>
 
-      {/* ABOUT US */}
       <section id="about" className="about-section landing-section">
         <button type="button" className="background-gear gear-medium gear-about-left" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
         <button type="button" className="background-gear gear-small gear-about-right" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
@@ -461,7 +458,6 @@ function Landing({ onLogin, onSignUp }) {
         </div>
       </section>
 
-      {/* FEATURES */}
       <section id="features" className="features-section landing-section">
         <button type="button" className="background-gear gear-small gear-features-left" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
         <button type="button" className="background-gear gear-large gear-features-right" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
@@ -513,7 +509,6 @@ function Landing({ onLogin, onSignUp }) {
         </div>
       </section>
 
-      {/* INVENTORY MANAGEMENT */}
       <section id="inventory" className="inventory-section landing-section">
         <button type="button" className="background-gear gear-large gear-inventory-left" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
         <button type="button" className="background-gear gear-small gear-inventory-right" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
@@ -605,7 +600,6 @@ function Landing({ onLogin, onSignUp }) {
         </div>
       </section>
 
-      {/* INSTALL + CONTACT */}
       <section id="contact" className="cta-section landing-section">
         <button type="button" className="background-gear gear-small gear-contact-left" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
         <button type="button" className="background-gear gear-medium gear-contact-right" aria-label="Rotate background gear"><i className="bi bi-gear-fill" /></button>
@@ -635,7 +629,6 @@ function Landing({ onLogin, onSignUp }) {
         </div>
       </section>
 
-      {/* DEMO LIVE SHOP ACTIVITY — VISUAL ONLY */}
       <section className="shop-activity-section" aria-label="Illustrative hardware shop activity">
         <div className="container">
           <div className="shop-activity-heading">
@@ -668,7 +661,6 @@ function Landing({ onLogin, onSignUp }) {
         <p className="order-demo-disclaimer">DEMO ANIMATION · NOT CONNECTED TO REAL ORDERS</p>
       </section>
 
-      {/* FOOTER */}
       <footer className="landing-footer">
         <div className="container">
 
