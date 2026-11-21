@@ -9,7 +9,6 @@
 
 button { cursor: pointer; }
 
-
 .landing-page { background: #f7f8f9; color: var(--hw-navy); overflow: hidden; }
 .landing-navbar { background: rgba(4, 29, 47, .97); backdrop-filter: blur(10px); }
 .brand-mark { display: inline-flex; align-items: center; gap: 10px; color: #fff; text-align: left; }
@@ -79,7 +78,6 @@ button { cursor: pointer; }
 .footer-links { color: #c4d1da; font-size: 12px; font-weight: 700; }
 .landing-footer hr { border-color: rgba(255,255,255,.12); }
 
-
 .auth-page { min-height: 100svh; background: radial-gradient(circle at 10% 10%, rgba(255,196,0,.13), transparent 25%), linear-gradient(135deg, #041d2e, #07304b); position: relative; overflow: hidden; }
 .auth-card { border-radius: 22px; overflow: hidden; }
 .auth-logo { width: 62px; height: 62px; margin: 0 auto 16px; display: grid; place-items: center; border-radius: 50%; background: var(--hw-yellow); color: var(--hw-navy); font-size: 35px; }
@@ -92,7 +90,6 @@ button { cursor: pointer; }
 .auth-decoration { position: absolute; color: rgba(255,255,255,.09); font-size: 180px; }
 .auth-decoration-one { top: -30px; left: -20px; }
 .auth-decoration-two { bottom: -40px; right: -15px; font-size: 140px; }
-
 
 .mobile-menu { position: absolute; top: 100%; left: 0; right: 0; z-index: 1050; background: rgba(255,193,7,.94); box-shadow: 0 10px 24px rgba(0,0,0,.15); backdrop-filter: blur(4px); }
 .mobile-menu.show { display: block; }
@@ -122,7 +119,6 @@ button { cursor: pointer; }
   .inventory-visual { min-height: 280px; font-size: 55px; }
 }
 
-
 .app-sidebar { background: linear-gradient(180deg, var(--hw-navy), var(--hw-navy-2)); box-shadow: 4px 0 18px rgba(0,0,0,.12); position: sticky; top: 0; height: 100vh; }
 .app-sidebar-brand { color: #fff; }
 .app-sidebar .app-nav-link, .app-mobile-menu .app-nav-link { display: flex; align-items: center; gap: 12px; color: var(--hw-muted); font-size: 14px; font-weight: 600; padding: 11px 14px; margin: 2px 0; border-radius: 10px; transition: background .15s, color .15s; }
@@ -133,12 +129,10 @@ button { cursor: pointer; }
 .app-sidebar .app-nav-logout:hover, .app-mobile-menu .app-nav-logout:hover { background: rgba(255,80,80,.14); color: #ffb3b3; }
 .app-nav-divider { border-color: rgba(255,255,255,.14); margin: 10px 4px; }
 
-
 .app-mobile-nav { background: var(--hw-navy); position: relative; }
 .app-mobile-toggle { background: transparent; border: 0; color: #fff; }
 .app-mobile-toggle:hover, .app-mobile-toggle:focus { background: rgba(255,255,255,.06); color: #fff; }
 .app-mobile-menu.mobile-menu { background: var(--hw-navy-2); backdrop-filter: none; box-shadow: 0 10px 24px rgba(0,0,0,.25); }
-
 
 .dash-header .section-kicker { color: var(--hw-navy); opacity: .55; }
 .stat-card { border: 1px solid rgba(0,0,0,.04); transition: transform .15s, box-shadow .15s; }
@@ -150,10 +144,6 @@ button { cursor: pointer; }
 .stat-navy .stat-icon { background: rgba(6,36,58,.1); color: var(--hw-navy); }
 .dash-table-card thead th { color: #6c7a85; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; border-bottom-width: 1px; }
 
-/* =========================================================
-   Responsive application layout
-   Desktop + tablet: same left sidebar; phone: top header + bottom icons
-   ========================================================= */
 .app-layout {
   display: flex;
   align-items: stretch;
@@ -213,7 +203,6 @@ button { cursor: pointer; }
 .app-phone-header { display: none; }
 .app-mobile-bottom-nav { display: none; }
 
-/* Scales content and controls gradually instead of abruptly shrinking them. */
 .app-main #mainContent { min-width: 0; width: 100%; padding: clamp(16px, 2vw, 30px) !important; }
 .app-main h1 { font-size: clamp(1.45rem, 2.2vw, 2.15rem); line-height: 1.18; overflow-wrap: anywhere; }
 .app-main h2 { font-size: clamp(1.2rem, 1.8vw, 1.65rem); }
@@ -227,7 +216,6 @@ button { cursor: pointer; }
 .modal-dialog { width: auto; max-width: min(650px, calc(100vw - 32px)); margin: 1rem auto; }
 .modal-content { max-height: calc(100svh - 32px); overflow: auto; }
 
-/* Tablet intentionally uses the same sidebar layout as desktop. */
 @media (min-width: 768px) and (max-width: 1199.98px) {
   .app-sidebar-desktop { flex-basis: clamp(210px, 23vw, 252px); }
   .app-sidebar-desktop[style] { max-width: 30vw; }
@@ -236,7 +224,6 @@ button { cursor: pointer; }
   .app-main .stat-card { height: auto; }
 }
 
-/* Small screens alone switch to a top header and bottom icon bar. */
 @media (max-width: 767.98px) {
   .app-layout { display: block; min-height: 100svh; }
   .app-sidebar-desktop { display: none; }
@@ -297,8 +284,6 @@ button { cursor: pointer; }
   .app-sidebar-desktop, .app-sidebar-desktop .app-nav-link { transition: none; }
 }
 
-
-/* Branded application loading screen */
 .app-loading-screen {
   --loading-navy: #06243a;
   --loading-navy-light: #0a3552;
@@ -349,10 +334,6 @@ button { cursor: pointer; }
   .app-loading-spinner { animation-duration: 2s; }
 }
 
-/* =========================================================
-   AUTH + RESPONSIVE POLISH OVERRIDES
-   Compact login/signup cards and a clean, accessible landing nav.
-   ========================================================= */
 .auth-page.login-page-uniform {
   min-height: 100svh;
   width: 100%;
@@ -433,7 +414,6 @@ button { cursor: pointer; }
 .signup-submit-button { margin-top: 4px; }
 .signup-card-uniform .login-footer { margin-top: 10px; }
 
-/* Clean responsive landing-page navigation */
 .landing-navbar { z-index: 1030; padding: 0; }
 .landing-navbar > .container { min-height: 70px; }
 .landing-navbar .navbar-toggler { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 10px; background: rgba(255,255,255,.08); color: #fff; }
@@ -492,9 +472,6 @@ button { cursor: pointer; }
   .login-submit-button, .login-input-wrap, .landing-toggler::before, .landing-toggler::after { transition: none; }
 }
 
-
-
-/* Short, branded transition loader for every route */
 .route-loading-overlay { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; padding: 20px; background: rgba(4, 25, 39, .58); backdrop-filter: blur(5px); animation: route-overlay-in .15s ease-out both; }
 .route-loading-card { width: min(270px, 100%); display: flex; flex-direction: column; align-items: center; padding: 24px 20px 22px; border: 1px solid rgba(255,255,255,.13); border-radius: 18px; background: #06243a; box-shadow: 0 22px 70px rgba(0,0,0,.3); }
 .route-loading-mark { display: grid; place-items: center; width: 47px; height: 47px; margin-bottom: 14px; border-radius: 14px; background: #ffc400; color: #06243a; font-size: 25px; }
@@ -504,7 +481,6 @@ button { cursor: pointer; }
 @keyframes route-overlay-in { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .route-loading-overlay { animation: none; } .route-loading-spinner { animation-duration: 2s; } }
 
-/* Premium industrial analytics layer — navigation component styles remain untouched. */
 :root {
   --hw-page: #f3f4f6;
   --hw-card: #ffffff;
@@ -596,8 +572,6 @@ button { cursor: pointer; }
   .analytics-bar-column { flex-basis:29px; }
 }
 
-
-/* Admin dashboard — aligned with the main analytics workspace */
 .admin-session-chip { display:flex; align-items:center; gap:11px; padding:9px 13px; border:1px solid #e6ebef; border-radius:13px; background:#fff; box-shadow:0 4px 14px rgba(6,36,58,.04); }
 .admin-session-chip > span:last-child strong,.admin-session-chip > span:last-child small { display:block; }
 .admin-session-chip > span:last-child strong { color:var(--hw-navy); font-size:.82rem; }
@@ -637,7 +611,6 @@ button { cursor: pointer; }
   .admin-modal-content .modal-body { padding:16px; }
 }
 
-/* Admin user analytics layout */
 .admin-v2-content{padding:clamp(18px,2.2vw,30px)!important;color:#263445}
 .admin-v2-header{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:22px}
 .admin-v2-kicker{font-size:10px;letter-spacing:.13em;font-weight:800;color:#84909b}
@@ -659,8 +632,6 @@ button { cursor: pointer; }
 .admin-v2-trend-head{display:flex;justify-content:space-between;gap:10px;margin-top:17px;padding:10px 0;border-bottom:1px solid #edf0f2;font-size:11px;color:#4d5965}.admin-v2-trend-head span{color:#9aa2aa}.admin-v2-trend-list>div{display:flex;justify-content:space-between;padding:8px 2px;font-size:11px;color:#68737e}.admin-v2-trend-list strong{color:#34404b}.admin-v2-trend-list p{font-size:11px;color:#9aa2aa;margin:10px 0}
 @media(max-width:767px){.admin-v2-header{align-items:flex-start;flex-direction:column}.admin-v2-profile{width:100%}.admin-v2-content{padding:15px!important}.admin-v2-panel{padding:14px}}
 
-
-/* Dashboard refinements: readable metrics, chart grid, and persistent dark theme. */
 .analytics-metric-card > .d-flex { min-width:0; }
 .analytics-metric-card > .d-flex > div:first-child { flex:1 1 auto; min-width:0; }
 .analytics-metric-value { font-size:clamp(1rem, 2vw, 2rem); line-height:1.12; letter-spacing:-.035em; overflow-wrap:anywhere; word-break:normal; }
@@ -709,8 +680,6 @@ button { cursor: pointer; }
   .analytics-bar-column { height:172px; }
 }
 
-
-/* Unified low-glare charcoal and slate theme with restrained gold accents. */
 :root[data-theme="dark"] {
   --hw-page:#111b25;
   --hw-card:#1c2a38;
@@ -771,8 +740,6 @@ button { cursor: pointer; }
   .app-mobile-bottom-nav { overflow-x:auto; }
 }
 
-
-/* Shared dashboard theme tokens: applied consistently to user and admin pages. */
 :root {
   --hw-dashboard-bg:#111b25;
   --hw-dashboard-panel:#1c2a38;
@@ -873,9 +840,6 @@ button { cursor: pointer; }
   .app-sidebar-actions { gap:5px; }
 }
 
-
-/* Dark-mode data tables: keep the dashboard slate surface as the DEFAULT state,
-   not only on hover. Covers Inventory, Stock In, Sales and Damaged Items. */
 :root[data-theme="dark"] .app-main .bg-white {
   background-color:#1c2a38!important;
   color:#edf2f7!important;
@@ -923,7 +887,6 @@ button { cursor: pointer; }
   background:#1c2a38!important;
 }
 
-/* Modal surfaces for Sales, Stock In, and Damaged Items follow the shared theme. */
 :root[data-theme="dark"] [role="dialog"] > .w-100 {
   background:var(--hw-card)!important;
   color:var(--hw-text)!important;
@@ -949,8 +912,6 @@ button { cursor: pointer; }
 :root[data-theme="dark"] [role="dialog"] > .w-100 input::placeholder,
 :root[data-theme="dark"] [role="dialog"] > .w-100 textarea::placeholder { color:#b8c5d1!important; }
 
-
-/* Keep the collapse control on its own row below the brand, never beside the logo. */
 .app-sidebar-collapse-row { display:flex; flex:0 0 auto; justify-content:center; width:100%; padding:0 14px 12px; }
 .app-sidebar-collapse-row .sidebar-collapse-button { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:36px; }
 .app-sidebar-desktop.is-collapsed .app-sidebar-brand { min-height:58px; padding:10px 5px 6px; justify-content:center; }
@@ -958,9 +919,6 @@ button { cursor: pointer; }
 .app-sidebar-desktop.is-collapsed .app-sidebar-collapse-row { padding:0 8px 10px; }
 .app-sidebar-desktop.is-collapsed .app-sidebar-collapse-row .sidebar-collapse-button { width:34px; min-height:32px; }
 
-
-/* Responsive brand/toggle arrangement: side-by-side while brand text fits;
-   stacked under the icon only at the fully-collapsed width. */
 .app-sidebar-desktop .app-sidebar-brand {
   display:flex;
   flex-direction:row;
@@ -1008,8 +966,6 @@ button { cursor: pointer; }
   height:28px;
 }
 
-
-/* Keep dashboard refresh and period selector on one aligned row. */
 .analytics-page-header > div:last-child {
   display:flex!important;
   flex-direction:row!important;
@@ -1044,8 +1000,6 @@ button { cursor: pointer; }
   }
 }
 
-
-/* Product autocomplete dropdown must follow the active theme, including dark mode. */
 .product-suggestion-list {
   background:var(--hw-card,#fff);
   color:var(--hw-text,#17212b);
@@ -1075,8 +1029,6 @@ button { cursor: pointer; }
 }
 :root[data-theme="dark"] .product-suggestion-meta { color:#cbd5e1!important; }
 
-
-/* Floating calculator shared across authenticated user pages. */
 .floating-calculator-root { position:fixed; inset:0; z-index:1200; pointer-events:none; }
 .floating-calculator-launcher {
   position:fixed; right:24px; bottom:24px; width:54px; height:54px;
@@ -1112,8 +1064,6 @@ button { cursor: pointer; }
   .floating-calculator-panel { right:12px; bottom:82px; width:min(250px,calc(100vw - 24px)); }
 }
 
-
-/* Movable calculator chat-head launcher and centered calculator modal. */
 .floating-calculator-chat-head {
   position:fixed; z-index:99999; pointer-events:auto; width:54px; height:54px; padding:0;
   border:2px solid rgba(255,255,255,.85); border-radius:50%;
@@ -1170,12 +1120,9 @@ button { cursor: pointer; }
   background:var(--hw-yellow); color:var(--hw-navy); border-color:var(--hw-yellow);
 }
 
-/* The app root is click-through; explicitly enable pointer input on the draggable head. */
 .floating-calculator-root { pointer-events:none!important; }
 .floating-calculator-chat-head { pointer-events:auto!important; touch-action:none!important; }
 
-
-/* Dashboard recent activity: compact fixed-width card table with vertical-only scrolling. */
 .analytics-recent-scroll {
   max-height: 156px;
   overflow-y: auto;
@@ -1239,8 +1186,6 @@ button { cursor: pointer; }
 .analytics-recent-scroll::-webkit-scrollbar { width: 6px; height: 0; }
 .analytics-recent-scroll::-webkit-scrollbar-thumb { background: #718096; border-radius: 10px; }
 
-
-/* Dashboard sales-trend period controls: high-contrast, readable in both themes. */
 .analytics-trend-toolbar {
   display:flex;
   align-items:center;
@@ -1304,8 +1249,6 @@ button { cursor: pointer; }
   .analytics-trend-periods .btn { flex:1 1 auto; padding:7px 9px; }
 }
 
-
-/* Keep the lower dashboard cards clearly separated from the trend and movement panels. */
 .analytics-trend-row + .analytics-lower-row {
   margin-top: 28px!important;
   position: relative;
@@ -1315,14 +1258,10 @@ button { cursor: pointer; }
   min-width: 0;
 }
 
-
-/* Increase the visual separation between the two dashboard card rows. */
 .analytics-trend-row + .analytics-lower-row {
   margin-top: 44px!important;
 }
 
-
-/* SVG pathLength="1" means dash values must use the same normalized 0–1 range. */
 .sales-chart-line-draw {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
@@ -1333,8 +1272,6 @@ button { cursor: pointer; }
   to { stroke-dashoffset: 0; }
 }
 
-
-/* Reports: keep the period selector and SVG chart neatly inside the earnings card. */
 .report-period-toolbar {
   display:flex;
   flex-wrap:wrap;
@@ -1432,8 +1369,6 @@ button { cursor: pointer; }
   .report-daily-svg-chart { height:220px; }
 }
 
-
-/* Earnings period buttons sit directly above the chart card; card height stays stable. */
 .report-period-toolbar-top {
   justify-content:flex-end;
   margin:0 0 10px;
@@ -1470,8 +1405,6 @@ button { cursor: pointer; }
   }
 }
 
-
-/* Earnings period buttons stay above the chart card; the card keeps a fixed footprint. */
 .report-period-toolbar-top {
   display:flex;
   align-items:center;
@@ -1552,8 +1485,6 @@ button { cursor: pointer; }
   }
 }
 
-
-/* Consistent dark theme for all application tables and Bootstrap modals. */
 :root[data-theme="dark"] {
   --bs-body-color: #e8eef5;
   --bs-body-bg: #111c26;
@@ -1668,10 +1599,6 @@ button { cursor: pointer; }
   color:currentColor;
 }
 
-/* =========================================================
-   Unified modal theme
-   Applies to custom dialogs and Bootstrap modals across all pages.
-   ========================================================= */
 :root:not([data-theme="dark"]) [role="dialog"],
 :root:not([data-theme="dark"]) [role="alertdialog"] {
   color-scheme: light;
@@ -1901,13 +1828,6 @@ button { cursor: pointer; }
   border-color: #40566a;
 }
 
-
-
-/* =========================================================
-   Consistent yellow title accent for every modal header.
-   A pseudo-element keeps the accent visible even when
-   individual modal styles or Bootstrap borders differ.
-   ========================================================= */
 :root .modal .modal-header,
 :root [role="dialog"] > .w-100 > .modal-header,
 :root [role="alertdialog"] > .w-100 > .modal-header,
@@ -1932,9 +1852,6 @@ button { cursor: pointer; }
   z-index: 1;
 }
 
-
-/* Keep modal heading text readable in LIGHT and DARK themes.
-   All modal headers use the same navy surface and white title text. */
 :root .modal .modal-header,
 :root [role="dialog"] > .w-100 > .modal-header,
 :root [role="alertdialog"] > .w-100 > .modal-header,
@@ -1961,8 +1878,6 @@ button { cursor: pointer; }
   opacity: .95;
 }
 
-
-/* Reusable animated success confirmation modal */
 .hw-success-overlay {
   position: fixed;
   inset: 0;
@@ -2124,8 +2039,6 @@ button { cursor: pointer; }
   }
 }
 
-
-/* Transactions table — match Inventory readability and row spacing. */
 .transaction-table { min-width:760px !important; }
 .transaction-table thead th {
   padding:13px 11px;
@@ -2170,8 +2083,6 @@ button { cursor: pointer; }
   .transaction-table tbody td { padding:12px 9px; font-size:.86rem; }
 }
 
-
-/* Settings page — restrained cards, consistent with the inventory workspace. */
 .settings-page { max-width: 1180px; margin: 0 auto; color: var(--hw-text, #263746); }
 .settings-page-heading { padding: 4px 2px 8px; }
 .settings-page-heading h1 { color: var(--hw-text, #263746); font-size: clamp(1.6rem, 2.2vw, 2rem); }
@@ -2234,16 +2145,10 @@ button { cursor: pointer; }
   .settings-card-symbol { flex-basis:36px; width:36px; height:36px; }
 }
 
-
-/* In the fully-collapsed sidebar, center navigation items against the full rail.
-   The vertical scrollbar takes space on the right, so offset the links slightly
-   to keep their visual center aligned with the logo and footer controls. */
 .app-sidebar-desktop.is-collapsed .app-sidebar-links > .app-nav-link {
   transform: translateX(7px);
 }
 
-
-/* Smooth, restrained zoom on desktop navigation hover (including active items). */
 @media (min-width: 769px) {
   .app-sidebar-desktop .app-nav-link {
     transform-origin: center left;
@@ -2277,7 +2182,6 @@ button { cursor: pointer; }
   }
 }
 
-/* Sidebar icon hover glow — consistent in light and dark themes. */
 .app-sidebar .app-nav-link {
   transition: color .18s ease, background-color .18s ease, box-shadow .18s ease, filter .18s ease;
 }
@@ -2298,9 +2202,6 @@ button { cursor: pointer; }
   color: #ffc400 !important;
 }
 
-
-/* Compact desktop sidebar: keep every navigation item visible while retaining
-   the existing navy/yellow styling, hover glow, and active-state treatment. */
 @media (min-width: 768px) {
   .app-sidebar-desktop .app-sidebar-brand {
     min-height: 66px;
@@ -2388,7 +2289,6 @@ button { cursor: pointer; }
   }
 }
 
-/* Final desktop sidebar spacing and selected-state readability refinement. */
 @media (min-width: 768px) {
   .app-sidebar-desktop .app-sidebar-links {
     gap: 5px;
@@ -2411,8 +2311,6 @@ button { cursor: pointer; }
     font-size: 17px;
   }
 
-  /* Keep the familiar yellow selected tab with white text and icon.
-     Hovering the selected tab adds a soft yellow glow without changing its fill. */
   .app-sidebar-desktop .app-nav-link.active,
   .app-sidebar-desktop .app-nav-link.active:focus-visible {
     color: #fff !important;
@@ -2437,8 +2335,6 @@ button { cursor: pointer; }
   }
 }
 
-
-/* Subtle shared surfaces: clearer separation on light backgrounds without heavy outlines. */
 .app-main .card,
 .app-main .bg-white:not(.input-group-text) {
   border-color: var(--hw-border, #d8e0e7);
@@ -2473,7 +2369,6 @@ button { cursor: pointer; }
   background: var(--hw-card, #1c2a38);
 }
 
-/* Sidebar hover cleanup: preserve zoom, prevent icon/text glow blur, hide rail scrollbar. */
 @media (min-width: 769px) {
   .app-sidebar-desktop .app-nav-link {
     will-change: auto;
@@ -2521,4 +2416,3 @@ button { cursor: pointer; }
   width: 0 !important;
   height: 0 !important;
 }
-
