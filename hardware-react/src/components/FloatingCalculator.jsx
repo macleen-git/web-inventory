@@ -94,7 +94,7 @@ export default function FloatingCalculator() {
       const value = evaluateExpression(expression)
       if (value === null) return
       const answer = format(value)
-      setHistory(items => [{ id: Date.now(), expression: pretty(expression), result: answer }, ...items].slice(0, 10))
+      setHistory(items => [{ id: Date.now(), expression: pretty(expression), result: answer }, ...items].slice(0, 5))
       setExpression(answer)
       setResult(answer)
       setJustEvaluated(true)
@@ -244,7 +244,7 @@ export default function FloatingCalculator() {
             <div className="floating-calculator-keys">
               {KEYS.map(([label, key]) => (
                 <button key={key} type="button"
-                  className={['clear','back','%'].includes(key) ? 'utility' : ['+','-','*','/','equals'].includes(key) ? 'operator' : ''}
+                  className={key === 'clear' ? 'clear' : ['back','%'].includes(key) ? 'utility' : ['+','-','*','/','equals'].includes(key) ? 'operator' : ''}
                   onClick={() => press(key)}
                 >{label}</button>
               ))}
