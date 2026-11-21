@@ -183,3 +183,13 @@ button { cursor: pointer; }
     transition: none !important;
   }
 }
+
+
+/* Yellow hover treatment for the 7 Days analytics period button */
+.app-main .analytics-trend-periods button:hover,
+.app-main .analytics-trend-periods button:focus-visible {
+  color: #ffc400 !important;
+  background: rgba(255, 196, 0, .12) !important;
+  border-color: rgba(255, 196, 0, .55) !important;
+  box-shadow: 0 0 8px rgba(255, 196, 0, .35), 0 0 16px rgba(255, 196, 0, .2) !important;
+}
