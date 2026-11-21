@@ -43,3 +43,143 @@ button { cursor: pointer; }
 :root[data-theme="dark"] .app-main [role="dialog"] > div input::placeholder {
   color:#b8c5d1!important;
 }
+
+ 
+/* Interactive hover glow */
+.app-main button:not(:disabled),
+.app-main .btn:not(:disabled),
+.app-main a[href],
+.app-sidebar-desktop .app-nav-link,
+.app-mobile-bottom-nav .app-nav-link,
+.app-phone-header button,
+[role="button"],
+[role="tab"] {
+  transition: color .2s ease, background-color .2s ease, border-color .2s ease,
+    box-shadow .2s ease, filter .2s ease, transform .2s ease;
+}
+
+.app-main button:not(:disabled):hover,
+.app-main .btn:not(:disabled):hover,
+.app-main a[href]:hover,
+.app-sidebar-desktop .app-nav-link:hover,
+.app-mobile-bottom-nav .app-nav-link:hover,
+.app-phone-header button:hover,
+[role="button"]:hover,
+[role="tab"]:hover {
+  filter: drop-shadow(0 0 5px currentColor);
+}
+
+.app-main button:not(:disabled):focus-visible,
+.app-main .btn:not(:disabled):focus-visible,
+.app-main a[href]:focus-visible,
+[role="button"]:focus-visible,
+[role="tab"]:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+  filter: drop-shadow(0 0 5px currentColor);
+}
+
+.app-main .btn-warning:hover,
+.app-main .btn-warning:focus-visible,
+.app-main .btn-warning.is-active,
+.app-main .report-period-toolbar button:hover,
+.app-main .report-period-toolbar button.is-active,
+.app-main .analytics-trend-periods button:hover,
+.app-main .analytics-trend-periods button.is-active {
+  box-shadow: 0 0 7px rgba(255, 196, 0, .45), 0 0 16px rgba(255, 196, 0, .25);
+}
+
+.app-main .btn-danger:hover,
+.app-main .btn-outline-danger:hover {
+  box-shadow: 0 0 7px rgba(220, 53, 69, .5), 0 0 16px rgba(220, 53, 69, .28);
+}
+
+.app-main .btn-success:hover,
+.app-main .btn-outline-success:hover {
+  box-shadow: 0 0 7px rgba(25, 135, 84, .5), 0 0 16px rgba(25, 135, 84, .28);
+}
+
+.app-main .btn-primary:hover,
+.app-main .btn-outline-primary:hover {
+  box-shadow: 0 0 7px rgba(13, 110, 253, .5), 0 0 16px rgba(13, 110, 253, .28);
+}
+
+.app-main .btn-info:hover,
+.app-main .btn-outline-info:hover {
+  box-shadow: 0 0 7px rgba(13, 202, 240, .5), 0 0 16px rgba(13, 202, 240, .28);
+}
+
+.app-main .btn-secondary:hover,
+.app-main .btn-outline-secondary:hover {
+  box-shadow: 0 0 7px rgba(108, 117, 125, .45), 0 0 16px rgba(108, 117, 125, .25);
+}
+
+.app-sidebar-desktop .app-nav-link:hover,
+.app-mobile-bottom-nav .app-nav-link:hover {
+  box-shadow: 0 0 8px rgba(255, 196, 0, .22);
+}
+
+.app-sidebar-desktop .app-nav-link.active,
+.app-mobile-bottom-nav .app-nav-link.active {
+  box-shadow: 0 0 8px rgba(255, 196, 0, .35), 0 0 16px rgba(255, 196, 0, .18);
+}
+
+.app-sidebar-desktop .app-nav-logout:hover,
+.app-mobile-bottom-nav .app-nav-logout:hover {
+  box-shadow: 0 0 8px rgba(255, 80, 80, .35);
+}
+
+.report-period-toolbar button,
+.analytics-trend-periods button {
+  transition: all .2s ease;
+}
+
+.report-period-toolbar button:hover,
+.analytics-trend-periods button:hover,
+.app-main .btn-warning:not(:disabled):hover {
+  transform: translateY(-2px);
+}
+
+.report-svg-day { cursor: pointer; }
+
+.report-svg-day:hover .report-bar-revenue,
+.report-svg-day.is-selected .report-bar-revenue {
+  filter: drop-shadow(0 0 5px #6c9ee8);
+}
+
+.report-svg-day:hover .report-bar-profit,
+.report-svg-day.is-selected .report-bar-profit {
+  filter: drop-shadow(0 0 5px #20b779);
+}
+
+.report-svg-day:hover .report-bar-damage,
+.report-svg-day.is-selected .report-bar-damage {
+  filter: drop-shadow(0 0 5px #e0a43b);
+}
+
+.report-earnings-panel .analytics-panel-heading .d-flex > span i {
+  transition: filter .2s ease, transform .2s ease;
+}
+
+.report-earnings-panel .analytics-panel-heading .d-flex > span:hover i {
+  filter: drop-shadow(0 0 5px currentColor);
+  transform: scale(1.12);
+}
+
+.sales-trend-chart .sales-chart-line {
+  filter: drop-shadow(0 0 4px #6c9ee8);
+}
+
+.sales-trend-chart .sales-chart-dot {
+  filter: drop-shadow(0 0 5px #6c9ee8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-main button,
+  .app-main .btn,
+  .app-main a[href],
+  .app-sidebar-desktop .app-nav-link,
+  .app-mobile-bottom-nav .app-nav-link {
+    transition: none !important;
+  }
+}
