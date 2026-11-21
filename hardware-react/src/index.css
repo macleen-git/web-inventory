@@ -494,3 +494,79 @@ button { cursor: pointer; }
     min-height: 54px;
   }
 }
+
+
+.floating-calculator-modal {
+  width: min(340px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  padding: 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.floating-calculator-modal .floating-calculator-header {
+  padding: 0 2px 8px;
+  font-size: .9rem;
+}
+
+.floating-calculator-modal .floating-calculator-display-wrap {
+  padding: 7px 3px 8px;
+  margin-bottom: 9px;
+}
+
+.floating-calculator-modal .floating-calculator-expression {
+  min-height: 30px;
+  font-size: clamp(22px, 6vw, 28px);
+}
+
+.floating-calculator-modal .floating-calculator-display {
+  min-height: 43px;
+  margin-bottom: 0;
+  padding: 3px 8px;
+  font-size: clamp(30px, 8vw, 36px);
+}
+
+.floating-calculator-modal .floating-calculator-keys {
+  gap: 6px;
+}
+
+.floating-calculator-modal .floating-calculator-keys button {
+  min-height: 46px;
+  border-radius: 10px;
+  font-size: 20px;
+}
+
+.floating-calculator-modal .floating-calculator-history {
+  margin-top: 9px;
+}
+
+.floating-calculator-modal .floating-calculator-history-heading {
+  margin-bottom: 5px;
+  font-size: .78rem;
+}
+
+.floating-calculator-modal .floating-calculator-history-empty {
+  margin: 0;
+  font-size: .72rem;
+}
+
+.floating-calculator-modal .floating-calculator-history-list {
+  max-height: 76px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.floating-calculator-modal .floating-calculator-history-item {
+  padding: 5px 7px;
+  font-size: .75rem;
+}
+
+@media (max-width: 575.98px) {
+  .floating-calculator-modal {
+    width: min(340px, calc(100vw - 24px));
+    padding: 11px;
+  }
+  .floating-calculator-modal .floating-calculator-keys button {
+    min-height: 44px;
+  }
+}
