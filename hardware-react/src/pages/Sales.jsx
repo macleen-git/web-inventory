@@ -12,14 +12,12 @@ export default function Sales() {
   const [productSearch, setProductSearch] = useState('')
   const [showProductSuggestions, setShowProductSuggestions] = useState(false)
 
-  // ADD SALE
   const [product, setProduct] = useState('')
   const [quantity, setQuantity] = useState('')
   const [date, setDate] = useState('')
   const [amount, setAmount] = useState('')
   const [note, setNote] = useState('')
 
-  // EDIT SALE
   const [editID, setEditID] = useState('')
   const [editProduct, setEditProduct] = useState('')
   const [editQuantity, setEditQuantity] = useState('')
@@ -27,7 +25,6 @@ export default function Sales() {
   const [editAmount, setEditAmount] = useState('')
   const [editNote, setEditNote] = useState('')
 
-  // MODALS
   const [showAddSale, setShowAddSale] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [confirmation, setConfirmation] = useState(null)
@@ -35,12 +32,8 @@ export default function Sales() {
 
   const [success, setSuccess] = useState(null)
 
-  // SEARCH
   const [search, setSearch] = useState('')
 
-  // =========================
-  // GET SALES
-  // =========================
   useEffect(() => {
     async function loadSales() {
       try {
@@ -126,9 +119,6 @@ export default function Sales() {
     setShowProductSuggestions(false)
   }
 
-  // =========================
-  // SEARCH
-  // =========================
   const filteredSales = sales.filter((item) => {
     const term = search.trim().toLowerCase()
 
@@ -146,9 +136,6 @@ export default function Sales() {
     )
   })
 
-  // =========================
-  // ADD SALE - POST
-  // =========================
   async function formSubmit(event) {
     event.preventDefault()
 
@@ -187,7 +174,6 @@ export default function Sales() {
         throw new Error(data.message || 'Failed to record sale')
       }
 
-      // Add the returned record when the server provides it.
       if (data.id !== undefined) {
         setSales((previous) => [...previous, data])
       } else {
@@ -213,9 +199,6 @@ export default function Sales() {
     }
   }
 
-  // =========================
-  // OPEN EDIT MODAL
-  // =========================
   function openEditModal(item) {
     setEditID(item.id)
     setEditProduct(item.product ?? '')
@@ -226,9 +209,6 @@ export default function Sales() {
     setIsModalOpen(true)
   }
 
-  // =========================
-  // UPDATE - ASK CONFIRMATION
-  // =========================
   function handleUpdate(event) {
     event.preventDefault()
 
@@ -247,9 +227,6 @@ export default function Sales() {
     })
   }
 
-  // =========================
-  // UPDATE - PUT
-  // =========================
   async function performUpdate() {
     const response = await apiFetch(`${api_url}/${editID}`, {
       method: 'PUT',
@@ -297,9 +274,6 @@ export default function Sales() {
     closeEditModal()
   }
 
-  // =========================
-  // DELETE - ASK CONFIRMATION
-  // =========================
   function handleDelete(id) {
     const item = sales.find(
       (sale) => Number(sale.id) === Number(id)
@@ -316,9 +290,6 @@ export default function Sales() {
     })
   }
 
-  // =========================
-  // DELETE - DELETE REQUEST
-  // =========================
   async function performDelete(id) {
     const response = await apiFetch(`${api_url}/${id}`, {
       method: 'DELETE'
@@ -346,9 +317,6 @@ export default function Sales() {
     )
   }
 
-  // =========================
-  // CONFIRM PENDING ACTION
-  // =========================
   async function confirmPendingAction() {
     if (!confirmation || isConfirming) return
 
@@ -370,9 +338,6 @@ export default function Sales() {
     }
   }
 
-  // =========================
-  // CLOSE ADD MODAL
-  // =========================
   function closeAddModal() {
     setShowAddSale(false)
     setProduct('')
@@ -384,9 +349,6 @@ export default function Sales() {
     setNote('')
   }
 
-  // =========================
-  // CLOSE EDIT MODAL
-  // =========================
   function closeEditModal() {
     if (isConfirming) return
 
@@ -407,7 +369,6 @@ export default function Sales() {
       <div className="app-main bg-dark-subtle min-vh-100">
         <div className="p-3 p-md-4" id="mainContent">
 
-          {/* PAGE HEADER */}
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
             <div>
               <h1 className="fw-bold">Sales / Stock Out</h1>
@@ -428,7 +389,6 @@ export default function Sales() {
             </div>
           </div>
 
-          {/* SEARCH */}
           <div className="row g-2 mb-3">
             <div className="col-12 col-md-6">
               <input
@@ -447,7 +407,6 @@ export default function Sales() {
             </div>
           </div>
 
-          {/* SALES TABLE */}
           <div className="bg-white p-3 rounded shadow-sm">
             <div className="table-responsive">
               <table className="table table-hover align-middle mb-0">
@@ -519,9 +478,6 @@ export default function Sales() {
         </div>
       </div>
 
-      {/* =========================
-          ADD SALE MODAL
-      ========================= */}
       {showAddSale && (
         <div
           className="d-flex align-items-center justify-content-center p-3"
@@ -719,9 +675,6 @@ export default function Sales() {
         </div>
       )}
 
-      {/* =========================
-          EDIT SALE MODAL
-      ========================= */}
       {isModalOpen && (
         <div
           className="d-flex align-items-center justify-content-center p-3"
@@ -883,9 +836,6 @@ export default function Sales() {
         </div>
       )}
 
-      {/* =========================
-          CUSTOM CONFIRMATION MODAL
-      ========================= */}
       {confirmation && (
         <div
           className="d-flex align-items-center justify-content-center p-3"
