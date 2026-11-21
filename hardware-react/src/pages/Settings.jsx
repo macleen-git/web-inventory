@@ -43,19 +43,30 @@ function Settings() {
     apiFetch(API_URL('/api/settings/' + encodeURIComponent(user.uid)))
       .then(async response => {
         const data = await response.json()
-        if (!response.ok) throw new Error(data.message || 'Unable to load store settings.')
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Unable to load store settings.')
+        }
+
         setStoreName(data.storeName || 'Hardware Store')
         setOwnerName(data.ownerName || '')
         setCurrency(data.currency || '₱')
       })
-      .catch(error => setStoreMessage({ type: 'danger', text: error.message }))
-      .finally(() => setLoading(false))
+      .catch(error => {
+        setStoreMessage({ type: 'danger', text: error.message })
+      })
+      .finally(() => {
+        setLoading(false)
+      })
   }, [])
 
   async function saveSettings(event) {
     event.preventDefault()
     const user = auth.currentUser
-    if (!user) return setStoreMessage({ type: 'danger', text: 'Please sign in again.' })
+    if (!user) {
+      return setStoreMessage({ type: 'danger', text: 'Please sign in again.' })
+    }
+
     setSaving(true)
     setStoreMessage({ type: '', text: '' })
     try {
@@ -65,7 +76,9 @@ function Settings() {
         body: JSON.stringify({ storeName, ownerName, currency }),
       })
       const data = await response.json()
-      if (!response.ok) throw new Error(data.message || 'Unable to save settings.')
+      if (!response.ok) {
+        throw new Error(data.message || 'Unable to save settings.')
+      }
       setStoreMessage({ type: 'success', text: 'Store information saved successfully.' })
     } catch (error) {
       setStoreMessage({ type: 'danger', text: error.message || 'Unable to save settings.' })
@@ -76,7 +89,10 @@ function Settings() {
 
   async function resetInventory(event) {
     event.preventDefault()
-    if (resetConfirmation !== 'RESET INVENTORY') return
+    if (resetConfirmation !== 'RESET INVENTORY') {
+      return
+    }
+
     setResetting(true)
     setResetMessage({ type: '', text: '' })
     try {
@@ -86,7 +102,9 @@ function Settings() {
         body: JSON.stringify({ confirmation: resetConfirmation }),
       })
       const data = await response.json()
-      if (!response.ok) throw new Error(data.message || 'Unable to reset inventory.')
+      if (!response.ok) {
+        throw new Error(data.message || 'Unable to reset inventory.')
+      }
       setResetMessage({ type: 'success', text: 'Your inventory records were moved to Recently Deleted. You can restore them within 30 days. Your account and Store Information were preserved.' })
       setResetConfirmation('')
       setShowResetModal(false)
@@ -99,9 +117,16 @@ function Settings() {
 
   async function reauthenticate(user, password) {
     const providers = user.providerData.map(item => item.providerId)
+
     if (providers.includes('password')) {
-      if (!password) throw new Error('Enter your current password.')
-      await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password))
+      if (!password) {
+        throw new Error('Enter your current password.')
+      }
+
+      await reauthenticateWithCredential(
+        user,
+        EmailAuthProvider.credential(user.email, password)
+      )
     } else if (providers.includes('google.com')) {
       await reauthenticateWithPopup(user, googleProvider)
     } else {
@@ -113,13 +138,21 @@ function Settings() {
     event.preventDefault()
     const user = auth.currentUser
     setEmailMessage({ type: '', text: '' })
-    if (!user) return setEmailMessage({ type: 'danger', text: 'Please sign in again.' })
-    if (currentEmail.trim().toLowerCase() !== (user.email || '').toLowerCase()) {
-      return setEmailMessage({ type: 'danger', text: 'Current email does not match your signed-in account.' })
+    if (!user) {
+      return setEmailMessage({ type: 'danger', text: 'Please sign in again.' })
     }
+
+    if (currentEmail.trim().toLowerCase() !== (user.email || '').toLowerCase()) {
+      return setEmailMessage({
+        type: 'danger',
+        text: 'Current email does not match your signed-in account.',
+      })
+    }
+
     if (!newEmail.trim() || newEmail.trim().toLowerCase() === (user.email || '').toLowerCase()) {
       return setEmailMessage({ type: 'danger', text: 'Enter a different email address.' })
     }
+
     setChangingEmail(true)
     try {
       await reauthenticate(user, emailPassword)
@@ -138,9 +171,24 @@ function Settings() {
     event.preventDefault()
     const user = auth.currentUser
     setPasswordMessage({ type: '', text: '' })
-    if (!user) return setPasswordMessage({ type: 'danger', text: 'Please sign in again.' })
-    if (newPassword.length < 6) return setPasswordMessage({ type: 'danger', text: 'New password must be at least 6 characters.' })
-    if (newPassword !== confirmPassword) return setPasswordMessage({ type: 'danger', text: 'New password and confirmation do not match.' })
+    if (!user) {
+      return setPasswordMessage({ type: 'danger', text: 'Please sign in again.' })
+    }
+
+    if (newPassword.length < 6) {
+      return setPasswordMessage({
+        type: 'danger',
+        text: 'New password must be at least 6 characters.',
+      })
+    }
+
+    if (newPassword !== confirmPassword) {
+      return setPasswordMessage({
+        type: 'danger',
+        text: 'New password and confirmation do not match.',
+      })
+    }
+
     setChangingPassword(true)
     try {
       await reauthenticate(user, currentPassword)
@@ -156,8 +204,16 @@ function Settings() {
     }
   }
 
-  const message = item => item.text ? <div className={'alert alert-' + item.type + ' mt-3 mb-0'} role="alert">{item.text}</div> : null
-  const usesPassword = auth.currentUser?.providerData.some(item => item.providerId === 'password')
+  const message = item =>
+    item.text ? (
+      <div className={'alert alert-' + item.type + ' mt-3 mb-0'} role="alert">
+        {item.text}
+      </div>
+    ) : null
+
+  const usesPassword = auth.currentUser?.providerData.some(
+    item => item.providerId === 'password'
+  )
 
   return (
     <div className="app-layout">
