@@ -3,9 +3,6 @@ import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
 import { API_URL, apiFetch } from '../config/api'
 
-// =========================
-// SMART SEARCH FUNCTION
-// =========================
 function getWordDistance(first, second) {
   const rows = second.length + 1
   const columns = first.length + 1
@@ -39,9 +36,6 @@ function getWordDistance(first, second) {
   return table[rows - 1][columns - 1]
 }
 
-// =========================
-// CHECK PRODUCT STATUS
-// =========================
 function getProductStatus(stock) {
   if (Number(stock) <= 0) {
     return 'Out of Stock'
@@ -73,21 +67,16 @@ export default function Inventory() {
   const [showAddProduct, setShowAddProduct] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  // CONFIRMATION MODAL STATES
   const [confirmation, setConfirmation] = useState(null)
   const [isConfirming, setIsConfirming] = useState(false)
 
   const [success, setSuccess] = useState(null)
 
-  // SEARCH AND FILTER STATES
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('All Status')
 
   const api_url = API_URL('/api/product')
 
-  // =========================
-  // GET PRODUCTS
-  // =========================
   useEffect(() => {
     apiFetch(api_url)
       .then((response) => {
@@ -105,9 +94,6 @@ export default function Inventory() {
       })
   }, [])
 
-  // =========================
-  // FILTER AND SMART SEARCH
-  // =========================
   const filteredProducts = products.filter((item) => {
     const search = searchTerm.trim().toLowerCase()
 
@@ -171,9 +157,6 @@ export default function Inventory() {
     return matchesSearch && matchesStatus
   })
 
-  // =========================
-  // ADD PRODUCT - POST
-  // =========================
   async function formAddProduct(event) {
     event.preventDefault()
 
@@ -224,12 +207,6 @@ export default function Inventory() {
     }
   }
 
-  // =========================
-  // UPDATE PRODUCT - PUT
-  // =========================
-
-  // Show confirmation first.
-  // The PUT request runs only after confirmation.
   function handleUpdate(event) {
     event.preventDefault()
 
@@ -248,7 +225,6 @@ export default function Inventory() {
     })
   }
 
-  // Perform the actual update after confirmation.
   async function performUpdate() {
     if (!editID) {
       throw new Error('No product selected')
@@ -285,12 +261,6 @@ export default function Inventory() {
     setIsModalOpen(false)
   }
 
-  // =========================
-  // DELETE PRODUCT - DELETE
-  // =========================
-
-  // Show confirmation first.
-  // The DELETE request runs only after confirmation.
   function handleDelete(id) {
     const item = products.find(
       (product) => Number(product.id) === Number(id)
@@ -306,7 +276,6 @@ export default function Inventory() {
     })
   }
 
-  // Perform the actual deletion after confirmation.
   async function performDelete(id) {
     const response = await apiFetch(`${api_url}/${id}`, {
       method: 'DELETE'
@@ -325,9 +294,6 @@ export default function Inventory() {
     )
   }
 
-  // =========================
-  // CONFIRM PENDING ACTION
-  // =========================
   async function confirmPendingAction() {
     if (!confirmation || isConfirming) return
 
@@ -349,9 +315,6 @@ export default function Inventory() {
     }
   }
 
-  // =========================
-  // OPEN EDIT MODAL
-  // =========================
   function openEditModal(item) {
     setEditID(item.id)
     setEditProduct(item.product)
@@ -363,9 +326,6 @@ export default function Inventory() {
     setIsModalOpen(true)
   }
 
-  // =========================
-  // CLOSE EDIT MODAL
-  // =========================
   function closeEditModal() {
     setIsModalOpen(false)
 
@@ -377,9 +337,6 @@ export default function Inventory() {
     setEditStock('')
   }
 
-  // =========================
-  // CLOSE ADD MODAL
-  // =========================
   function closeAddModal() {
     setShowAddProduct(false)
   }
@@ -399,7 +356,6 @@ export default function Inventory() {
             Displays all the products in your store
           </p>
 
-          {/* SEARCH, STATUS FILTER, AND ADD BUTTON */}
           <div className="row g-2 mb-3 align-items-center">
             <div className="col-12 col-md-6">
               <input
@@ -435,7 +391,6 @@ export default function Inventory() {
             </div>
           </div>
 
-          {/* INVENTORY TABLE */}
           <div className="bg-white p-3 rounded shadow-sm">
             <div className="d-flex justify-content-between align-items-center mb-3">
               <span className="text-muted">
@@ -543,7 +498,6 @@ export default function Inventory() {
             </div>
           </div>
 
-          {/* EDIT PRODUCT MODAL */}
           {isModalOpen && (
             <div
               className="modal show d-flex"
@@ -701,7 +655,6 @@ export default function Inventory() {
             </div>
           )}
 
-          {/* ADD PRODUCT MODAL */}
           {showAddProduct && (
             <div
               className="modal show d-flex"
@@ -850,7 +803,6 @@ export default function Inventory() {
             </div>
           )}
 
-          {/* CUSTOM CONFIRMATION MODAL */}
           {confirmation && (
             <div
               className="d-flex align-items-center justify-content-center p-3"
