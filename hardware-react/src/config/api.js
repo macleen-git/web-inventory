@@ -7,7 +7,6 @@ export const API_URL = (path = "") => {
   return normalizedPath ? `${API_BASE_URL}/${normalizedPath}` : API_BASE_URL;
 };
 
-// Attach the current Firebase ID token to every protected API request.
 export async function apiFetch(url, options = {}) {
   const currentUser = auth.currentUser
   if (!currentUser) {
