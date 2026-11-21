@@ -11,29 +11,24 @@ export default function StockIn() {
   const [products, setProducts] = useState([])
   const [showProductNotFound, setShowProductNotFound] = useState(false)
 
-  // ADD STOCK FORM
   const [product, setProduct] = useState('')
   const [showProductSuggestions, setShowProductSuggestions] = useState(false)
   const [quantity, setQuantity] = useState('')
   const [date, setDate] = useState('')
   const [note, setNote] = useState('')
 
-  // EDIT STOCK FORM
   const [editID, setEditID] = useState('')
   const [editProduct, setEditProduct] = useState('')
   const [editQuantity, setEditQuantity] = useState('')
   const [editDate, setEditDate] = useState('')
   const [editNote, setEditNote] = useState('')
 
-  // SEARCH AND FILTER
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('All Stock In')
 
-  // FORM MODALS
   const [showAddStock, setShowAddStock] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  // CONFIRMATION MODAL
   const [confirmation, setConfirmation] = useState(null)
   const [isConfirming, setIsConfirming] = useState(false)
 
@@ -42,9 +37,6 @@ export default function StockIn() {
   const api_url = API_URL('/api/stock-in')
   const productsApiUrl = API_URL('/api/product')
 
-  // =========================
-  // GET STOCK-IN RECORDS
-  // =========================
   async function loadStockIns() {
     const response = await apiFetch(api_url)
 
@@ -77,7 +69,6 @@ export default function StockIn() {
       })
   }, [])
 
-  // ADD STOCK PRODUCT AUTOCOMPLETE (same matching behavior as Add Sale)
   function editDistance(a, b) {
     const left = a.toLowerCase()
     const right = b.toLowerCase()
@@ -126,9 +117,6 @@ export default function StockIn() {
     setShowProductSuggestions(false)
   }
 
-  // =========================
-  // SEARCH AND FILTER
-  // =========================
   const filteredStockIns = stockIns
     .filter((item) => {
       const searchText = search.toLowerCase().trim()
@@ -183,9 +171,6 @@ export default function StockIn() {
       return true
     })
 
-  // =========================
-  // ADD STOCK - POST
-  // =========================
   async function formAddStock(event) {
     event.preventDefault()
 
@@ -241,9 +226,6 @@ export default function StockIn() {
     }
   }
 
-  // =========================
-  // OPEN EDIT MODAL
-  // =========================
   function openEditModal(item) {
     setEditID(item.id)
     setEditProduct(item.product || '')
@@ -253,9 +235,6 @@ export default function StockIn() {
     setIsModalOpen(true)
   }
 
-  // =========================
-  // CLOSE EDIT MODAL
-  // =========================
   function closeEditModal() {
     if (isConfirming) return
 
@@ -267,9 +246,6 @@ export default function StockIn() {
     setEditNote('')
   }
 
-  // =========================
-  // CLOSE ADD MODAL
-  // =========================
   function closeAddModal() {
     setShowAddStock(false)
     setProduct('')
@@ -279,9 +255,6 @@ export default function StockIn() {
     setNote('')
   }
 
-  // =========================
-  // UPDATE - REQUEST CONFIRMATION
-  // =========================
   function handleUpdate(event) {
     event.preventDefault()
 
@@ -300,9 +273,6 @@ export default function StockIn() {
     })
   }
 
-  // =========================
-  // UPDATE - PUT
-  // =========================
   async function performUpdate() {
     const response = await apiFetch(`${api_url}/${editID}`, {
       method: 'PUT',
@@ -337,9 +307,6 @@ export default function StockIn() {
     setEditNote('')
   }
 
-  // =========================
-  // DELETE - REQUEST CONFIRMATION
-  // =========================
   function handleDelete(id) {
     const item = stockIns.find(
       (record) => Number(record.id) === Number(id)
@@ -355,15 +322,11 @@ export default function StockIn() {
     })
   }
 
-  // =========================
-  // DELETE - DELETE REQUEST
-  // =========================
   async function performDelete(id) {
     const response = await apiFetch(`${api_url}/${id}`, {
       method: 'DELETE'
     })
 
-    // Some APIs return JSON; others return an empty response.
     const responseText = await response.text()
     let data = {}
 
@@ -384,9 +347,6 @@ export default function StockIn() {
     )
   }
 
-  // =========================
-  // CONFIRM PENDING ACTION
-  // =========================
   async function confirmPendingAction() {
     if (!confirmation || isConfirming) return
 
@@ -421,7 +381,6 @@ export default function StockIn() {
 
           <p>Record and manage new stock arriving from suppliers.</p>
 
-          {/* SEARCH, FILTER, ADD */}
           <div className="row g-2 mb-3 align-items-center">
             <div className="col-12 col-md-6">
               <input
@@ -456,7 +415,6 @@ export default function StockIn() {
             </div>
           </div>
 
-          {/* STOCK-IN TABLE */}
           <div className="bg-white p-3 rounded shadow-sm">
             <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
               <h5 className="mb-0">
@@ -527,9 +485,6 @@ export default function StockIn() {
             </div>
           </div>
 
-          {/* =========================
-              EDIT STOCK-IN MODAL
-          ========================= */}
           {isModalOpen && (
             <div
               className="d-flex align-items-center justify-content-center p-3"
@@ -677,9 +632,6 @@ export default function StockIn() {
             </div>
           )}
 
-          {/* =========================
-              ADD STOCK-IN MODAL
-          ========================= */}
           {showAddStock && (
             <div
               className="d-flex align-items-center justify-content-center p-3"
@@ -856,7 +808,6 @@ export default function StockIn() {
             </div>
           )}
 
-          {/* PRODUCT NOT FOUND MODAL */}
           {showProductNotFound && (
             <div
               className="d-flex align-items-center justify-content-center p-3"
@@ -941,9 +892,6 @@ export default function StockIn() {
             </div>
           )}
 
-          {/* =========================
-              CUSTOM CONFIRMATION MODAL
-          ========================= */}
           {confirmation && (
             <div
               className="d-flex align-items-center justify-content-center p-3"
