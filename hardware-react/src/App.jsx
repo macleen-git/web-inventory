@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 import {
   BrowserRouter,
@@ -35,12 +34,10 @@ import { API_URL } from './config/api'
 
 import './App.css'
 
-
 function isAdminRole(role) {
   return role === 'admin' || role === 'superadmin'
 }
 
-// Wake the Render service with a health request and wait for every required dependency.
 async function waitForBackendReady(setMessage) {
   const maxWaitMs = 5 * 60 * 1000
   const startedAt = Date.now()
@@ -100,7 +97,6 @@ async function waitForBackendReady(setMessage) {
   throw new Error('The backend did not become ready within 5 minutes. ' + lastError + ' Please try again.')
 }
 
-// Prevent account verification from leaving the app on an endless loading screen.
 async function syncAccountWithBackend(currentUser, forceRefresh = false) {
   const controller = new AbortController()
   const timeoutId = window.setTimeout(() => controller.abort(), 15000)
@@ -186,7 +182,6 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
       </div>
     )}
     <Routes>
-      {/* LANDING PAGE */}
       <Route
         path="/"
         element={
@@ -203,7 +198,6 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         }
       />
 
-      {/* LOGIN */}
       <Route
         path="/login"
         element={
@@ -221,7 +215,6 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         }
       />
 
-      {/* SIGN UP */}
       <Route
         path="/signup"
         element={
@@ -235,7 +228,6 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         }
       />
 
-      {/* USER DASHBOARD */}
       <Route
         path="/dashboard"
         element={
@@ -247,7 +239,6 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         }
       />
 
-      {/* INVENTORY */}
       <Route
         path="/inventory"
         element={
@@ -259,7 +250,6 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         }
       />
 
-      {/* STOCK IN */}
       <Route
         path="/stock-in"
         element={
@@ -271,7 +261,6 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         }
       />
 
-      {/* SALES */}
       <Route
         path="/sales"
         element={
@@ -283,7 +272,6 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         }
       />
 
-      {/* DAMAGED ITEMS */}
       <Route
         path="/damaged-items"
         element={
@@ -295,7 +283,6 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         }
       />
 
-      {/* REPORTS */}
       <Route
         path="/reports"
         element={
@@ -307,7 +294,6 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         }
       />
 
-      {/* TRANSACTIONS */}
       <Route
         path="/transactions"
         element={
@@ -319,7 +305,6 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         }
       />
 
-      {/* RECENTLY DELETED */}
       <Route
         path="/recently-deleted"
         element={
@@ -331,7 +316,6 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         }
       />
 
-      {/* SETTINGS */}
       <Route
         path="/settings"
         element={
@@ -343,7 +327,6 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         }
       />
 
-      {/* ADMIN */}
       <Route
         path="/admin"
         element={
@@ -355,7 +338,6 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
         }
       />
 
-      {/* UNKNOWN ROUTES */}
       <Route
         path="*"
         element={
@@ -377,7 +359,6 @@ function AppRoutes({ user, role, handleLogin, handleLogout }) {
   )
 }
 
-
 function App() {
   const [user, setUser] = useState(null)
   const [role, setRole] = useState(null)
@@ -391,8 +372,6 @@ function App() {
       async (currentUser) => {
         setAuthError('')
 
-        // Public pages must remain available when the API is sleeping or offline.
-        // Only a signed-in account needs the backend for MySQL role/status verification.
         if (!currentUser) {
           setUser(null)
           setRole(null)
@@ -407,7 +386,6 @@ function App() {
         try {
           await waitForBackendReady(setLoadingMessage)
 
-          // MySQL remains the source of truth for roles and account status.
           const syncData = await syncAccountWithBackend(currentUser)
           if (['user', 'admin', 'superadmin'].includes(syncData.role) && syncData.status !== 'inactive') {
             setRole(syncData.role)
@@ -428,8 +406,6 @@ function App() {
   }, [])
 
   const handleLogin = async () => {
-    // The Login component handles email and Google authentication.
-    // Firebase's auth-state listener handles the resulting navigation.
   }
 
   const handleLogout = async () => {
@@ -442,7 +418,6 @@ function App() {
     }
   }
 
-  // Retain this handler if your existing app uses it elsewhere.
   const handleGoogleLogin = async () => {
     try {
       await signInWithPopup(auth, googleProvider)
