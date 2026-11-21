@@ -195,11 +195,11 @@ button { cursor: pointer; }
 }
 
 
-/* Improve yellow hover contrast for the 7 Days button in light mode */
+/* Refine the 7 Days hover to a brighter, warm golden yellow in light mode */
 :root:not([data-theme="dark"]) .app-main .analytics-trend-periods button:hover,
 :root:not([data-theme="dark"]) .app-main .analytics-trend-periods button:focus-visible {
-  color: #8a6500 !important;
-  background: rgba(255, 196, 0, .22) !important;
-  border-color: #e0a800 !important;
-  box-shadow: 0 0 8px rgba(224, 168, 0, .42), 0 0 16px rgba(224, 168, 0, .24) !important;
+  color: #9a6500 !important;
+  background: linear-gradient(135deg, rgba(255, 204, 51, .30), rgba(255, 180, 0, .18)) !important;
+  border-color: #f0b400 !important;
+  box-shadow: 0 0 7px rgba(255, 190, 0, .48), 0 0 15px rgba(255, 190, 0, .28) !important;
 }
