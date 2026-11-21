@@ -3,56 +3,116 @@ import Sidebar from '../components/Sidebar'
 import { API_URL, apiFetch } from '../config/api'
 
 const PERIODS = ['Today', '7 Days', '30 Days', '90 Days', 'All Time']
-const money = value => '₱' + (Number(value) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const money = value =>
+  '₱' +
+  (Number(value) || 0).toLocaleString('en-PH', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+
 const quantity = item => Number(item.quantity) || 0
 const dateKey = value => {
   if (!value) return ''
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
-  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-')
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-')
 }
 const inPeriod = (value, period) => {
   if (period === 'All Time') return true
   const date = new Date(value)
   if (!value || Number.isNaN(date.getTime())) return false
-  const today = new Date(), start = new Date(today)
-  start.setHours(0,0,0,0)
-  start.setDate(start.getDate() - (period === 'Today' ? 0 : period === '7 Days' ? 6 : period === '30 Days' ? 29 : 89))
+  const today = new Date()
+  const start = new Date(today)
+
+  start.setHours(0, 0, 0, 0)
+  start.setDate(
+    start.getDate() -
+      (period === 'Today' ? 0 : period === '7 Days' ? 6 : period === '30 Days' ? 29 : 89)
+  )
+
   return date >= start && date <= today
 }
 
 export default function Reports() {
-  const [sales,setSales] = useState([]), [stockIns,setStockIns] = useState([]), [damaged,setDamaged] = useState([])
-  const [period,setPeriod] = useState(() => window.localStorage.getItem('hardware-reports-period') || '7 Days')
-  const [loading,setLoading] = useState(true), [error,setError] = useState(''), [selectedDate,setSelectedDate] = useState('')
-  useEffect(() => { window.localStorage.setItem('hardware-reports-period',period) },[period])
+  const [sales, setSales] = useState([])
+  const [stockIns, setStockIns] = useState([])
+  const [damaged, setDamaged] = useState([])
+  const [period, setPeriod] = useState(
+    () => window.localStorage.getItem('hardware-reports-period') || '7 Days'
+  )
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [selectedDate, setSelectedDate] = useState('')
   useEffect(() => {
-    let active=true
-    async function load(){
-      setLoading(true);setError('')
+    window.localStorage.setItem('hardware-reports-period', period)
+  }, [period])
+  useEffect(() => {
+    let active = true
+
+    async function load() {
+      setLoading(true)
+      setError('')
       try{
-        const paths=['/api/sales','/api/stock-in','/api/damaged']
-        const responses=await Promise.all(paths.map(path=>apiFetch(API_URL(path))))
-        const failed=responses.find(response=>!response.ok)
-        if(failed) throw new Error(`Unable to load reports (HTTP ${failed.status}).`)
-        const values=await Promise.all(responses.map(response=>response.json()))
-        if(!active)return
-        setSales(Array.isArray(values[0])?values[0]:[])
-        setStockIns(Array.isArray(values[1])?values[1]:[])
-        setDamaged(Array.isArray(values[2])?values[2]:[])
-      }catch(err){if(active)setError(err.message||'Unable to load reports.')}
-      finally{if(active)setLoading(false)}
+        const paths = ['/api/sales', '/api/stock-in', '/api/damaged']
+        const responses = await Promise.all(paths.map(path => apiFetch(API_URL(path))))
+        const failed = responses.find(response => !response.ok)
+
+        if (failed) {
+          throw new Error(`Unable to load reports (HTTP ${failed.status}).`)
+        }
+
+        const values = await Promise.all(responses.map(response => response.json()))
+
+        if (!active) {
+          return
+        }
+
+        setSales(Array.isArray(values[0]) ? values[0] : [])
+        setStockIns(Array.isArray(values[1]) ? values[1] : [])
+        setDamaged(Array.isArray(values[2]) ? values[2] : [])
+      } catch (err) {
+        if (active) {
+          setError(err.message || 'Unable to load reports.')
+        }
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
     }
-    load();return()=>{active=false}
+
+    load()
+
+    return () => {
+      active = false
+    }
   },[])
-  const filteredSales=useMemo(()=>sales.filter(x=>inPeriod(x.date,period)),[sales,period])
-  const filteredStockIns=useMemo(()=>stockIns.filter(x=>inPeriod(x.date,period)),[stockIns,period])
-  const filteredDamaged=useMemo(()=>damaged.filter(x=>inPeriod(x.date,period)),[damaged,period])
-  const revenue=x=>Number(x.amount)||0, profit=x=>Number(x.profit)||0
-  const totalRevenue=filteredSales.reduce((s,x)=>s+revenue(x),0)
-  const grossProfit=filteredSales.reduce((s,x)=>s+profit(x),0)
-  const damageLoss=filteredDamaged.reduce((s,x)=>s+(Number(x.loss)||quantity(x)*(Number(x.unitCost)||0)),0)
-  const netProfit=grossProfit-damageLoss
+  const filteredSales = useMemo(
+    () => sales.filter(item => inPeriod(item.date, period)),
+    [sales, period]
+  )
+  const filteredStockIns = useMemo(
+    () => stockIns.filter(item => inPeriod(item.date, period)),
+    [stockIns, period]
+  )
+  const filteredDamaged = useMemo(
+    () => damaged.filter(item => inPeriod(item.date, period)),
+    [damaged, period]
+  )
+
+  const revenue = item => Number(item.amount) || 0
+  const profit = item => Number(item.profit) || 0
+  const totalRevenue = filteredSales.reduce((sum, item) => sum + revenue(item), 0)
+  const grossProfit = filteredSales.reduce((sum, item) => sum + profit(item), 0)
+  const damageLoss = filteredDamaged.reduce(
+    (sum, item) => sum + (Number(item.loss) || quantity(item) * (Number(item.unitCost) || 0)),
+    0
+  )
+  const netProfit = grossProfit - damageLoss
   const daily=useMemo(()=>{
     const groups=new Map()
     const add=(value,type,item)=>{
@@ -66,8 +126,13 @@ export default function Reports() {
     filteredSales.forEach(x=>add(x.date,'sale',x));filteredDamaged.forEach(x=>add(x.date,'damage',x));filteredStockIns.forEach(x=>add(x.date,'stock',x))
     return [...groups.values()].sort((a,b)=>a.date.localeCompare(b.date))
   },[filteredSales,filteredDamaged,filteredStockIns])
-  const selected=daily.find(x=>x.date===selectedDate)
-  const dateLabel=x=>new Date(x+'T00:00:00').toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'})
+  const selected = daily.find(item => item.date === selectedDate)
+  const dateLabel = value =>
+    new Date(value + 'T00:00:00').toLocaleDateString('en-PH', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
   return <div className="app-layout"><Sidebar active="/reports"/><main className="app-main min-vh-100"><div className="reports-page-content" id="mainContent">
     <div className="reports-page-header d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4"><div><span className="analytics-kicker">HARDWARE TOOLS / ANALYTICS</span><h1 className="mb-1"><b>Reports</b></h1><p className="mb-0">Sales, profit, stock movement, and damaged-item losses.</p></div></div>
     {loading&&<div className="analytics-loading"><span className="spinner-border spinner-border-sm me-2"/>Loading reports…</div>}{error&&<div className="alert alert-danger">{error}</div>}

@@ -60,7 +60,6 @@ function Transactions() {
       maximumFractionDigits: 2,
     })
 
-    // Sales and stock-in are shown as positive amounts; damaged items are losses.
     return item.type === 'Damaged'
       ? `-₱${formatted}`
       : `₱${formatted}`

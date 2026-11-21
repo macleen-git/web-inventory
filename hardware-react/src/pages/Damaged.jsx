@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar'
 import { API_URL, apiFetch } from '../config/api'
@@ -27,13 +26,9 @@ function Damaged() {
   const [showAddDamaged, setShowAddDamaged] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  // Custom confirmation modal
   const [confirmation, setConfirmation] = useState(null)
   const [isConfirming, setIsConfirming] = useState(false)
 
-  // =========================
-  // GET DAMAGED ITEMS
-  // =========================
   async function loadDamagedItems() {
     try {
       const response = await apiFetch(api_url)
@@ -67,7 +62,6 @@ function Damaged() {
       })
   }, [])
 
-  // ADD DAMAGED PRODUCT AUTOCOMPLETE (matching Add Sale and Add Stock)
   function editDistance(a, b) {
     const left = a.toLowerCase()
     const right = b.toLowerCase()
@@ -116,16 +110,12 @@ function Damaged() {
     setShowProductSuggestions(false)
   }
 
-  // Calculate total damage loss using the selected product's buying price.
   const selectedDamagedProduct = products.find(
     (item) => String(item.product).toLowerCase() === product.trim().toLowerCase()
   )
   const buyingPrice = Number(selectedDamagedProduct?.buy) || 0
   const calculatedLoss = buyingPrice * (Number(quantity) || 0)
 
-  // =========================
-  // RESET ADD FORM
-  // =========================
   function resetAddForm() {
     setProduct('')
     setShowProductSuggestions(false)
@@ -135,17 +125,11 @@ function Damaged() {
     setReason('Broken during handling')
   }
 
-  // =========================
-  // CLOSE ADD MODAL
-  // =========================
   function closeAddModal() {
     setShowAddDamaged(false)
     resetAddForm()
   }
 
-  // =========================
-  // CLOSE EDIT MODAL
-  // =========================
   function closeEditModal() {
     if (isConfirming) return
 
@@ -158,9 +142,6 @@ function Damaged() {
     setEditReason('Broken during handling')
   }
 
-  // =========================
-  // ADD DAMAGED ITEM - POST
-  // =========================
   async function formSubmit(event) {
     event.preventDefault()
 
@@ -209,9 +190,6 @@ function Damaged() {
     }
   }
 
-  // =========================
-  // OPEN EDIT MODAL
-  // =========================
   function openEditModal(item) {
     setEditID(item.id)
     setEditProduct(item.product ?? '')
@@ -223,9 +201,6 @@ function Damaged() {
     setIsModalOpen(true)
   }
 
-  // =========================
-  // REQUEST UPDATE CONFIRMATION
-  // =========================
   function handleUpdate(event) {
     event.preventDefault()
 
@@ -244,9 +219,6 @@ function Damaged() {
     })
   }
 
-  // =========================
-  // EXECUTE UPDATE - PUT
-  // =========================
   async function performUpdate() {
     const response = await apiFetch(`${api_url}/${editID}`, {
       method: 'PUT',
@@ -298,9 +270,6 @@ function Damaged() {
     setEditReason('Broken during handling')
   }
 
-  // =========================
-  // REQUEST DELETE CONFIRMATION
-  // =========================
   function handleDelete(id) {
     const selectedItem = damagedItems.find(
       (item) => Number(item.id) === Number(id)
@@ -317,9 +286,6 @@ function Damaged() {
     })
   }
 
-  // =========================
-  // EXECUTE DELETE - DELETE
-  // =========================
   async function performDelete(id) {
     const response = await apiFetch(`${api_url}/${id}`, {
       method: 'DELETE'
@@ -349,9 +315,6 @@ function Damaged() {
     )
   }
 
-  // =========================
-  // CONFIRM ACTION
-  // =========================
   async function confirmPendingAction() {
     if (!confirmation || isConfirming) return
 
@@ -380,7 +343,6 @@ function Damaged() {
       <div className="app-main bg-dark-subtle min-vh-100">
         <div className="p-3 p-md-4" id="mainContent">
 
-          {/* PAGE HEADER */}
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
             <div>
               <h1 className="fw-bold">Damaged Items</h1>
@@ -402,7 +364,6 @@ function Damaged() {
             </button>
           </div>
 
-          {/* DAMAGED ITEMS TABLE */}
           <div className="bg-white p-3 rounded shadow-sm">
             <div className="table-responsive">
               <table className="table table-hover align-middle mb-0">
@@ -469,9 +430,6 @@ function Damaged() {
         </div>
       </div>
 
-      {/* =========================
-          ADD DAMAGED ITEM MODAL
-      ========================= */}
       {showAddDamaged && (
         <div
           className="d-flex align-items-center justify-content-center p-3"
@@ -656,9 +614,6 @@ function Damaged() {
         </div>
       )}
 
-      {/* =========================
-          EDIT DAMAGED ITEM MODAL
-      ========================= */}
       {isModalOpen && (
         <div
           className="d-flex align-items-center justify-content-center p-3"
@@ -807,9 +762,6 @@ function Damaged() {
         </div>
       )}
 
-      {/* =========================
-          CONFIRMATION MODAL
-      ========================= */}
       {confirmation && (
         <div
           className="d-flex align-items-center justify-content-center p-3"

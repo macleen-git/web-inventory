@@ -135,7 +135,6 @@ function Sidebar({ active, onLogout, admin = false }) {
 
   return (
     <>
-      {/* Desktop: resizable left sidebar */}
       <aside className={`app-sidebar app-sidebar-desktop${collapsed ? ' is-collapsed' : ''}`} style={{ width: `${width}px`, flexBasis: `${width}px` }}>
         <div className="app-sidebar-brand">
           {brand}
@@ -157,7 +156,6 @@ function Sidebar({ active, onLogout, admin = false }) {
         <div className="app-sidebar-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" title="Drag to resize sidebar" onPointerDown={(event) => { event.preventDefault(); setIsResizing(true) }} />
       </aside>
 
-      {/* Phones: compact header without a burger menu */}
       <header className="app-phone-header">
         {brand}
         <div className="app-phone-user" title={displayName}>
@@ -166,7 +164,6 @@ function Sidebar({ active, onLogout, admin = false }) {
         </div>
       </header>
 
-      {/* Phones: fixed bottom icon navigation */}
       <nav className="app-mobile-bottom-nav" aria-label="Mobile navigation">
         {links('mobile')}
         {themeButton('mobile')}
